@@ -30,11 +30,10 @@ def cli():
     eval_parser = subparsers.add_parser("eval")
 
     # Preprocess input data
+    prep_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints', required=True)
     prep_parser.add_argument('--dataset',
                              help='datasets to preprocess: nuscenes, nuscenes_teaser, nuscenes_mini, kitti',
                              default='nuscenes')
-    prep_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints',
-                             default='/data/lorenzo-data/nuscenes_new/annotations/scale_1_april_new')
     prep_parser.add_argument('--dir_nuscenes', help='directory of nuscenes devkit',
                              default='data/nuscenes/')
 
@@ -60,7 +59,7 @@ def cli():
     predict_parser.add_argument('--model', help='path of MonoLoco model to load',
                                 default="data/models/best_model__seed_2_.pickle")
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
-                                default='data/arrays/names-kitti-000.json')
+                                default='data/arrays/names-kitti-190513-1428.json')
     predict_parser.add_argument('--dir_calib', default='data/kitti/calib/', help='directory of calib_files')
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')
     predict_parser.add_argument('--draw_kps', help='to draw kps in the images', action='store_true')
@@ -91,9 +90,8 @@ def cli():
     # Evaluation
     eval_parser.add_argument('--dataset', help='datasets to evaluate, kitti or nuscenes', default='kitti')
     eval_parser.add_argument('--geometric',  help='to evaluate geometric distance', action='store_true')
-    eval_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints',
-                             default='/data/lorenzo-data/kitti/annotations/scale_2_april')
-    eval_parser.add_argument('--model', help='path of MonoLoco model to load')
+    eval_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints', required=True)
+    eval_parser.add_argument('--model', help='path of MonoLoco model to load', required=True)
     eval_parser.add_argument('--joints', help='Json file with input joints to evaluate (for nuscenes)',
                              default='data/arrays/joints-nuscenes_teaser-190513-1423.json')
     eval_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
@@ -102,7 +100,6 @@ def cli():
     eval_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
     eval_parser.add_argument('--n_stage', type=int, help='Number of stages in the model', default=3)
     eval_parser.add_argument('--show', help='whether to show eval statistics', action='store_true')
-    eval_parser.add_argument('--trial', help='just to test', action='store_true')
 
     args = parser.parse_args()
     return args

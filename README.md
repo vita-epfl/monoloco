@@ -45,7 +45,7 @@ Run the following to create the folders:
 ```
 mkdir data
 cd data
-mkdir arrays models data-kitti data-nuscenes logs
+mkdir arrays models kitti nuscenes logs
 ```
 
 ### Pre-trained Models
@@ -126,13 +126,13 @@ nuScenes or KITTI Dataset. To create the joints run: `python src/main.py prep` s
 dataset are supported: nuscenes_mini, nuscenes, nuscenes_teaser.
 
 ### Ground truth file for evaluation
-The preprocessing script also outputs a second json file called **names.json** which provide a dictionary indexed
+The preprocessing script also outputs a second json file called **names-<date-time>.json** which provide a dictionary indexed
 by the image name to easily access ground truth files for evaluation and prediction purposes.
 
 
 
 # Train
-Provide the json file containing the preprocess joints (**joints.json**) as argument. 
+Provide the json file containing the preprocess joints as argument. 
 
 As simple as `python3 src/main.py --train --joints 'data/arrays/joints.json`
 
