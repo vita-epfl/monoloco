@@ -140,6 +140,7 @@ class PreprocessNuscenes:
                             boxes_3d.append(box_3d)
                             self.dic_names[name]['boxes'].append(box)
                             self.dic_names[name]['dds'].append(dd)
+                            self.dic_names[name]['K'] = kk.tolist()
 
                     # Run IoU with pifpaf detections and save
                     path_pif = os.path.join(self.dir_ann, name + '.pifpaf.json')
@@ -156,15 +157,13 @@ class PreprocessNuscenes:
                             idx_max, iou_max = self.get_idx_max(box, boxes_gt)
 
                             if iou_max > self.iou_min:
-                                try:
-                                    self.dic_jo[phase]['kps'].append(uv_kps[ii])
-                                except TypeError:
-                                    aa = 4
+
+                                self.dic_jo[phase]['kps'].append(uv_kps[ii])
                                 self.dic_jo[phase]['X'].append(inputs[ii])
                                 self.dic_jo[phase]['Y'].append([dds[idx_max]])  # Trick to make it (nn,1)
                                 self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
                                 self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_max])
-                                self.dic_jo[phase]['K'].append(kk.tolist())
+                                self.dic_jo[phase]['K'] = kk.tolist()
                                 self.append_cluster(self.dic_jo, phase, inputs[ii], dds[idx_max], uv_kps[ii])
                                 boxes_gt.pop(idx_max)
                                 dds.pop(idx_max)
