@@ -112,7 +112,8 @@ data/kitti/images`
 Download nuScenes dataset (any version: Mini, Teaser or TrainVal) from [nuScenes](https://www.nuscenes.org/download), 
 save it anywhere and soft link it in `data/nuscenes`
 
-
+### 3) Train Val Splits
+Fo
 
 ### Input joints for training
 MonoLoco is trained using 2D human pose joints detected by pifpaf and matched with the ground truth location provided by

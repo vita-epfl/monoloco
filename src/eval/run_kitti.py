@@ -23,8 +23,8 @@ class RunKitti:
         self.n_samples = 100
 
         list_ann = glob.glob(os.path.join(dir_ann, '*.json'))
-        self.dir_kk = os.path.join('data', 'baselines', 'calib')
-        self.dir_out = os.path.join('data', 'baselines', 'monoloco')
+        self.dir_kk = os.path.join('data', 'kitti', 'calib')
+        self.dir_out = os.path.join('data', 'kitti', 'monoloco')
         if not os.path.exists(self.dir_out):
             os.makedirs(self.dir_out)
             print("Created output directory for txt files")

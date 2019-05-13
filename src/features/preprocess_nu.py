@@ -73,11 +73,11 @@ class PreprocessNuscenes:
 
         elif dataset == 'nuscenes_teaser':
             self.nusc = NuScenes(version='v1.0-trainval', dataroot=dir_nuscenes, verbose=True)
-            with open("data/baselines/teaser_scenes.txt", "r") as ff:
+            with open("splits/nuscenes_teaser_scenes.txt", "r") as ff:
                 teaser_scenes = ff.read().splitlines()
             self.scenes = self.nusc.scene
             self.scenes = [scene for scene in self.scenes if scene['token'] in teaser_scenes]
-            with open("data/baselines/split_teaser_scenes.json", "r") as ff:
+            with open("data/splits/split_nuscenes_teaser.json", "r") as ff:
                 dic_split = json.load(ff)
             self.split_train = [scene['name'] for scene in self.scenes if scene['token'] in dic_split['train']]
             self.split_val = [scene['name'] for scene in self.scenes if scene['token'] in dic_split['val']]

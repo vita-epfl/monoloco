@@ -17,7 +17,7 @@ class PreprocessKitti:
         self.iou_thresh = iou_thresh
         self.dir_gt = os.path.join('data', 'kitti', 'gt')
         self.names_gt = os.listdir(self.dir_gt)
-        self.dir_kk = os.path.join('data', 'baselines', 'calib')
+        self.dir_kk = os.path.join('data', 'kitti', 'calib')
         self.list_gt = glob.glob(self.dir_gt + '/*.txt')
         assert os.path.exists(self.dir_gt), "Ground truth dir does not exist"
         assert os.path.exists(self.dir_ann), "Annotation dir does not exist"
@@ -27,8 +27,8 @@ class PreprocessKitti:
         dir_out = os.path.join('data', 'arrays')
         self.path_joints = os.path.join(dir_out, 'joints-kitti-' + now_time + '.json')
         self.path_names = os.path.join(dir_out, 'names-kitti-' + now_time + '.json')
-        path_train = os.path.join('data', 'baselines', 'train.txt')
-        path_val = os.path.join('data', 'baselines', 'val.txt')
+        path_train = os.path.join('splits', 'kitti_train.txt')
+        path_val = os.path.join('splits', 'kitti_val.txt')
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
