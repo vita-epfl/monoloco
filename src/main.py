@@ -73,8 +73,7 @@ def cli():
     # Training
     training_parser.add_argument('--joints', help='Json file with input joints',
                                  default='data/arrays/joints-nuscenes-190507-0852.json')
-    training_parser.add_argument('--save', help='whether to save model and log file', action='store_false')
-    training_parser.add_argument('--hyp', help='run hyperparameters tuning', action='store_true')
+    training_parser.add_argument('--save', help='whether to not save model and log file', action='store_false')
     training_parser.add_argument('-e', '--epochs', type=int, help='number of epochs to train for', default=150)
     training_parser.add_argument('--bs', type=int, default=256, help='input batch size')
     training_parser.add_argument('--baseline', help='whether to train using the baseline', action='store_true')
@@ -84,18 +83,18 @@ def cli():
     training_parser.add_argument('--sched_gamma', type=float, help='Scheduler multiplication every step', default=0.9)
     training_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
     training_parser.add_argument('--n_stage', type=int, help='Number of stages in the model', default=3)
+    training_parser.add_argument('--hyp', help='run hyperparameters tuning', action='store_true')
     training_parser.add_argument('--multiplier', type=int, help='Size of the grid of hyp search', default=1)
     training_parser.add_argument('--r_seed', type=int, help='specify the seed for training and hyp tuning', default=1)
 
     # Evaluation
     eval_parser.add_argument('--dataset', help='datasets to evaluate, kitti or nuscenes', default='kitti')
     eval_parser.add_argument('--geometric',  help='to evaluate geometric distance', action='store_true')
-    eval_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints', required=True)
+    eval_parser.add_argument('--run_kitti', help='create txt files for KITTI evaluation', action='store_true')
+    eval_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints (for KITTI evaluation')
     eval_parser.add_argument('--model', help='path of MonoLoco model to load', required=True)
-    eval_parser.add_argument('--joints', help='Json file with input joints to evaluate (for nuscenes)',
-                             default='data/arrays/joints-nuscenes_teaser-190513-1423.json')
+    eval_parser.add_argument('--joints', help='Json file with input joints to evaluate (for nuScenes evaluation)')
     eval_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
-    eval_parser.add_argument('--run_kitti', help='create txt files for validation of kitti', action='store_true')
     eval_parser.add_argument('--dropout', type=float, help='dropout. Default no dropout', default=0.2)
     eval_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
     eval_parser.add_argument('--n_stage', type=int, help='Number of stages in the model', default=3)
