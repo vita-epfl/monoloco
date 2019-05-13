@@ -10,7 +10,6 @@ from openpifpaf import decoder
 from features.preprocess_nu import PreprocessNuscenes
 from features.preprocess_ki import PreprocessKitti
 from predict.predict_2d_3d import predict
-from features.trial import trials
 from models.trainer import Trainer
 from eval.run_kitti import RunKitti
 from eval.geom_baseline import GeomBaseline
@@ -62,7 +61,7 @@ def cli():
                                 default="data/models/best_model__seed_2_.pickle")
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
                                 default='data/arrays/names-kitti-000.json')
-    predict_parser.add_argument('--dir_calib', default='data/baselines/calib/', help='directory of calib_files')
+    predict_parser.add_argument('--dir_calib', default='data/kitti/calib/', help='directory of calib_files')
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')
     predict_parser.add_argument('--draw_kps', help='to draw kps in the images', action='store_true')
     predict_parser.add_argument('--predict', help='whether to make prediction', action='store_true')

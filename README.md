@@ -36,7 +36,8 @@ pip install nuscenes-devkit openpifpaf
     Data         
     ├── arrays                 
     ├── models
-    ├── baselines
+    ├── kitti
+    ├── nuscenes
     ├── logs
     
 
@@ -44,18 +45,13 @@ Run the following to create the folders:
 ```
 mkdir data
 cd data
-mkdir arrays models baselines logs
+mkdir arrays models data-kitti data-nuscenes logs
 ```
 
 ### Pre-trained Models
 * Download a MonoLoco pre-trained model from Google Drive: ADD LINK and save it in `data/models`
 * Download a Pifpaf pre-trained model from [openpifpaf](https://github.com/vita-epfl/openpifpaf) project 
 and save it into `data/models`
-
-### Baselines
-Download KITTI ground truth txt files from Google Drive ADD link and unzip them in `data/baselines`
-The zip file also contains nuScenes and KITTI splits for training and validations as well as detections
-from other baselines (more details in Eval section)
 
 
 # Interfaces
@@ -102,6 +98,22 @@ Without ground_truth matching (all the detected people):
 ![predict_no_matching](docs/002282.png.combined_2.png)
 
 # Preprocess
+
+### Datasets
+
+#### 1) KITTI dataset
+Download KITTI ground truth files and camera calibration matrices for training
+from [here](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d) and
+save them respectively into `data/kitti/gt` and `data/kitti/calib`. 
+To extract pifpaf joints, you also need to download training images, put it in any folder and soft link in `
+data/kitti/images`
+
+#### 2) nuScenes dataset
+Download nuScenes dataset (any version: Mini, Teaser or TrainVal) from [nuScenes](https://www.nuscenes.org/download), 
+save it anywhere and soft link it in `data/nuscenes`
+
+
+
 ### Input joints for training
 MonoLoco is trained using 2D human pose joints detected by pifpaf and matched with the ground truth location provided by
 nuScenes or KITTI Dataset. To create the joints run: `python src/main.py prep` specifying:
@@ -112,7 +124,12 @@ dataset are supported: nuscenes_mini, nuscenes, nuscenes_teaser.
 
 ### Ground truth file for evaluation
 The preprocessing script also outputs a second json file called **names.json** which provide a dictionary indexed
-by the image name to easily access ground truth files for evaluation purposes.
+by the image name to easily access ground truth files for evaluation and prediction purposes.
+
+
+
+
+
 
 
 ### Train
@@ -133,6 +150,9 @@ and stereo Baselines:
 [3DOP](https://xiaozhichen.github.io/papers/nips15chen.pdf), 
 [MonoDepth](https://arxiv.org/abs/1609.03677) and our 
 [Geometrical Baseline](src/eval/geom_baseline.py).
+
+Alternatively we provide the links to download them.
+
 
 The following graph is obtained running:
 `python3 src/main.py eval --dataset kitti --model data/models/base_model.pickle`

@@ -30,13 +30,13 @@ class KittiEval:
         from visuals.results import print_results
         self.print_results = print_results
 
-        self.dir_gt = os.path.join('data', 'baselines', 'gt')
-        self.dir_m3d = os.path.join('data', 'baselines', 'm3d')
-        self.dir_3dop = os.path.join('data', 'baselines', '3dop')
-        self.dir_md = os.path.join('data', 'baselines', 'monodepth')
-        self.dir_psm = os.path.join('data', 'baselines', 'psm')
-        self.dir_our = os.path.join('data', 'baselines', 'monoloco')
-        path_val = os.path.join('data', 'baselines', 'val.txt')
+        self.dir_gt = os.path.join('data', 'kitti', 'gt')
+        self.dir_m3d = os.path.join('data', 'kitti', 'm3d')
+        self.dir_3dop = os.path.join('data', 'kitti', '3dop')
+        self.dir_md = os.path.join('data', 'kitti', 'monodepth')
+        self.dir_psm = os.path.join('data', 'kitti', 'psm')
+        self.dir_our = os.path.join('data', 'kitti', 'monoloco')
+        path_val = os.path.join('data', 'kitti', 'val.txt')
         dir_logs = os.path.join('data', 'logs')
         assert dir_logs, "No directory to save final statistics"
 
