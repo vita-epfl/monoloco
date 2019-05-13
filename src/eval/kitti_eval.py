@@ -337,7 +337,7 @@ class KittiEval:
             #     json.dump(dic_fin, ff)
 
     def compare_error(self, boxes_m3d, dds_m3d, boxes_3dop, dds_3dop, boxes_md, dds_md, boxes_our, dds_our,
-                      boxes_psm, dds_psm, boxes_gt, dds_gt, truncs_gt, occs_gt, dds_geom):
+                      boxes_gt, dds_gt, truncs_gt, occs_gt, dds_geom):
 
         boxes_gt = copy.deepcopy(boxes_gt)
         dds_gt = copy.deepcopy(dds_gt)
@@ -354,10 +354,8 @@ class KittiEval:
                 idx_max_3dop, iou_max_3dop = self.get_idx_max(box, boxes_3dop)
                 idx_max_m3d, iou_max_m3d = self.get_idx_max(box, boxes_m3d)
                 idx_max_md, iou_max_md = self.get_idx_max(box, boxes_md)
-                # idx_max_psm, iou_max_psm = self.get_idx_max(box, boxes_psm)
-                iou_max_psm = 1
 
-                iou_min = min(iou_max_3dop, iou_max_m3d, iou_max_md, iou_max_psm)
+                iou_min = min(iou_max_3dop, iou_max_m3d, iou_max_md)
 
                 if iou_max >= self.dic_thresh_iou['our'] and iou_min >= self.dic_thresh_iou['m3d']:
 
@@ -365,14 +363,12 @@ class KittiEval:
                     dd_3dop = dds_3dop[idx_max_3dop]
                     dd_m3d = dds_m3d[idx_max_m3d]
                     dd_md = dds_md[idx_max_md]
-                    # dd_psm = dds_psm[idx_max_psm]
 
                     self.update_errors(dd_3dop, dd_gt, cat, self.errors['3dop_merged'])
                     self.update_errors(dd_our, dd_gt, cat, self.errors['our_merged'])
                     self.update_errors(dd_m3d, dd_gt, cat, self.errors['m3d_merged'])
                     self.update_errors(dd_geom, dd_gt, cat, self.errors['geom_merged'])
                     self.update_errors(dd_md, dd_gt, cat, self.errors['md_merged'])
-                    # self.update_errors(dd_psm, dd_gt, cat, self.errors['psm_merged'])
                     self.dic_cnt['merged'] += 1
 
                     boxes_gt.pop(idx_max)
