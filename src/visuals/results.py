@@ -90,8 +90,6 @@ def print_results(dic_stats, show=False, save=False):
         ax[0].plot(xxs, bbs_up, marker='s', color='b', markersize=5, linewidth=0.7)
         ax[0].plot(xxs, bbs_down, marker='s', color='b', markersize=5, linewidth=0.7)
 
-    # rectangle = Rectangle((2, rec_c - (rec_h/2)), width=34, height=rec_h, color='black', fill=False)
-
     for idx, xx in enumerate(xxs):
         te = Ellipse((xx, rec_c), width=yys[idx]*ar*scale, height=scale, angle=90, color='lightgreen', fill=True)
         bi = Ellipse((xx, rec_c), width=bbs[idx]*ar*scale, height=scale, angle=90, color='b',linewidth=1.8,
