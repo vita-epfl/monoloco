@@ -34,7 +34,6 @@ class KittiEval:
         self.dir_m3d = os.path.join('data', 'kitti', 'm3d')
         self.dir_3dop = os.path.join('data', 'kitti', '3dop')
         self.dir_md = os.path.join('data', 'kitti', 'monodepth')
-        self.dir_psm = os.path.join('data', 'kitti', 'psm')
         self.dir_our = os.path.join('data', 'kitti', 'monoloco')
         path_val = os.path.join('splits', 'kitti_val.txt')
         dir_logs = os.path.join('data', 'logs')
@@ -49,8 +48,7 @@ class KittiEval:
 
         self.clusters = ['easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50']
 
-        self.dic_thresh_iou = {'m3d': thresh_iou_m3d, '3dop': thresh_iou_m3d, 'md': thresh_iou_our,
-                               'psm': thresh_iou_our, 'our': thresh_iou_our}
+        self.dic_thresh_iou = {'m3d': thresh_iou_m3d, '3dop': thresh_iou_m3d, 'md': thresh_iou_our, 'our': thresh_iou_our}
         self.dic_thresh_conf = {'m3d': thresh_conf_m3d, '3dop': thresh_conf_m3d, 'our': thresh_conf_our}
 
         self.dic_cnt = defaultdict(int)
@@ -82,7 +80,6 @@ class KittiEval:
             path_our = os.path.join(self.dir_our, name)
             path_3dop = os.path.join(self.dir_3dop, name)
             path_md = os.path.join(self.dir_md, name)
-            path_psm = os.path.join(self.dir_psm, name)
             boxes_gt = []
             truncs_gt = [] # Float from 0 to 1
             occs_gt = []  # Either 0,1,2,3 fully visible, partly occluded, largely occluded, unknown
@@ -105,25 +102,20 @@ class KittiEval:
                 boxes_m3d, dds_m3d = self.parse_txts(path_m3d,  method='m3d')
                 boxes_3dop, dds_3dop = self.parse_txts(path_3dop, method='3dop')
                 boxes_md, dds_md = self.parse_txts(path_md, method='md')
-                boxes_psm, dds_psm = self.parse_txts(path_psm, method='psm')
                 boxes_our, dds_our, stds_ale, stds_epi, kk_list, dds_geom, xyzs, xy_kps = \
                     self.parse_txts(path_our, method='our')
-
-                if len(boxes_our) > 0 and len(boxes_psm) == 0:
-                    aa = 5
 
                 # Compute the error with ground truth
 
                 self.estimate_error_base(boxes_m3d, dds_m3d, boxes_gt, dds_gt, truncs_gt, occs_gt, method='m3d')
                 self.estimate_error_base(boxes_3dop, dds_3dop, boxes_gt, dds_gt, truncs_gt, occs_gt,  method='3dop')
                 self.estimate_error_base(boxes_md, dds_md, boxes_gt, dds_gt, truncs_gt, occs_gt, method='md')
-                self.estimate_error_base(boxes_psm, dds_psm, boxes_gt, dds_gt, truncs_gt, occs_gt, method='psm')
                 self.estimate_error_our(boxes_our, dds_our, stds_ale, stds_epi, kk_list, dds_geom, xyzs, xy_kps,
                                         boxes_gt, dds_gt, truncs_gt, occs_gt, dic_fin, name)
 
                 # Iterate over all the files together to find a pool of common annotations
                 self.compare_error(boxes_m3d, dds_m3d, boxes_3dop, dds_3dop, boxes_md, dds_md, boxes_our, dds_our,
-                                   boxes_psm, dds_psm, boxes_gt, dds_gt, truncs_gt, occs_gt, dds_geom)
+                                   boxes_gt, dds_gt, truncs_gt, occs_gt, dds_geom)
 
         # Save statistics
         for key in self.errors:
