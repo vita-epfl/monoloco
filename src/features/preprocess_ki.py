@@ -130,6 +130,7 @@ class PreprocessKitti:
                     self.dic_jo[phase]['kps'].append(uv_kps[ii])
                     self.dic_jo[phase]['X'].append(inputs[ii])
                     self.dic_jo[phase]['Y'].append([dds[idx_max]])  # Trick to make it (nn,1)
+                    
                     self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
                     self.append_cluster(self.dic_jo, phase, inputs[ii], dds[idx_max], uv_kps[ii])
                     self.dic_cnt[phase] += 1
