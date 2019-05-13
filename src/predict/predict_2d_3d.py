@@ -1,6 +1,4 @@
-"""Predict poses for given images."""
 
-import argparse
 import glob
 import json
 import os

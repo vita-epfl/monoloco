@@ -66,11 +66,11 @@ class PreprocessKitti:
         self.set_val = set_gt.intersection(set_val)
         assert self.set_train and self.set_val, "No validation or training annotations"
 
-        self.dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[],
+        self.dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], K=[],
                                      clst=defaultdict(lambda: defaultdict(list))),
-                       'val': dict(X=[], Y=[], names=[], kps=[],
+                       'val': dict(X=[], Y=[], names=[], kps=[], K=[],
                                    clst=defaultdict(lambda: defaultdict(list))),
-                       'test': dict(X=[], Y=[], names=[], kps=[],
+                       'test': dict(X=[], Y=[], names=[], kps=[], K=[],
                                     clst=defaultdict(lambda: defaultdict(list)))}
 
         self.dic_names = defaultdict(lambda: defaultdict(list))
