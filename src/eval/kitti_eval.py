@@ -36,7 +36,7 @@ class KittiEval:
         self.dir_md = os.path.join('data', 'kitti', 'monodepth')
         self.dir_psm = os.path.join('data', 'kitti', 'psm')
         self.dir_our = os.path.join('data', 'kitti', 'monoloco')
-        path_val = os.path.join('data', 'kitti', 'val.txt')
+        path_val = os.path.join('splits', 'kitti_val.txt')
         dir_logs = os.path.join('data', 'logs')
         assert dir_logs, "No directory to save final statistics"
 

@@ -112,14 +112,16 @@ data/kitti/images`
 Download nuScenes dataset (any version: Mini, Teaser or TrainVal) from [nuScenes](https://www.nuscenes.org/download), 
 save it anywhere and soft link it in `data/nuscenes`
 
-### 3) Train Val Splits
-Fo
 
-### Input joints for training
-MonoLoco is trained using 2D human pose joints detected by pifpaf and matched with the ground truth location provided by
+### Annotations to preprocess
+MonoLoco is trained using 2D human pose joints. To create them run pifaf over KITTI or nuScenes training images. 
+You can create them running the predict script and using `--network pifpaf`.
+
+### Inputs joints for training
+MonoLoco is trained using 2D human pose joints matched with the ground truth location provided by
 nuScenes or KITTI Dataset. To create the joints run: `python src/main.py prep` specifying:
-1. `--dir_ann` annotation directory containing pifpaf joints. You can create them running the predict script and using
-`--network pifpaf`.
+1. `--dir_ann` annotation directory containing pifpaf joints of kitti or nuScenes. 
+
 2. `--dataset` Which dataset to preprocess. For nuscenes, all three versions of the 
 dataset are supported: nuscenes_mini, nuscenes, nuscenes_teaser.
 
@@ -129,11 +131,7 @@ by the image name to easily access ground truth files for evaluation and predict
 
 
 
-
-
-
-
-### Train
+# Train
 Provide the json file containing the preprocess joints (**joints.json**) as argument. 
 
 As simple as `python3 src/main.py --train --joints 'data/arrays/joints.json`
@@ -144,16 +142,37 @@ All the hyperparameters options can be checked at `python3 src/main.py train --h
 Random search in log space is provided. An example: `python3 src/main.py train --hyp --multiplier 10 --r_seed 1`.
 One iteration of the multiplier includes 6 runs.
 
-# Eval
-Evaluate performances of the trained model on KITTI or Nuscenes Dataset. Compare them with other monocular 
+
+# Evaluation
+Evaluate performances of the trained model on KITTI or Nuscenes Dataset.
+### 1) nuScenes
+Evaluation on nuScenes is already provided during training. It is also possible to evaluate an existing model running
+`python src/main.py eval --dataset nuscenes --model <model to evaluate>`
+
+### 2) KITTI
+### Baselines
+We provide evaluation on KITTI for models trained on nuScenes or KITTI. We compare them with other monocular 
 and stereo Baselines: 
-[Mono3D](http://3dimage.ee.tsinghua.edu.cn/cxz/mono3d), 
+
+[Mono3D](https://www.cs.toronto.edu/~urtasun/publications/chen_etal_cvpr16.pdf), 
 [3DOP](https://xiaozhichen.github.io/papers/nips15chen.pdf), 
 [MonoDepth](https://arxiv.org/abs/1609.03677) and our 
 [Geometrical Baseline](src/eval/geom_baseline.py).
 
-Alternatively we provide the links to download them.
+* **Mono3D**: download validation files from [here](http://3dimage.ee.tsinghua.edu.cn/cxz/mono3d) 
+and save them into `data/kitti/m3d`
+* **3DOP**: download validation files from [here](https://xiaozhichen.github.io/) 
+and save them into `data/kitti/3dop`
+* **MonoDepth**: compute an average depth for every instance using the following script 
+[here](https://github.com/Parrotlife/pedestrianDepth-baseline/tree/master/MonoDepth-PyTorch) 
+and save them into `data/kitti/monodepth`
+* **GeometricalBaseline**: A geometrical baseline comparison is provided. 
+The best average value for comparison can be created running `python src/main.py eval --geometric`
 
+#### Evaluation
+First the model preprocess the joints starting from json annotations predicted from pifpaf, runs the model and save the results
+in txt file with format comparable to other baseline. 
+Then the model performs evaluation.
 
 The following graph is obtained running:
 `python3 src/main.py eval --dataset kitti --model data/models/base_model.pickle`

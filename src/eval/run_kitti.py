@@ -35,7 +35,7 @@ class RunKitti:
         # Load the model
         input_size = 17 * 2
         use_cuda = torch.cuda.is_available()
-        self.device = torch.device("cuda:0" if use_cuda else "cpu")
+        self.device = torch.device("cuda" if use_cuda else "cpu")
         self.model = LinearModel(input_size=input_size, output_size=2, linear_size=hidden_size,
                                  p_dropout=dropout, num_stage=n_stage)
         self.model.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))

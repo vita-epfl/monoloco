@@ -36,7 +36,7 @@ def cli():
     prep_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints',
                              default='/data/lorenzo-data/nuscenes_new/annotations/scale_1_april_new')
     prep_parser.add_argument('--dir_nuscenes', help='directory of nuscenes devkit',
-                             default='/data/lorenzo-data/nuscenes_new/')
+                             default='data/nuscenes/')
 
     # Predict (2D pose and/or 3D location from images)
     # 0) General arguments
@@ -92,11 +92,10 @@ def cli():
     eval_parser.add_argument('--dataset', help='datasets to evaluate, kitti or nuscenes', default='kitti')
     eval_parser.add_argument('--geometric',  help='to evaluate geometric distance', action='store_true')
     eval_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints',
-                             default='/data/lorenzo-data/kitti/annotations/pif_factor_2_april')
-    eval_parser.add_argument('--model', help='path of MonoLoco model to load',
-                             default="data/models/monoloco-190507-0943.pkl")
+                             default='/data/lorenzo-data/kitti/annotations/scale_2_april')
+    eval_parser.add_argument('--model', help='path of MonoLoco model to load')
     eval_parser.add_argument('--joints', help='Json file with input joints to evaluate (for nuscenes)',
-                             default='data/arrays/joints-nuscenes-190508-1102.json')
+                             default='data/arrays/joints-nuscenes_teaser-190513-1423.json')
     eval_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
     eval_parser.add_argument('--run_kitti', help='create txt files for validation of kitti', action='store_true')
     eval_parser.add_argument('--dropout', type=float, help='dropout. Default no dropout', default=0.2)
