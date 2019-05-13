@@ -59,12 +59,10 @@ def cli():
     predict_parser.add_argument('--model', help='path of MonoLoco model to load',
                                 default="data/models/best_model__seed_2_.pickle")
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
-                                default='data/arrays/names-kitti-190513-1428.json')
-    predict_parser.add_argument('--dir_calib', default='data/kitti/calib/', help='directory of calib_files')
+                                default='data/arrays/names-kitti-190513-1754.json')
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')
     predict_parser.add_argument('--draw_kps', help='to draw kps in the images', action='store_true')
     predict_parser.add_argument('--predict', help='whether to make prediction', action='store_true')
-    predict_parser.add_argument('--no_calib', help='use standard intrinsic matrix', action='store_true')
     predict_parser.add_argument('--z_max', type=int, help='', default=22)
     predict_parser.add_argument('--y_scale', type=float, help='', default=1)
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)

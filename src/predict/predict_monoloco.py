@@ -33,11 +33,6 @@ class PredictMonoLoco:
             print("Monoloco: ground truth file not found")
             print('-' * 120)
 
-        # Check for calibration file
-        if not args.no_calib:
-            self.path_calib = os.path.join(args.dir_calib, basename + '.txt')
-            assert os.path.isfile(self.path_calib), "Calibration file not found. Change dir or use --no_calib"
-
         self.boxes = boxes
         self.keypoints = keypoints
         self.image_path = image_path
@@ -45,7 +40,6 @@ class PredictMonoLoco:
         self.device = args.device
         self.draw_kps = args.draw_kps
         self.y_scale = args.y_scale   # y_scale = 1.85 for kitti combined
-        self.no_calib = args.no_calib
         self.z_max = args.z_max
         self.output_types = args.output_types
         self.show = args.show
@@ -94,17 +88,14 @@ class PredictMonoLoco:
 
         cnt = 0
 
-        if self.no_calib:
+        # Extract calibration matrix if ground-truth file is present or use a default one
+        name = os.path.basename(self.image_path)
+        if self.dic_names:
+            kk = self.dic_names[name]['K']
+        else:
             # kk = [[1266.4, 0., 816.27], [0, 1266.4, 491.5], [0., 0., 1.]]
             kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]
 
-        else:
-            kk, tt = self.get_calibration(self.path_calib)
-            # kk = self.get_simplified_calibration(self.path_calib)
-
-        # kk = [[1266.4, 0., 816.27], [0, 1266.4, 491.5], [0., 0., 1.]]
-        # self.factor = 1
-        # self.y_scale = 1
         (inputs_norm, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = \
             self.get_input_data(self.boxes, self.keypoints, kk, left_to_right=True)
 
@@ -140,7 +131,6 @@ class PredictMonoLoco:
 
         # Print image and save json
         dic_out = defaultdict(list)
-        name = os.path.basename(self.image_path)
         if self.dic_names:
             boxes_gt, dds_gt = self.dic_names[name]['boxes'], self.dic_names[name]['dds']
 
