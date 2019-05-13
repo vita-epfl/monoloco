@@ -94,6 +94,10 @@ class PreprocessKitti:
                 self.cnt_fnf += 1
                 continue
 
+            # Extract keypoints
+            path_txt = os.path.join(self.dir_kk, basename + '.txt')
+            kk, tt = self.get_calibration(path_txt)
+
             # Iterate over each line of the gt file and save box location and distances
             with open(path_gt, "r") as f_gt:
                 for line_gt in f_gt:
@@ -105,11 +109,8 @@ class PreprocessKitti:
                         dds.append(dd)
                         self.dic_names[basename + '.png']['boxes'].append(box)
                         self.dic_names[basename + '.png']['dds'].append(dd)
+                        self.dic_names[basename + '.png']['K'].append(kk)
                         self.cnt_gt += 1
-
-            # Extract keypoints
-            path_txt = os.path.join(self.dir_kk, basename + '.txt')
-            kk, tt = self.get_calibration(path_txt)
 
             # Find the annotations if exists
             try:
@@ -130,7 +131,7 @@ class PreprocessKitti:
                     self.dic_jo[phase]['kps'].append(uv_kps[ii])
                     self.dic_jo[phase]['X'].append(inputs[ii])
                     self.dic_jo[phase]['Y'].append([dds[idx_max]])  # Trick to make it (nn,1)
-                    
+                    self.dic_jo[phase]['K'].append(kk)
                     self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
                     self.append_cluster(self.dic_jo, phase, inputs[ii], dds[idx_max], uv_kps[ii])
                     self.dic_cnt[phase] += 1
