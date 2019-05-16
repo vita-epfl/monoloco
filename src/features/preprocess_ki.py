@@ -1,4 +1,4 @@
-
+"""Preprocess annnotations with KITTI ground-truth"""
 import os
 import glob
 import math
