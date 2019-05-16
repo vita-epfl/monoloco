@@ -1,16 +1,16 @@
-import torch
-import torch.nn as nn
+
 import copy
-import numpy as np
-import matplotlib.pyplot as plt
 import os
 import datetime
 import logging
 from collections import defaultdict
-import json
 import sys
 import time
 
+import matplotlib.pyplot as plt
+
+import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 

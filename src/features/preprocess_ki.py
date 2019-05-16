@@ -79,8 +79,6 @@ class PreprocessKitti:
 
         for name in self.names_gt:
             # Extract ground truth
-            if name == '004223.txt':
-                aa = 5
             path_gt = os.path.join(self.dir_gt, name)
             basename, _ = os.path.splitext(name)
             boxes_gt = []
@@ -117,7 +115,7 @@ class PreprocessKitti:
                 with open(os.path.join(self.dir_ann, basename + '.png.pifpaf.json'), 'r') as f:
                     annotations = json.load(f)
                 boxes, keypoints = self.preprocess_pif(annotations)
-                (inputs, xy_kps), (uv_kps, uv_boxes, _, _) = self.get_input_data(boxes, keypoints, kk)
+                (inputs, _), (uv_kps, uv_boxes, _, _) = self.get_input_data(boxes, keypoints, kk)
 
             except FileNotFoundError:
                 uv_boxes = []
@@ -138,10 +136,10 @@ class PreprocessKitti:
                     boxes_gt.pop(idx_max)
                     dds.pop(idx_max)
 
-        with open(self.path_joints, 'w') as f:
-            json.dump(self.dic_jo, f)
-        with open(os.path.join(self.path_names), 'w') as f:
-            json.dump(self.dic_names, f)
+        with open(self.path_joints, 'w') as file:
+            json.dump(self.dic_jo, file)
+        with open(os.path.join(self.path_names), 'w') as file:
+            json.dump(self.dic_names, file)
         for phase in ['train', 'val', 'test']:
             print("Saved {} annotations for phase {}"
                   .format(self.dic_cnt[phase], phase))

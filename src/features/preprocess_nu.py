@@ -1,4 +1,6 @@
-import numpy as np
+"""Extract joints annotations and match with nuScenes ground truths
+"""
+
 import os
 import sys
 import time
@@ -6,6 +8,8 @@ import json
 import logging
 from collections import defaultdict
 import datetime
+
+import numpy as np
 
 
 class PreprocessNuscenes:
@@ -48,7 +52,7 @@ class PreprocessNuscenes:
         # Initialize dicts to save joints for training
         self.dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
                                      clst=defaultdict(lambda: defaultdict(list))),
-                       'val': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[],  K=[],
+                       'val': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
                                    clst=defaultdict(lambda: defaultdict(list))),
                        'test': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
                                     clst=defaultdict(lambda: defaultdict(list)))
@@ -73,12 +77,12 @@ class PreprocessNuscenes:
 
         elif dataset == 'nuscenes_teaser':
             self.nusc = NuScenes(version='v1.0-trainval', dataroot=dir_nuscenes, verbose=True)
-            with open("splits/nuscenes_teaser_scenes.txt", "r") as ff:
-                teaser_scenes = ff.read().splitlines()
+            with open("splits/nuscenes_teaser_scenes.txt", "r") as file:
+                teaser_scenes = file.read().splitlines()
             self.scenes = self.nusc.scene
             self.scenes = [scene for scene in self.scenes if scene['token'] in teaser_scenes]
-            with open("splits/split_nuscenes_teaser.json", "r") as ff:
-                dic_split = json.load(ff)
+            with open("splits/split_nuscenes_teaser.json", "r") as file:
+                dic_split = json.load(file)
             self.split_train = [scene['name'] for scene in self.scenes if scene['token'] in dic_split['train']]
             self.split_val = [scene['name'] for scene in self.scenes if scene['token'] in dic_split['val']]
 
@@ -147,11 +151,11 @@ class PreprocessNuscenes:
                     exists = os.path.isfile(path_pif)
 
                     if exists:
-                        with open(path_pif, 'r') as f:
-                            annotations = json.load(f)
+                        with open(path_pif, 'r') as file:
+                            annotations = json.load(file)
 
                         boxes, keypoints = self.preprocess_pif(annotations, im_size=None)
-                        (inputs, xy_kps), (uv_kps, uv_boxes, _, _) = self.get_input_data(boxes, keypoints, kk)
+                        (inputs, _), (uv_kps, uv_boxes, _, _) = self.get_input_data(boxes, keypoints, kk)
 
                         for ii, box in enumerate(uv_boxes):
                             idx_max, iou_max = self.get_idx_max(box, boxes_gt)

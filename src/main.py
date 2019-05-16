@@ -70,7 +70,7 @@ def cli():
 
     # Training
     training_parser.add_argument('--joints', help='Json file with input joints',
-                                 default='data/arrays/joints-nuscenes-190507-0852.json')
+                                 default='data/arrays/joints-nuscenes_teaser-190513-1846.json')
     training_parser.add_argument('--save', help='whether to not save model and log file', action='store_false')
     training_parser.add_argument('-e', '--epochs', type=int, help='number of epochs to train for', default=150)
     training_parser.add_argument('--bs', type=int, default=256, help='input batch size')
