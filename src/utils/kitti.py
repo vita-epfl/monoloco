@@ -1,6 +1,7 @@
 
 import numpy as np
 import copy
+import math
 
 from utils.camera import pixel_to_camera, get_keypoints
 from eval.geom_baseline import compute_distance_single
@@ -142,4 +143,23 @@ def split_training(names_gt, path_train, path_val):
     set_val = tuple(set_gt.intersection(set_val))
     assert set_train and set_val, "No validation or training annotations"
     return set_train, set_val
+
+
+def parse_ground_truth(path_gt):
+    """Parse KITTI ground truth files"""
+    boxes_gt = []
+    dds_gt = []
+    truncs_gt = []  # Float from 0 to 1
+    occs_gt = []  # Either 0,1,2,3 fully visible, partly occluded, largely occluded, unknown
+
+    with open(path_gt, "r") as f_gt:
+        for line_gt in f_gt:
+            if check_conditions(line_gt, mode='gt'):
+                truncs_gt.append(float(line_gt.split()[1]))
+                occs_gt.append(int(line_gt.split()[2]))
+                boxes_gt.append([float(x) for x in line_gt.split()[4:8]])
+                loc_gt = [float(x) for x in line_gt.split()[11:14]]
+                dds_gt.append(math.sqrt(loc_gt[0] ** 2 + loc_gt[1] ** 2 + loc_gt[2] ** 2))
+
+    return boxes_gt, dds_gt, truncs_gt, occs_gt
 
