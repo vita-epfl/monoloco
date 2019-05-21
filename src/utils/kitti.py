@@ -123,3 +123,23 @@ def get_category(box, trunc, occ):
         cat = 'hard'
 
     return cat
+
+
+def split_training(names_gt, path_train, path_val):
+    """Split training and validation images"""
+    set_gt = set(names_gt)
+    set_train = set()
+    set_val = set()
+
+    with open(path_train, "r") as f_train:
+        for line in f_train:
+            set_train.add(line[:-1] + '.txt')
+    with open(path_val, "r") as f_val:
+        for line in f_val:
+            set_val.add(line[:-1] + '.txt')
+
+    set_train = set_gt.intersection(set_train)
+    set_val = set_gt.intersection(set_val)
+    assert set_train and set_val, "No validation or training annotations"
+    return set_train, set_val
+
