@@ -31,7 +31,7 @@ class PreprocessKitti:
         self.dir_ann = dir_ann
         self.iou_thresh = iou_thresh
         self.dir_gt = os.path.join('data', 'kitti', 'gt')
-        self.names_gt = os.listdir(self.dir_gt)
+        self.names_gt = tuple(os.listdir(self.dir_gt))
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
         self.list_gt = glob.glob(self.dir_gt + '/*.txt')
         assert os.path.exists(self.dir_gt), "Ground truth dir does not exist"

@@ -138,8 +138,8 @@ def split_training(names_gt, path_train, path_val):
         for line in f_val:
             set_val.add(line[:-1] + '.txt')
 
-    set_train = set_gt.intersection(set_train)
-    set_val = set_gt.intersection(set_val)
+    set_train = tuple(set_gt.intersection(set_train))
+    set_val = tuple(set_gt.intersection(set_val))
     assert set_train and set_val, "No validation or training annotations"
     return set_train, set_val
 
