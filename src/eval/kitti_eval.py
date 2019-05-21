@@ -72,12 +72,12 @@ class KittiEval:
                 boxes_m3d, dds_m3d = self._parse_txts(path_m3d, method='m3d')
                 boxes_3dop, dds_3dop = self._parse_txts(path_3dop, method='3dop')
                 boxes_md, dds_md = self._parse_txts(path_md, method='md')
-                boxes_our, dds_our, stds_ale, stds_epi, kk_list, dds_geom, xyzs, xy_kps = \
+                boxes_our, dds_our, stds_ale, stds_epi, _, dds_geom, _, _ = \
                     self._parse_txts(path_our, method='our')
 
                 # Compute the error with ground truth
                 self._estimate_error_base(boxes_m3d, dds_m3d, boxes_gt, dds_gt, truncs_gt, occs_gt, method='m3d')
-                self._estimate_error_base(boxes_3dop, dds_3dop, boxes_gt, dds_gt, truncs_gt, occs_gt,  method='3dop')
+                self._estimate_error_base(boxes_3dop, dds_3dop, boxes_gt, dds_gt, truncs_gt, occs_gt, method='3dop')
                 self._estimate_error_base(boxes_md, dds_md, boxes_gt, dds_gt, truncs_gt, occs_gt, method='md')
                 self._estimate_error_mloco(boxes_our, dds_our, stds_ale, stds_epi, dds_geom,
                                            boxes_gt, dds_gt, truncs_gt, occs_gt)
@@ -398,5 +398,3 @@ def find_cluster(dd, clusters):
             return clst
 
     return clusters[-1]
-
-
