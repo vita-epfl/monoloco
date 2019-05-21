@@ -17,6 +17,7 @@ from utils.nuscenes import select_categories
 from utils.camera import project_3d
 from utils.pifpaf import get_input_data, preprocess_pif
 
+
 class PreprocessNuscenes:
     """
     Preprocess Nuscenes dataset
