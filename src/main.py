@@ -58,6 +58,7 @@ def cli():
     # 2) Monoloco argument
     predict_parser.add_argument('--model', help='path of MonoLoco model to load',
                                 default="data/models/best_model__seed_2_.pickle")
+    predict_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
                                 default='data/arrays/names-kitti-190513-1754.json')
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')

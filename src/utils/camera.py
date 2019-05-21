@@ -90,12 +90,6 @@ def preprocess_single(kps, kk):
         kps_orig.append(float(kp_orig[0]))
         kps_orig.append(float(kp_orig[1]))
 
-
-    # Append the y of the ground foot to the keypoints
-    # kp_gr = np.array([0, vv_gr, 1])
-    # xy1_gr = pixel_to_camera(kp_gr, kk, 1)
-    # kps_0c.append(float(xy1_gr[1]))
-
     return kps_0c, kps_orig
 
 
@@ -198,5 +192,4 @@ def get_depth(uv_center, kk, dd):
     zz = dd / math.sqrt(1 + xyz_norm[0] ** 2 + xyz_norm[1] ** 2)
 
     xyz = pixel_to_camera(uv_center_np, kk, zz).tolist()
-
     return xyz

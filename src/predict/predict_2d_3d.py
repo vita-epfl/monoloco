@@ -4,7 +4,6 @@ import json
 import os
 
 import numpy as np
-import torch
 
 from openpifpaf.network import nets
 from openpifpaf import decoder, show
@@ -47,7 +46,7 @@ class ImageList(torch.utils.data.Dataset):
         return len(self.image_paths)
 
 
-def elaborate_cli(args):
+def factory_from_args(args):
 
     # Merge the model_pifpaf argument
     if not args.checkpoint:
@@ -77,7 +76,7 @@ def elaborate_cli(args):
 
 def predict(args):
 
-    elaborate_cli(args)
+    factory_from_args(args)
 
     # load model
     model, _ = nets.factory_from_args(args)
