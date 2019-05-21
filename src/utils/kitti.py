@@ -162,4 +162,3 @@ def parse_ground_truth(path_gt):
                 dds_gt.append(math.sqrt(loc_gt[0] ** 2 + loc_gt[1] ** 2 + loc_gt[2] ** 2))
 
     return boxes_gt, dds_gt, truncs_gt, occs_gt
-
