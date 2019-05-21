@@ -8,20 +8,35 @@ import json
 import logging
 from collections import defaultdict
 import datetime
-
 import numpy as np
+
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
+from utils.misc import get_idx_max, append_cluster
+from utils.nuscenes import select_categories
+from utils.camera import project_3d
+from utils.pifpaf import get_input_data, preprocess_pif
 
 class PreprocessNuscenes:
     """
     Preprocess Nuscenes dataset
     """
+    CAMERAS = ('CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT')
+    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
+                            clst=defaultdict(lambda: defaultdict(list))),
+              'val': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
+                          clst=defaultdict(lambda: defaultdict(list))),
+              'test': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
+                           clst=defaultdict(lambda: defaultdict(list)))
+              }
+    dic_names = defaultdict(lambda: defaultdict(list))
+
     def __init__(self, dir_ann, dir_nuscenes, dataset, iou_min=0.3):
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
+        self.iou_min = iou_min
         self.dir_ann = dir_ann
         dir_out = os.path.join('data', 'arrays')
         assert os.path.exists(dir_nuscenes), "Nuscenes directory does not exists"
@@ -33,32 +48,7 @@ class PreprocessNuscenes:
         self.path_joints = os.path.join(dir_out, 'joints-' + dataset + '-' + now_time + '.json')
         self.path_names = os.path.join(dir_out, 'names-' + dataset + '-' + now_time + '.json')
 
-        self.iou_min = iou_min
-
-        # Import functions
-        from utils.misc import get_idx_max, append_cluster
-        self.get_idx_max = get_idx_max
-        self.append_cluster = append_cluster
-        from utils.nuscenes import select_categories
-        self.select_categories = select_categories
-        from utils.camera import project_3d
-        self.project_3d = project_3d
-        from utils.pifpaf import get_input_data, preprocess_pif
-        self.get_input_data = get_input_data
-        self.preprocess_pif = preprocess_pif
-
-        # Initialize dicts to save joints for training
-        self.dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
-                                     clst=defaultdict(lambda: defaultdict(list))),
-                       'val': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
-                                   clst=defaultdict(lambda: defaultdict(list))),
-                       'test': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
-                                    clst=defaultdict(lambda: defaultdict(list)))
-                       }
-        # Names as keys to retrieve it easily
-        self.dic_names = defaultdict(lambda: defaultdict(list))
-
-        self.cameras = ['CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT']
+        self.nusc, self.scenes, self.split_train, self.split_val = factory(dataset, dir_nuscenes)
 
     def run(self):
         """
@@ -68,6 +58,7 @@ class PreprocessNuscenes:
         cnt_samples = 0
         cnt_sd = 0
         cnt_ann = 0
+
         start = time.time()
 
         for ii, scene in enumerate(self.scenes):
@@ -94,7 +85,7 @@ class PreprocessNuscenes:
                 cnt_samples += 1
 
                 # Extract all the sample_data tokens for each sample
-                for cam in self.cameras:
+                for cam in self.CAMERAS:
                     sd_token = sample_dic['data'][cam]
                     cnt_sd += 1
                     path_im, boxes_obj, kk = self.nusc.get_sample_data(sd_token, box_vis_level=1)  # At least one corner
@@ -109,8 +100,8 @@ class PreprocessNuscenes:
                             general_name = box_obj.name.split('.')[0] + '.' + box_obj.name.split('.')[1]
                         else:
                             general_name = 'animal'
-                        if general_name in self.select_categories('all'):
-                            box = self.project_3d(box_obj, kk)
+                        if general_name in select_categories('all'):
+                            box = project_3d(box_obj, kk)
                             dd = np.linalg.norm(box_obj.center)
                             boxes_gt.append(box)
                             dds.append(dd)
@@ -128,11 +119,11 @@ class PreprocessNuscenes:
                         with open(path_pif, 'r') as file:
                             annotations = json.load(file)
 
-                        boxes, keypoints = self.preprocess_pif(annotations, im_size=None)
-                        (inputs, _), (uv_kps, uv_boxes, _, _) = self.get_input_data(boxes, keypoints, kk)
+                        boxes, keypoints = preprocess_pif(annotations, im_size=None)
+                        (inputs, _), (uv_kps, uv_boxes, _, _) = get_input_data(boxes, keypoints, kk)
 
                         for ii, box in enumerate(uv_boxes):
-                            idx_max, iou_max = self.get_idx_max(box, boxes_gt)
+                            idx_max, iou_max = get_idx_max(box, boxes_gt)
 
                             if iou_max > self.iou_min:
 
@@ -142,7 +133,7 @@ class PreprocessNuscenes:
                                 self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
                                 self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_max])
                                 self.dic_jo[phase]['K'] = kk.tolist()
-                                self.append_cluster(self.dic_jo, phase, inputs[ii], dds[idx_max], uv_kps[ii])
+                                append_cluster(self.dic_jo, phase, inputs[ii], dds[idx_max], uv_kps[ii])
                                 boxes_gt.pop(idx_max)
                                 dds.pop(idx_max)
                                 boxes_3d.pop(idx_max)
