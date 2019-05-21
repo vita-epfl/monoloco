@@ -68,7 +68,7 @@ class KittiEval:
             cnt_gt += len(boxes_gt)
 
             # Extract annotations for the same file
-            if len(boxes_gt) > 0:
+            if boxes_gt:
                 boxes_m3d, dds_m3d = self._parse_txts(path_m3d, method='m3d')
                 boxes_3dop, dds_3dop = self._parse_txts(path_3dop, method='3dop')
                 boxes_md, dds_md = self._parse_txts(path_md, method='md')
@@ -79,8 +79,8 @@ class KittiEval:
                 self._estimate_error_base(boxes_m3d, dds_m3d, boxes_gt, dds_gt, truncs_gt, occs_gt, method='m3d')
                 self._estimate_error_base(boxes_3dop, dds_3dop, boxes_gt, dds_gt, truncs_gt, occs_gt,  method='3dop')
                 self._estimate_error_base(boxes_md, dds_md, boxes_gt, dds_gt, truncs_gt, occs_gt, method='md')
-                self._estimate_error_mloco(boxes_our, dds_our, stds_ale, stds_epi, kk_list, dds_geom, xyzs, xy_kps,
-                                           boxes_gt, dds_gt, truncs_gt, occs_gt, name)
+                self._estimate_error_mloco(boxes_our, dds_our, stds_ale, stds_epi, dds_geom,
+                                           boxes_gt, dds_gt, truncs_gt, occs_gt)
 
                 # Iterate over all the files together to find a pool of common annotations
                 self._compare_error(boxes_m3d, dds_m3d, boxes_3dop, dds_3dop, boxes_md, dds_md, boxes_our, dds_our,
@@ -127,7 +127,6 @@ class KittiEval:
         dds = []
         stds_ale = []
         stds_epi = []
-        confs = []
         dds_geom = []
         xyzs = []
         xy_kps = []
@@ -187,7 +186,8 @@ class KittiEval:
             except FileNotFoundError:
                 return [], []
 
-        elif method == 'our':
+        else:
+            assert method == 'our', "method not recognized"
             try:
                 with open(path, "r") as ff:
                     file_lines = ff.readlines()
@@ -236,8 +236,7 @@ class KittiEval:
             else:
                 break
 
-    def _estimate_error_mloco(self, boxes, dds, stds_ale, stds_epi, kk_list, dds_geom, xyzs, xy_kps,
-                              boxes_gt, dds_gt, truncs_gt, occs_gt, name):
+    def _estimate_error_mloco(self, boxes, dds, stds_ale, stds_epi, dds_geom, boxes_gt, dds_gt, truncs_gt, occs_gt):
 
         # Compute error (distance) and save it
         boxes_gt = copy.deepcopy(boxes_gt)
