@@ -10,7 +10,8 @@ from collections import defaultdict
 import datetime
 
 import numpy as np
-
+from nuscenes.nuscenes import NuScenes
+from nuscenes.utils import splits
 
 class PreprocessNuscenes:
     """
@@ -45,9 +46,6 @@ class PreprocessNuscenes:
         from utils.pifpaf import get_input_data, preprocess_pif
         self.get_input_data = get_input_data
         self.preprocess_pif = preprocess_pif
-        from nuscenes.nuscenes import NuScenes
-        from nuscenes.utils import splits
-        self.splits = splits
 
         # Initialize dicts to save joints for training
         self.dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
@@ -61,30 +59,6 @@ class PreprocessNuscenes:
         self.dic_names = defaultdict(lambda: defaultdict(list))
 
         self.cameras = ['CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT']
-
-        # Split training and validation base on the dataset type
-        if dataset == 'nuscenes':
-            self.nusc = NuScenes(version='v1.0-trainval', dataroot=dir_nuscenes, verbose=True)
-            self.scenes = self.nusc.scene
-            split_scenes = self.splits.create_splits_scenes()
-            self.split_train, self.split_val = split_scenes['train'], split_scenes['val']
-
-        elif dataset == 'nuscenes_mini':
-            self.nusc = NuScenes(version='v1.0-mini', dataroot=dir_nuscenes, verbose=True)
-            self.scenes = self.nusc.scene
-            split_scenes = self.splits.create_splits_scenes()
-            self.split_train, self.split_val = split_scenes['train'], split_scenes['val']
-
-        elif dataset == 'nuscenes_teaser':
-            self.nusc = NuScenes(version='v1.0-trainval', dataroot=dir_nuscenes, verbose=True)
-            with open("splits/nuscenes_teaser_scenes.txt", "r") as file:
-                teaser_scenes = file.read().splitlines()
-            self.scenes = self.nusc.scene
-            self.scenes = [scene for scene in self.scenes if scene['token'] in teaser_scenes]
-            with open("splits/split_nuscenes_teaser.json", "r") as file:
-                dic_split = json.load(file)
-            self.split_train = [scene['name'] for scene in self.scenes if scene['token'] in dic_split['train']]
-            self.split_val = [scene['name'] for scene in self.scenes if scene['token'] in dic_split['val']]
 
     def run(self):
         """
@@ -187,3 +161,34 @@ class PreprocessNuscenes:
         print("\nSaved {} annotations for {} samples in {} scenes. Total time: {:.1f} minutes"
               .format(cnt_ann, cnt_samples, cnt_scenes, (end-start)/60))
         print("\nOutput files:\n{}\n{}\n".format(self.path_names, self.path_joints))
+
+
+def factory(dataset, dir_nuscenes):
+    """Define dataset type and split training and validation"""
+
+    assert dataset in ['nuscenes', 'nuscenes_mini', 'nuscenes_teaser']
+
+    if dataset == 'nuscenes':
+        nusc = NuScenes(version='v1.0-trainval', dataroot=dir_nuscenes, verbose=True)
+        scenes = nusc.scene
+        split_scenes = splits.create_splits_scenes()
+        split_train, split_val = split_scenes['train'], split_scenes['val']
+
+    elif dataset == 'nuscenes_mini':
+        nusc = NuScenes(version='v1.0-mini', dataroot=dir_nuscenes, verbose=True)
+        scenes = nusc.scene
+        split_scenes = splits.create_splits_scenes()
+        split_train, split_val = split_scenes['train'], split_scenes['val']
+
+    else:
+        nusc = NuScenes(version='v1.0-trainval', dataroot=dir_nuscenes, verbose=True)
+        with open("splits/nuscenes_teaser_scenes.txt", "r") as file:
+            teaser_scenes = file.read().splitlines()
+        scenes = nusc.scene
+        scenes = [scene for scene in scenes if scene['token'] in teaser_scenes]
+        with open("splits/split_nuscenes_teaser.json", "r") as file:
+            dic_split = json.load(file)
+        split_train = [scene['name'] for scene in scenes if scene['token'] in dic_split['train']]
+        split_val = [scene['name'] for scene in scenes if scene['token'] in dic_split['val']]
+
+    return nusc, scenes, split_train, split_val
