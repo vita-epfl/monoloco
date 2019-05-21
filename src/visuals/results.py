@@ -21,7 +21,7 @@ def print_results(dic_stats, show=False, save=False):
     mm_std = 0.04
     mm_gender = 0.0556
     excl_clusters = ['all', '50', '>50', 'easy', 'moderate', 'hard']
-    clusters = tuple([clst for clst in dic_stats[phase]['our']['mean'] if clst not in excl_clusters])
+    clusters = tuple([clst for clst in dic_stats[phase]['our'] if clst not in excl_clusters])
     yy_gender = target_error(xx, mm_gender)
     yy_gps = np.linspace(5., 5., xx.shape[0])
 
