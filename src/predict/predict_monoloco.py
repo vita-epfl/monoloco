@@ -10,16 +10,15 @@ import json
 import logging
 import time
 
-from models.architectures import LinearModel
-from utils.camera import preprocess_single, get_keypoints, get_depth
-from utils.misc import epistemic_variance, laplace_sampling, get_idx_max
-from visuals.printer import Printer
-from utils.normalize import unnormalize_bi
-from utils.kitti import get_simplified_calibration, get_calibration
-from utils.pifpaf import get_input_data
-
 import numpy as np
 import torch
+
+from models.architectures import LinearModel
+from visuals.printer import Printer
+from utils.camera import get_depth
+from utils.misc import laplace_sampling, get_idx_max
+from utils.normalize import unnormalize_bi
+from utils.pifpaf import get_input_data
 
 
 class PredictMonoLoco:
@@ -76,7 +75,7 @@ class PredictMonoLoco:
             get_input_data(self.boxes, self.keypoints, kk, left_to_right=True)
 
         # Conversion into torch tensor
-        if len(inputs_norm) > 0:
+        if inputs_norm:
             with torch.no_grad():
                 inputs = torch.from_numpy(np.array(inputs_norm)).float()
                 inputs = inputs.to(self.device)
@@ -87,7 +86,7 @@ class PredictMonoLoco:
                 total_outputs = torch.empty((0, len(xy_kps))).to(self.device)
 
                 if self.n_dropout > 0:
-                    for ii in range(self.n_dropout):
+                    for _ in range(self.n_dropout):
                         outputs = self.model(inputs)
                         outputs = unnormalize_bi(outputs)
                         samples = laplace_sampling(outputs, self.n_samples)
