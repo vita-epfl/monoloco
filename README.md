@@ -88,8 +88,8 @@ If it does not find the file, it will generate images
 with all the predictions without ground-truth matching.
 
 Below an example with and without ground-truth matching. They have been created (adding or removing `--path_gt`) with:
-`python src/main.py predict --networks monoloco --glob docs/002282.png --output_types combined --scale 2 --y_scale 1.85 
---model data/models/base_model.pickle --n_dropout 100 --z_max 30`
+`python3 src/main.py predict --networks monoloco --glob docs/002282.png --output_types combined --scale 2 --y_scale 1.85 
+--model data/models/monoloco-190513-1437.pkl --n_dropout 100 --z_max 30`
  
 With ground truth matching (only matching people):
 ![predict_ground_truth](docs/002282.png.combined_1.png)
