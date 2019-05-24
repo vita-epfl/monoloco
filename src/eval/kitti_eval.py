@@ -119,7 +119,7 @@ class KittiEval:
             print("\n Number of matched annotations: {:.1f} %".format(self.errors[key]['matched']))
             print("-"*100)
 
-    def print(self, show):
+    def printer(self, show):
         print_results(self.dic_stats, show)
 
     def _parse_txts(self, path, method):

@@ -31,7 +31,7 @@ def print_results(dic_stats, show=False, save=False):
     plt.xlabel("Distance [meters]")
     plt.ylabel("Average localization error [m]")
     plt.xlim(x_min, x_max)
-    labels = ['Mono3D', 'Geometric Baseline', 'MonoDepth', 'Our MonoLoco', '3DOP']
+    labels = ['Mono3D', 'Geometric Baseline', 'MonoDepth', 'Our MonoLoco', '3DOP (stereo)']
     mks = ['*', '^', 'p', 's', 'o']
     mksizes = [6, 6, 6, 6, 6]
     lws = [1.5, 1.5, 1.5, 2.2, 1.6]

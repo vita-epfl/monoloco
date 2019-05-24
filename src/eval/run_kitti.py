@@ -17,6 +17,7 @@ class RunKitti:
         self.logger = logging.getLogger(__name__)
 
         # Set directories
+        assert dir_ann, "Annotations folder is required"
         self.dir_ann = dir_ann
         self.average_y = 0.48
         self.n_dropout = n_dropout

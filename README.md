@@ -120,11 +120,11 @@ Below an example on a generic image from the web, created with:
 Download KITTI ground truth files and camera calibration matrices for training
 from [here](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d) and
 save them respectively into `data/kitti/gt` and `data/kitti/calib`. 
-To extract pifpaf joints, you also need to download training images, put it in any folder and soft link in `
+To extract pifpaf joints, you also need to download training images soft link the folder in `
 data/kitti/images`
 
 #### 2) nuScenes dataset
-Download nuScenes dataset from [nuScenes](https://www.nuscenes.org/download) (either Mini or Full), 
+Download nuScenes dataset from [nuScenes](https://www.nuscenes.org/download) (either Mini or TrainVal), 
 save it anywhere and soft link it in `data/nuscenes`
 
 
@@ -135,7 +135,7 @@ You can create them running the predict script and using `--networks pifpaf`.
 ### Inputs joints for training
 MonoLoco is trained using 2D human pose joints matched with the ground truth location provided by
 nuScenes or KITTI Dataset. To create the joints run: `python src/main.py prep` specifying:
-1. `--dir_ann` annotation directory containing pifpaf joints of kitti or nuScenes. 
+1. `--dir_ann` annotation directory containing Pifpaf joints of KITTI or nuScenes. 
 
 2. `--dataset` Which dataset to preprocess. For nuscenes, all three versions of the 
 dataset are supported: nuscenes_mini, nuscenes, nuscenes_teaser.
@@ -185,11 +185,13 @@ and save them into `data/kitti/monodepth`
 The best average value for comparison can be created running `python src/main.py eval --geometric`
 
 #### Evaluation
-First the model preprocess the joints starting from json annotations predicted from pifpaf, runs the model and save the results
+First the model preprocess the joints starting from json annotations predicted from pifpaf, 
+runs the model and save the results
 in txt file with format comparable to other baseline. 
 Then the model performs evaluation.
 
 The following graph is obtained running:
-`python3 src/main.py eval --dataset kitti --model data/models/base_model.pickle`
+`python3 src/main.py eval --dataset kitti --run_kitti --model data/models/monoloco-190513-1437.pkl 
+--dir_ann <folder containing pifpaf annotations of KITTI images>`
 ![kitti_evaluation](docs/results.png)
 

@@ -145,7 +145,7 @@ def main():
         if args.dataset == 'kitti':
             kitti_eval = KittiEval()
             kitti_eval.run()
-            kitti_eval.print(show=args.show)
+            kitti_eval.printer(show=args.show)
 
         if 'nuscenes' in args.dataset:
             training = Trainer(joints=args.joints)
