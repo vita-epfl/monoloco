@@ -28,7 +28,7 @@ class Printer:
         self.text = text
         self.epistemic = epistemic
         self.legend = legend
-        self.z_max = z_max
+        self.z_max = z_max # To include ellipses in the image
         self.fig_width = fig_width
 
         from utils.camera import pixel_to_camera, get_depth
@@ -38,14 +38,17 @@ class Printer:
         # Define the output dir
         self.path_out = output_path
 
-    # Define the birds eye view
-        self.xx_gt = [xx[0] for xx in dic_ann['xyz_real']]
-        self.zz_gt = [xx[2] for xx in dic_ann['xyz_real']]
-        self.xx_pred = [xx[0] for xx in dic_ann['xyz_pred']]
-        self.zz_pred = [xx[2] for xx in dic_ann['xyz_pred']]
-        self.dds_real = dic_ann['dds_real']
+        # Include the vectors inside the interval given by z_max
         self.stds_ale = dic_ann['stds_ale']
         self.stds_ale_epi = dic_ann['stds_epi']
+        self.xx_gt = [xx[0] for xx in dic_ann['xyz_real']]
+        self.zz_gt = [xx[2] if xx[2] < self.z_max - self.stds_ale_epi[idx] else 0
+                      for idx, xx in enumerate(dic_ann['xyz_real'])]
+        self.xx_pred = [xx[0] for xx in dic_ann['xyz_pred']]
+        self.zz_pred = [xx[2] if xx[2] < self.z_max - self.stds_ale_epi[idx] else 0
+                        for idx, xx in enumerate(dic_ann['xyz_pred'])]
+        self.dds_real = dic_ann['dds_real']
+
         self.uv_centers = dic_ann['uv_centers']
         self.uv_shoulders = dic_ann['uv_shoulders']
         self.uv_kps = dic_ann['uv_kps']
@@ -119,7 +122,7 @@ class Printer:
                 if self.draw_kps:
                     ax0 = self.show_kps(ax0, self.uv_kps[idx], self.y_scale, radius_kps, color_kps)
 
-                elif self.zz_pred[idx] < self.z_max and 0 < self.zz_gt[idx] < self.z_max:
+                elif min(self.zz_pred[idx], self.zz_gt[idx]) > 0:
                     color = cmap((self.zz_pred[idx] % self.z_max) / self.z_max)
                     circle = Circle((uv[0], uv[1] * self.y_scale), radius=radius, color=color, fill=True)
                     ax0.add_patch(circle)
@@ -163,7 +166,7 @@ class Printer:
             x_max = abs(xyz_max[0])  # shortcut to avoid oval circles in case of different kk
 
             for idx, _ in enumerate(self.xx_gt):
-                if 0 < self.zz_gt[idx] < self.z_max:
+                if self.zz_gt[idx] > 0:
                     target = get_target_error(self.dds_real[idx])
 
                     angle = get_angle(self.xx_gt[idx], self.zz_gt[idx])
@@ -175,7 +178,7 @@ class Printer:
             # Print prediction and the real ground truth. Color of prediction depends if ground truth exists
             num = 0
             for idx, _ in enumerate(self.xx_pred):
-                if 0 < self.zz_gt[idx] < self.z_max:  # only the merging ones and inside the interval
+                if self.zz_gt[idx] > 0:  # only the merging ones and inside the interval
 
                     angle = get_angle(self.xx_pred[idx], self.zz_pred[idx])
                     ellipse_ale = Ellipse((self.xx_pred[idx], self.zz_pred[idx]), width=self.stds_ale[idx] * 2,
