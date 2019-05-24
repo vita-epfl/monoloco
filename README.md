@@ -101,9 +101,10 @@ Without ground_truth matching (all the detected people):
 To accurately estimate distance, the focal length is necessary. 
 However, it is still possible to test Monoloco on images where the calibration matrix is not available. 
 Absolute distances are not meaningful but relative distance still are. 
-Here, an example using a pre-defined calibration matrix.
-Without ground_truth matching (all the detected people): 
-![no calibrarion](docs/surf_2.jpg.combined.png)
+Below an example on a generic image from the web, created with:
+`python3 src/main.py predict --networks monoloco --glob docs/surf.jpg --output_types combined --model data/models/monoloco-190513-1437.pkl --n_dropout 100 --z_max 25`
+
+![no calibration](docs/surf.jpg.combined.png)
 
 
 # Preprocess
