@@ -64,8 +64,7 @@ def cli():
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')
     predict_parser.add_argument('--draw_kps', help='to draw kps in the images', action='store_true')
     predict_parser.add_argument('--predict', help='whether to make prediction', action='store_true')
-    predict_parser.add_argument('--z_max', type=int, help='', default=22)
-    predict_parser.add_argument('--y_scale', type=float, help='', default=1)
+    predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=22)
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
     predict_parser.add_argument('--combined', help='to print combined images', action='store_true')
 

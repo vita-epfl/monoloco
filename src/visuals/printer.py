@@ -17,11 +17,10 @@ class Printer:
     Print results on images: birds eye view and computed distance
     """
 
-    def __init__(self, image_path, output_path, dic_ann, kk, output_types, y_scale=1, show=False,
+    def __init__(self, image_path, output_path, dic_ann, kk, output_types, show=False,
                  draw_kps=False, text=True, legend=True, epistemic=False, z_max=30, fig_width=10):
 
         self.kk = kk
-        self.y_scale = y_scale  # 1.85 for kitti combined
         self.output_types = output_types
         self.show = show
         self.draw_kps = draw_kps
@@ -57,13 +56,8 @@ class Printer:
         with open(image_path, 'rb') as f:
             self.im = Image.open(f).convert('RGB')
 
-        # Resize image for aesthetic proportions
-        if y_scale >= 1.02 or y_scale <= 0.98:
-            ww = self.im.size[0]
-            hh = self.im.size[1]
-            self.im = self.im.resize((ww, round(hh * y_scale)))
-
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
+        self.hh = self.im.size[1]
 
     def print(self):
         """
@@ -79,10 +73,17 @@ class Printer:
         textcolor = 'darkorange'
         color_kps = 'yellow'
 
-        # Initialize combined
+        # Resize image for aesthetic proportions in combined visualization
         if 'combined' in self.output_types:
+            ww = self.im.size[0]
+            hh = self.im.size[1]
+            y_scale = ww / (hh * 1.8)  # Defined proportion
+            self.im = self.im.resize((ww, round(hh * y_scale)))
+            print(y_scale)
             width = self.fig_width + 0.6 * self.fig_width
             height = self.fig_width * self.im.size[1] / self.im.size[0]
+            print(width)
+            print()
             fig_ar_1 = 1.7  # 1.3 before
             width_ratio = 1.9
             ext = '.combined.png'
@@ -98,6 +99,7 @@ class Printer:
 
         # Initialize front
         elif 'front' in self.output_types:
+            y_scale = 1
             width = self.fig_width
             height = self.fig_width * self.im.size[1] / self.im.size[0]
 
@@ -120,15 +122,15 @@ class Printer:
             for idx, uv in enumerate(self.uv_shoulders):
 
                 if self.draw_kps:
-                    ax0 = self.show_kps(ax0, self.uv_kps[idx], self.y_scale, radius_kps, color_kps)
+                    ax0 = self.show_kps(ax0, self.uv_kps[idx], y_scale, radius_kps, color_kps)
 
                 elif min(self.zz_pred[idx], self.zz_gt[idx]) > 0:
                     color = cmap((self.zz_pred[idx] % self.z_max) / self.z_max)
-                    circle = Circle((uv[0], uv[1] * self.y_scale), radius=radius, color=color, fill=True)
+                    circle = Circle((uv[0], uv[1] * y_scale), radius=radius, color=color, fill=True)
                     ax0.add_patch(circle)
 
                     if self.text:
-                        ax0.text(uv[0]+radius, uv[1] * self.y_scale - radius, str(num),
+                        ax0.text(uv[0]+radius, uv[1] * y_scale - radius, str(num),
                                  fontsize=fontsize, color=textcolor, weight='bold')
                         num += 1
 
@@ -160,8 +162,7 @@ class Printer:
 
         # Create bird or combine it with front)
         if any(xx in self.output_types for xx in ['bird', 'combined']):
-            im_height = 375  # TODO change it
-            uv_max = np.array([0, im_height, 1])
+            uv_max = np.array([0, self.hh, 1])
             xyz_max = self.pixel_to_camera(uv_max, self.kk, self.z_max)
             x_max = abs(xyz_max[0])  # shortcut to avoid oval circles in case of different kk
 
@@ -212,12 +213,7 @@ class Printer:
             ax1.plot([0, x_max], [0, self.z_max], 'k--')
             ax1.plot([0, -x_max], [0, self.z_max], 'k--')
             ax1.set_ylim(0, self.z_max+1)
-            # ax1.set_xmin([-10, 10])
-            # ax1.set_ymin([0, 20])
-            # x_max_field = min(x_max, z_max / 1.55)  # ! Shortcut to avoid oval circles in case of different k
-            # plt.axis([-x_max_field, x_max_field, 0, z_max])
-            # plt.xticks([])
-            # plt.title('Birds eye view')
+            ax1.set_xlim(-self.z_max+2, self.z_max-2)
             ax1.set_xlabel("X [m]")
             ax1.set_ylabel("Z [m]")
 

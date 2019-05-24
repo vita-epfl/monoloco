@@ -35,7 +35,6 @@ class PredictMonoLoco:
         self.output_path = output_path
         self.device = args.device
         self.draw_kps = args.draw_kps
-        self.y_scale = args.y_scale   # y_scale = 1.85 for kitti combined
         self.z_max = args.z_max
         self.output_types = args.output_types
         self.show = args.show
@@ -72,8 +71,7 @@ class PredictMonoLoco:
         except (KeyError, TypeError):
             self.dic_names = None
             # kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti standard
-            #kk = [[1266.4, 0., 816.27], [0, 1266.4, 491.5], [0., 0., 1.]]  # Nuscenes standard
-            kk = [[1266.4, 0., 816.27], [0, 1266.4, 491.5], [0., 0., 1.]]
+            kk = [[1266.4, 0., 816.27], [0, 1266.4, 491.5], [0., 0., 1.]]  # Nuscenes standard
             print("Ground-truth annotations for the image not found\n"
                   "Using a standard calibration matrix...\n" + '-' * 120)
 
@@ -151,8 +149,7 @@ class PredictMonoLoco:
             dic_out['uv_shoulders'].append(uv_shoulders[idx])
 
         if any((xx in self.output_types for xx in ['front', 'bird', 'combined'])):
-            printer = Printer(self.image_path, self.output_path, dic_out, kk,
-                              y_scale=self.y_scale, output_types=self.output_types,
+            printer = Printer(self.image_path, self.output_path, dic_out, kk,  output_types=self.output_types,
                               show=self.show, z_max=self.z_max, epistemic=self.epistemic)
             printer.print()
 
