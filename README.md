@@ -20,6 +20,9 @@ We further share insights on our model of uncertainty in case of limited observa
 ```
 
 Add link paper
+
+Add link video
+
 ![overview_paper](docs/pull.png)
 # Setup
 
@@ -49,7 +52,8 @@ mkdir arrays models kitti nuscenes logs
 ```
 
 ### Pre-trained Models
-* Download a MonoLoco pre-trained model from Google Drive: ADD LINK and save it in `data/models`
+* Download a MonoLoco pre-trained model from 
+[Google Drive](https://drive.google.com/open?id=1F7UG1HPXGlDD_qL-AN5cv2Eg-mhdQkwv) and save it in `data/models`
 * Download a Pifpaf pre-trained model from [openpifpaf](https://github.com/vita-epfl/openpifpaf) project 
 and save it into `data/models`
 
@@ -81,7 +85,8 @@ Output options include json files and/or visualization of the predictions on the
 * In case you provide a ground-truth json file to compare the predictions of MonoLoco,
  the script will match every detection using Intersection over Union metric. 
  The ground truth file can be generated using the subparser `prep` and called with the command `--path_gt`.
- Check preprocess section for more details.
+ Check preprocess section for more details or download the file from 
+ [here](https://drive.google.com/open?id=1F7UG1HPXGlDD_qL-AN5cv2Eg-mhdQkwv).
  
 * In case you don't provide a ground-truth file, the script will look for a predefined path. 
 If it does not find the file, it will generate images
@@ -119,13 +124,13 @@ To extract pifpaf joints, you also need to download training images, put it in a
 data/kitti/images`
 
 #### 2) nuScenes dataset
-Download nuScenes dataset (any version: Mini, Teaser or TrainVal) from [nuScenes](https://www.nuscenes.org/download), 
+Download nuScenes dataset from [nuScenes](https://www.nuscenes.org/download) (either Mini or Full), 
 save it anywhere and soft link it in `data/nuscenes`
 
 
 ### Annotations to preprocess
 MonoLoco is trained using 2D human pose joints. To create them run pifaf over KITTI or nuScenes training images. 
-You can create them running the predict script and using `--network pifpaf`.
+You can create them running the predict script and using `--networks pifpaf`.
 
 ### Inputs joints for training
 MonoLoco is trained using 2D human pose joints matched with the ground truth location provided by
