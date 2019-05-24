@@ -97,6 +97,15 @@ With ground truth matching (only matching people):
 Without ground_truth matching (all the detected people): 
 ![predict_no_matching](docs/002282.png.combined_2.png)
 
+### Images without calibration matrix
+To accurately estimate distance, the focal length is necessary. 
+However, it is still possible to test Monoloco on images where the calibration matrix is not available. 
+Absolute distances are not meaningful but relative distance still are. 
+Here, an example using a pre-defined calibration matrix.
+Without ground_truth matching (all the detected people): 
+![no calibrarion](docs/surf_2.jpg.combined.png)
+
+
 # Preprocess
 
 ### Datasets
