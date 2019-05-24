@@ -82,9 +82,12 @@ class Printer:
             print(y_scale)
             width = self.fig_width + 0.6 * self.fig_width
             height = self.fig_width * self.im.size[1] / self.im.size[0]
-            print(width)
-            print()
-            fig_ar_1 = 1.7  # 1.3 before
+
+            # Distinguish between KITTI images and general images
+            if y_scale > 1.7:
+                fig_ar_1 = 1.7
+            else:
+                fig_ar_1 = 1.3
             width_ratio = 1.9
             ext = '.combined.png'
 
@@ -213,7 +216,6 @@ class Printer:
             ax1.plot([0, x_max], [0, self.z_max], 'k--')
             ax1.plot([0, -x_max], [0, self.z_max], 'k--')
             ax1.set_ylim(0, self.z_max+1)
-            ax1.set_xlim(-self.z_max+2, self.z_max-2)
             ax1.set_xlabel("X [m]")
             ax1.set_ylabel("Z [m]")
 
