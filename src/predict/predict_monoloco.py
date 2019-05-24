@@ -12,6 +12,7 @@ import time
 
 import numpy as np
 import torch
+from PIL import Image
 
 from models.architectures import LinearModel
 from visuals.printer import Printer
@@ -37,6 +38,7 @@ class PredictMonoLoco:
         self.draw_kps = args.draw_kps
         self.z_max = args.z_max
         self.output_types = args.output_types
+        self.path_gt = args.path_gt
         self.show = args.show
         self.n_samples = 100
         self.n_dropout = args.n_dropout
@@ -52,29 +54,10 @@ class PredictMonoLoco:
         self.model.eval()  # Default is train
         self.model.to(self.device)
 
-        # Check for ground-truth file
-        try:
-            with open(args.path_gt, 'r') as f:
-                self.dic_names = json.load(f)
-                print('-' * 120 + "\nMonoloco: Ground-truth file opened\n")
-        except FileNotFoundError:
-            self.dic_names = None
-            print('-' * 120 + "\nMonoloco: ground-truth file not found\n")
-
     def run(self):
         # Extract calibration matrix if ground-truth file is present or use a default one
         cnt = 0
-        name = os.path.basename(self.image_path)
-        try:
-            kk = self.dic_names[name]['K']
-            print("Monoloco: matched ground-truth file!\n" + '-' * 120)
-        except (KeyError, TypeError):
-            self.dic_names = None
-            # kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti standard
-            kk = [[1266.4, 0., 816.27], [0, 1266.4, 491.5], [0., 0., 1.]]  # Nuscenes standard
-            print("Ground-truth annotations for the image not found\n"
-                  "Using a standard calibration matrix...\n" + '-' * 120)
-
+        dic_names, kk = factory_for_gt(self.path_gt, self.image_path)
         (inputs_norm, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = \
             get_input_data(self.boxes, self.keypoints, kk, left_to_right=True)
 
@@ -111,8 +94,9 @@ class PredictMonoLoco:
 
         # Print image and save json
         dic_out = defaultdict(list)
-        if self.dic_names:
-            boxes_gt, dds_gt = self.dic_names[name]['boxes'], self.dic_names[name]['dds']
+        if dic_names:
+            name = os.path.basename(self.image_path)
+            boxes_gt, dds_gt = dic_names[name]['boxes'], dic_names[name]['dds']
 
         for idx, box in enumerate(uv_boxes):
             dd_pred = float(outputs[idx][0])
@@ -120,7 +104,7 @@ class PredictMonoLoco:
             var_y = float(varss[idx])
 
             # Find the corresponding ground truth if available
-            if self.dic_names:
+            if dic_names:
                 idx_max, iou_max = get_idx_max(box, boxes_gt)
                 if iou_max > self.iou_min:
                     dd_real = dds_gt[idx_max]
@@ -158,3 +142,32 @@ class PredictMonoLoco:
                 json.dump(dic_out, ff)
 
         sys.stdout.write('\r' + 'Saving image {}'.format(cnt) + '\t')
+
+
+def factory_for_gt(path_gt, image_path):
+    """Look for ground-truth annotations file and define calibration matrix based on image size """
+
+    try:
+        with open(path_gt, 'r') as f:
+            dic_names = json.load(f)
+        print('-' * 120 + "\nMonoloco: Ground-truth file opened\n")
+    except FileNotFoundError:
+        print('-' * 120 + "\nMonoloco: ground-truth file not found\n")
+        dic_names = {}
+
+    try:
+        name = os.path.basename(image_path)
+        kk = dic_names[name]['K']
+        print("Monoloco: matched ground-truth file!\n" + '-' * 120)
+    except KeyError:
+        dic_names = None
+        with open(image_path, 'rb') as f:
+            im = Image.open(f)
+            if im.size[0] / im.size[1] > 2.5:
+                kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
+            else:
+                kk = [[1266.4, 0., 816.27], [0, 1266.4, 491.5], [0., 0., 1.]]  # Nuscenes calibration
+        print("Ground-truth annotations for the image not found\n"
+              "Using a standard calibration matrix...\n" + '-' * 120)
+
+    return dic_names, kk
