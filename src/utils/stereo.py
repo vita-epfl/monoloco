@@ -1,51 +1,44 @@
+
+import copy
 import numpy as np
 
 
-def distance_from_disparity(list_dds, list_kps):
+def depth_from_disparity(dds, dds_right, kps, kps_right):
     """Associate instances in left and right images and compute disparity"""
 
-    dds = list_dds[0]
-    dds_right = list_dds[1]
-    kps = list_kps[0]
-    kps_right = list_kps[1]
-    dds_stereo = []
-
+    zzs_stereo = []
     for idx, dd in enumerate(dds):
 
         # Find the closest human in terms of distance
-        idx_right, delta_min = match_distances(dd, dds_right)
-        dd_stereo = calculate_disparity(kps[idx], kps_right[idx_right])
-        dds_stereo.append(dd_stereo)
+        zz_stereo, idx_min, delta_d_min = calculate_disparity(dd, dds_right, kps[idx], kps_right)
+        if delta_d_min < 1:
+            zzs_stereo.append(zz_stereo)
+            dds_right.pop(idx_min)
+            kps_right.pop(idx_min)
 
-    stereo_dds = None
-    return stereo_dds
+    return zzs_stereo
 
 
-def calculate_disparity(kp, kp_right):
+def calculate_disparity(dd, dds_right, kp, kps_right):
     """From 2 sets of keypoints calculate disparity as the median of the disparities"""
 
-    kp = np.array(kp)
-    kp_right = np.array(kp_right)
-
-    diffs = kp_right[0] - kp[0]
-    zzs = 0.54 * 721 / diffs
-    dd_stereo = np.median(zzs[kp[2] > 0])
-
-    return dd_stereo
-
-
-def match_distances(dd, dds_right):
-    """Find index of the closest instance in the right image to the instance in the left image"""
+    kp = np.array(copy.deepcopy(kp))
+    kps_right = np.array(copy.deepcopy(kps_right))
+    zz_stereo = 0
+    idx_min = 0
+    delta_d_min = 1
 
     for idx, dd_right in enumerate(dds_right):
-        delta_d_min = 1
-        idx_min = 0
-
         delta_d = abs(dd - dd_right)
-        if delta_d < delta_d_min:
+        diffs = np.array(np.array(kp[0] - kps_right[idx][0]))
+        diff = np.mean(diffs)
+
+        if delta_d < delta_d_min and diff > 0:  # Check only for right instances
             delta_d_min = delta_d
             idx_min = idx
+            zzs = 0.54 * 721 / diffs
+            zz_stereo = np.median(zzs[kp[2] > 0])
 
-    return idx_min, delta_d_min
+    return zz_stereo, idx_min, delta_d_min
 
 

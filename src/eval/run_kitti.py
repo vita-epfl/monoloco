@@ -10,10 +10,11 @@ import copy
 
 from models.architectures import LinearModel
 from utils.misc import laplace_sampling
-from utils.stereo import distance_from_disparity
+from utils.stereo import depth_from_disparity
 from utils.kitti import eval_geometric, get_calibration
 from utils.normalize import unnormalize_bi
 from utils.pifpaf import get_input_data, preprocess_pif
+from utils.camera import get_depth_from_distance
 
 
 class RunKitti:
@@ -26,7 +27,7 @@ class RunKitti:
     average_y = 0.48
     n_samples = 100
 
-    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=True):
+    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=False):
 
         # Set directories
         assert dir_ann, "Annotations folder is required"
@@ -60,8 +61,6 @@ class RunKitti:
 
         # Run inference
         for basename in self.list_basename:
-            list_dds = []
-            list_kps = []
             for ite in range(self.iters):
                 path_calib = os.path.join(self.dir_kk, basename + '.txt')
                 kk, tt = get_calibration(path_calib)
@@ -102,52 +101,69 @@ class RunKitti:
                 self.model.dropout.training = False
                 outputs_net = self.model(inputs)
                 outputs = outputs_net.cpu().detach().numpy()
+                if ite == 0:
+                    list_zzs = get_depth_from_distance(outputs, xy_centers)
+                    list_kps = copy.deepcopy(keypoints)
+                    all_outputs = [outputs, varss, dds_geom]
+                    all_inputs = [uv_boxes, xy_centers, xy_kps]
+                    all_params = [kk, tt]
 
-                if self.iters == 2:
-                    list_dds.append([float(outputs[idx][0]) for idx, _ in enumerate(outputs)])
-                    list_kps.append(copy.deepcopy(keypoints))
-                    if ite == 1:
-                        stereo_dds = distance_from_disparity(list_dds, list_kps)
-                else:
-                    stereo_dds = [0] * outputs.shape[0]
+                elif ite == 1:
+                    list_zzs_right = get_depth_from_distance(outputs, xy_centers)
+                    list_kps_right = copy.deepcopy(keypoints)
 
-                path_txt = os.path.join(self.dir_out, basename + '.txt')
-                with open(path_txt, "w+") as ff:
-                    for idx in range(outputs.shape[0]):
-                        xx_1 = float(xy_centers[idx][0])
-                        yy_1 = float(xy_centers[idx][1])
-                        xy_kp = xy_kps[idx]
-                        dd = float(outputs[idx][0])
-                        std_ale = math.exp(float(outputs[idx][1])) * dd
+            if self.iters == 2:
+                zzs = depth_from_disparity(list_zzs, list_zzs_right, list_kps, list_kps_right)
+            else:
+                zzs = list_zzs
 
-                        zz = dd / math.sqrt(1 + xx_1**2 + yy_1**2)
-                        xx_cam_0 = xx_1*zz + tt[0]  # Still to verify the sign but negligible
-                        yy_cam_0 = yy_1*zz + tt[1]
-                        zz_cam_0 = zz + tt[2]
-                        dd_cam_0 = math.sqrt(xx_cam_0**2 + yy_cam_0**2 + zz_cam_0**2)
-
-                        uv_box = uv_boxes[idx]
-
-                        twodecimals = ["%.3f" % vv for vv in [uv_box[0], uv_box[1], uv_box[2], uv_box[3],
-                                                              xx_cam_0, yy_cam_0, zz_cam_0, dd_cam_0,
-                                                              std_ale, varss[idx], uv_box[4], dds_geom[idx]]]
-
-                        keypoints_str = ["%.5f" % vv for vv in xy_kp]
-                        for item in twodecimals:
-                            ff.write("%s " % item)
-                        for item in keypoints_str:
-                            ff.write("%s " % item)
-                        ff.write("\n")
-
-                    # Save intrinsic matrix in the last row
-                    kk_list = kk.reshape(-1,).tolist()
-                    for kk_el in kk_list:
-                        ff.write("%f " % kk_el)
-                    ff.write("\n")
+            # Save the file
+            all_outputs.append(zzs)
+            path_txt = os.path.join(self.dir_out, basename + '.txt')
+            save_txts(path_txt, all_inputs, all_outputs, all_params)
 
         # Print statistics
         print("Saved in {} txt {} annotations. Not found {} images"
               .format(self.cnt_file, self.cnt_ann, self.cnt_no_file))
+
+
+def save_txts(path_txt, all_inputs, all_outputs, all_params):
+
+    outputs, varss, dds_geom, zzs = all_outputs[:]
+    uv_boxes, xy_centers, xy_kps = all_inputs[:]
+    kk, tt = all_params[:]
+
+    with open(path_txt, "w+") as ff:
+        for idx in range(outputs.shape[0]):
+            xx_1 = float(xy_centers[idx][0])
+            yy_1 = float(xy_centers[idx][1])
+            xy_kp = xy_kps[idx]
+            dd = float(outputs[idx][0])
+            std_ale = math.exp(float(outputs[idx][1])) * dd
+            zz = zzs[idx]
+            xx_cam_0 = xx_1 * zz + tt[0]  # Still to verify the sign but negligible
+            yy_cam_0 = yy_1 * zz + tt[1]
+            zz_cam_0 = zz + tt[2]
+            dd_cam_0 = math.sqrt(xx_cam_0 ** 2 + yy_cam_0 ** 2 + zz_cam_0 ** 2)
+
+            uv_box = uv_boxes[idx]
+
+            twodecimals = ["%.3f" % vv for vv in [uv_box[0], uv_box[1], uv_box[2], uv_box[3],
+                                                  xx_cam_0, yy_cam_0, zz_cam_0, dd_cam_0,
+                                                  std_ale, varss[idx], uv_box[4], dds_geom[idx]]]
+
+            keypoints_str = ["%.5f" % vv for vv in xy_kp]
+            for item in twodecimals:
+                ff.write("%s " % item)
+            for item in keypoints_str:
+                ff.write("%s " % item)
+            ff.write("\n")
+
+        # Save intrinsic matrix in the last row
+        kk_list = kk.reshape(-1, ).tolist()
+        for kk_el in kk_list:
+            ff.write("%f " % kk_el)
+        ff.write("\n")
 
 
 
