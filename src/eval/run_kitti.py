@@ -50,32 +50,35 @@ class RunKitti:
         self.model.eval()  # Default is train
         self.model.to(self.device)
 
+        # Stereo evaluation
+        self.iters = 2 if stereo else 1
+
     def run(self):
 
         # Run inference
         for basename in self.list_basename:
-            path_calib = os.path.join(self.dir_kk, basename + '.txt')
-            kk, tt = get_calibration(path_calib)
+            for idx in range(self.iters):
+                path_calib = os.path.join(self.dir_kk, basename + '.txt')
+                kk, tt = get_calibration(path_calib)
 
-            path_ann = os.path.join(self.dir_ann, basename + '.png.pifpaf.json')
-            with open(path_ann, 'r') as f:
-                annotations = json.load(f)
+                path_ann = os.path.join(self.dir_ann, basename + '.png.pifpaf.json') if idx == 1 \
+                    else os.path.join(self.dir_ann + '_2', basename + '.png.pifpaf.json')
+                with open(path_ann, 'r') as f:
+                    annotations = json.load(f)
 
-            boxes, keypoints = preprocess_pif(annotations)
-            (inputs, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = get_input_data(boxes, keypoints, kk)
+                boxes, keypoints = preprocess_pif(annotations)
+                (inputs, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = get_input_data(boxes, keypoints, kk)
 
-            dds_geom, xy_centers = eval_geometric(uv_kps, uv_centers, uv_shoulders, kk, average_y=0.48)
+                dds_geom, xy_centers = eval_geometric(uv_kps, uv_centers, uv_shoulders, kk, average_y=0.48)
 
-            self.cnt_ann += len(boxes)
+                # Update counting
+                self.cnt_ann += len(boxes)
+                if len(inputs) == 0:
+                    self.cnt_no_file += 1
+                else:
+                    self.cnt_file += 1
 
-            inputs = torch.from_numpy(np.array(inputs)).float().to(self.device)
-
-            if len(inputs) == 0:
-                self.cnt_no_file += 1
-
-            else:
-                self.cnt_file += 1
-
+                inputs = torch.from_numpy(np.array(inputs)).float().to(self.device)
                 if self.n_dropout > 0:
                     total_outputs = torch.empty((0, len(uv_boxes))).to(self.device)
                     self.model.dropout.training = True
