@@ -7,7 +7,7 @@ import glob
 import json
 import logging
 from models.architectures import LinearModel
-from utils.misc import laplace_sampling
+from utils.misc import laplace_sampling, distance_from_disparity
 from utils.kitti import eval_geometric, get_calibration
 from utils.normalize import unnormalize_bi
 from utils.pifpaf import get_input_data, preprocess_pif
@@ -57,12 +57,14 @@ class RunKitti:
 
         # Run inference
         for basename in self.list_basename:
-            for idx in range(self.iters):
+            list_dds = []
+            list_kps = []
+            for ite in range(self.iters):
                 path_calib = os.path.join(self.dir_kk, basename + '.txt')
                 kk, tt = get_calibration(path_calib)
 
-                path_ann = os.path.join(self.dir_ann, basename + '.png.pifpaf.json') if idx == 1 \
-                    else os.path.join(self.dir_ann + '_2', basename + '.png.pifpaf.json')
+                path_ann = os.path.join(self.dir_ann, basename + '.png.pifpaf.json') if ite == 0 \
+                    else os.path.join(self.dir_ann + '_right', basename + '.png.pifpaf.json')
                 with open(path_ann, 'r') as f:
                     annotations = json.load(f)
 
@@ -78,6 +80,7 @@ class RunKitti:
                 else:
                     self.cnt_file += 1
 
+                # Run the model
                 inputs = torch.from_numpy(np.array(inputs)).float().to(self.device)
                 if self.n_dropout > 0:
                     total_outputs = torch.empty((0, len(uv_boxes))).to(self.device)
@@ -96,6 +99,14 @@ class RunKitti:
                 self.model.dropout.training = False
                 outputs_net = self.model(inputs)
                 outputs = outputs_net.cpu().detach().numpy()
+
+                if self.iters == 2:
+                    list_dds[ite] = (float(outputs[idx][0]) for idx, _ in enumerate(outputs))
+                    list_kps[ite] = tuple(annotations['keypoints'])
+                    if ite == 1:
+                        stereo_dds = distance_from_disparity(list_dds, list_kps)
+                else:
+                    stereo_dds = [0] * outputs.shape[0]
 
                 path_txt = os.path.join(self.dir_out, basename + '.txt')
                 with open(path_txt, "w+") as ff:
