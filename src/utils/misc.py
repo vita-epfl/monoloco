@@ -204,11 +204,3 @@ def append_cluster(dic_jo, phase, xx, dd, kps):
         dic_jo[phase]['clst']['>30']['X'].append(xx)
         dic_jo[phase]['clst']['>30']['Y'].append([dd])
 
-
-def distance_from_disparity(list_dds, list_kps):
-    """Associate instances in left and right images and compute disparuty"""
-
-    stereo_dds = None
-    return stereo_dds
-
-

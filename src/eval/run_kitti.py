@@ -7,7 +7,8 @@ import glob
 import json
 import logging
 from models.architectures import LinearModel
-from utils.misc import laplace_sampling, distance_from_disparity
+from utils.misc import laplace_sampling
+from utils.stereo import distance_from_disparity
 from utils.kitti import eval_geometric, get_calibration
 from utils.normalize import unnormalize_bi
 from utils.pifpaf import get_input_data, preprocess_pif
@@ -23,7 +24,7 @@ class RunKitti:
     average_y = 0.48
     n_samples = 100
 
-    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=False):
+    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=True):
 
         # Set directories
         assert dir_ann, "Annotations folder is required"
@@ -101,8 +102,8 @@ class RunKitti:
                 outputs = outputs_net.cpu().detach().numpy()
 
                 if self.iters == 2:
-                    list_dds[ite] = (float(outputs[idx][0]) for idx, _ in enumerate(outputs))
-                    list_kps[ite] = tuple(annotations['keypoints'])
+                    list_dds.append(tuple(float(outputs[idx][0]) for idx, _ in enumerate(outputs)))
+                    list_kps.append(tuple(annotations[idx]['keypoints']for idx, _ in enumerate(outputs)))
                     if ite == 1:
                         stereo_dds = distance_from_disparity(list_dds, list_kps)
                 else:
