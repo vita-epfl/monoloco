@@ -23,7 +23,7 @@ class RunKitti:
     average_y = 0.48
     n_samples = 100
 
-    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo):
+    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=False):
 
         # Set directories
         assert dir_ann, "Annotations folder is required"
