@@ -6,6 +6,8 @@ import os
 import glob
 import json
 import logging
+import copy
+
 from models.architectures import LinearModel
 from utils.misc import laplace_sampling
 from utils.stereo import distance_from_disparity
@@ -102,8 +104,8 @@ class RunKitti:
                 outputs = outputs_net.cpu().detach().numpy()
 
                 if self.iters == 2:
-                    list_dds.append(tuple(float(outputs[idx][0]) for idx, _ in enumerate(outputs)))
-                    list_kps.append(tuple(annotations[idx]['keypoints']for idx, _ in enumerate(outputs)))
+                    list_dds.append([float(outputs[idx][0]) for idx, _ in enumerate(outputs)])
+                    list_kps.append(copy.deepcopy(keypoints))
                     if ite == 1:
                         stereo_dds = distance_from_disparity(list_dds, list_kps)
                 else:

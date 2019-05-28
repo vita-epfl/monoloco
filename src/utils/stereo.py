@@ -1,3 +1,4 @@
+import numpy as np
 
 
 def distance_from_disparity(list_dds, list_kps):
@@ -23,7 +24,13 @@ def distance_from_disparity(list_dds, list_kps):
 def calculate_disparity(kp, kp_right):
     """From 2 sets of keypoints calculate disparity as the median of the disparities"""
 
-    dd_stereo = None
+    kp = np.array(kp)
+    kp_right = np.array(kp_right)
+
+    diffs = kp_right[0] - kp[0]
+    zzs = 0.54 * 721 / diffs
+    dd_stereo = np.median(zzs[kp[2] > 0])
+
     return dd_stereo
 
 
