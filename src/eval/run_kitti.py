@@ -28,7 +28,7 @@ class RunKitti:
     average_y = 0.48
     n_samples = 100
 
-    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=False):
+    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=True):
 
         self.dir_ann = dir_ann
         self.n_dropout = n_dropout
@@ -57,14 +57,14 @@ class RunKitti:
 
         # Run inference
         for basename in self.list_basename:
-            if basename == '000153':
+            if basename == '001782':
                 aa = 5
             for ite in range(self.iters):
                 path_calib = os.path.join(self.dir_kk, basename + '.txt')
 
-                annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename, ite)
+                annotations, kk, tt, stereo_file = factory_file(path_calib, self.dir_ann, basename, ite)
 
-                if not annotations:
+                if not stereo_file:
                     continue
 
                 boxes, keypoints = preprocess_pif(annotations)
@@ -179,6 +179,7 @@ def factory_basename(dir_ann):
 def factory_file(path_calib, dir_ann, basename, ite):
     """Choose the annotation and the calibration files"""
 
+    stereo_file = True
     p_left, p_right = get_calibration(path_calib)
 
     if ite == 0:
@@ -193,8 +194,10 @@ def factory_file(path_calib, dir_ann, basename, ite):
             annotations = json.load(f)
     except FileNotFoundError:
         annotations = None
+        if ite == 1:
+            stereo_file = False
 
-    return annotations, kk, tt
+    return annotations, kk, tt, stereo_file
 
 
 
