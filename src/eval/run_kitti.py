@@ -22,27 +22,23 @@ class RunKitti:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     cnt_ann = 0
+    cnt_disparity = 0
     cnt_file = 0
     cnt_no_file = 0
     average_y = 0.48
     n_samples = 100
 
-    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=False):
+    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=True):
 
-        # Set directories
-        assert dir_ann, "Annotations folder is required"
         self.dir_ann = dir_ann
         self.n_dropout = n_dropout
-
-        list_ann = glob.glob(os.path.join(dir_ann, '*.json'))
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
         self.dir_out = os.path.join('data', 'kitti', 'monoloco')
         if not os.path.exists(self.dir_out):
             os.makedirs(self.dir_out)
             print("Created output directory for txt files")
 
-        self.list_basename = [os.path.basename(x).split('.')[0] for x in list_ann]
-        assert self.list_basename, " Missing json annotations file to create txt files for KITTI datasets"
+        self.list_basename = factory_basenames(dir_ann)
 
         # Load the model
         input_size = 17 * 2
@@ -61,14 +57,22 @@ class RunKitti:
 
         # Run inference
         for basename in self.list_basename:
+            if basename == '000153':
+                aa = 5
+            stereo_file = True
             for ite in range(self.iters):
                 path_calib = os.path.join(self.dir_kk, basename + '.txt')
                 kk, tt = get_calibration(path_calib)
 
                 path_ann = os.path.join(self.dir_ann, basename + '.png.pifpaf.json') if ite == 0 \
                     else os.path.join(self.dir_ann + '_right', basename + '.png.pifpaf.json')
-                with open(path_ann, 'r') as f:
-                    annotations = json.load(f)
+
+                try:
+                    with open(path_ann, 'r') as f:
+                        annotations = json.load(f)
+                except FileNotFoundError:
+                    stereo_file = False
+                    continue
 
                 boxes, keypoints = preprocess_pif(annotations)
                 (inputs, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = get_input_data(boxes, keypoints, kk)
@@ -112,8 +116,9 @@ class RunKitti:
                     list_zzs_right = get_depth_from_distance(outputs, xy_centers)
                     list_kps_right = copy.deepcopy(keypoints)
 
-            if self.iters == 2:
-                zzs = depth_from_disparity(list_zzs, list_zzs_right, list_kps, list_kps_right)
+            if self.iters == 2 and stereo_file:
+                zzs, cnt = depth_from_disparity(list_zzs, list_zzs_right, list_kps, list_kps_right)
+                self.cnt_disparity += cnt
             else:
                 zzs = list_zzs
 
@@ -125,6 +130,8 @@ class RunKitti:
         # Print statistics
         print("Saved in {} txt {} annotations. Not found {} images"
               .format(self.cnt_file, self.cnt_ann, self.cnt_no_file))
+        print("Annotations corrected using stereo: {:.1f}%"
+              .format(self.cnt_disparity/self.cnt_ann*100))
 
 
 def save_txts(path_txt, all_inputs, all_outputs, all_params):
@@ -166,7 +173,14 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
         ff.write("\n")
 
 
+def factory_basenames(dir_ann):
+    """ Return all the basenames in the annotations folder"""
 
+    list_ann = glob.glob(os.path.join(dir_ann, '*.json'))
+    list_basename = [os.path.basename(x).split('.')[0] for x in list_ann]
+    assert list_basename, " Missing json annotations file to create txt files for KITTI datasets"
+
+    return list_basename
 
 
 
