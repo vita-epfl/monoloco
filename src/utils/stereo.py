@@ -1,8 +1,6 @@
 
 import copy
 import numpy as np
-import warnings
-warnings.filterwarnings('error')
 
 
 def depth_from_disparity(zzs, zzs_right, kps, kps_right):
