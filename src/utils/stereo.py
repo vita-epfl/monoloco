@@ -32,7 +32,7 @@ def calculate_disparity(zz, zzs_right, kp, kps_right):
     kps_right = np.array(copy.deepcopy(kps_right))
     zz_stereo = 0
     idx_min = 0
-    delta_z_min = 1
+    delta_z_min = 4
 
     for idx, zz_right in enumerate(zzs_right):
         delta_z = abs(zz - zz_right)
@@ -40,7 +40,7 @@ def calculate_disparity(zz, zzs_right, kp, kps_right):
         diff = np.mean(diffs)
 
         # Check only for right instances (5 pxls = 80meters)
-        if delta_z < delta_z_min and diff > :
+        if delta_z < delta_z_min and diff > 5:
             delta_z_min = delta_z
             idx_min = idx
             zzs = 0.54 * 721 / diffs
