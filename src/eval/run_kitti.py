@@ -28,7 +28,7 @@ class RunKitti:
     average_y = 0.48
     n_samples = 100
 
-    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=True):
+    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=False):
 
         self.dir_ann = dir_ann
         self.n_dropout = n_dropout
@@ -62,7 +62,12 @@ class RunKitti:
             stereo_file = True
             for ite in range(self.iters):
                 path_calib = os.path.join(self.dir_kk, basename + '.txt')
-                kk, tt = get_calibration(path_calib)
+                p_left, p_right = get_calibration(path_calib)
+
+                if ite == 0:
+                    kk, tt = p_left[:]
+                else:
+                    kk, tt = p_right[:]
 
                 path_ann = os.path.join(self.dir_ann, basename + '.png.pifpaf.json') if ite == 0 \
                     else os.path.join(self.dir_ann + '_right', basename + '.png.pifpaf.json')
@@ -148,7 +153,7 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
             dd = float(outputs[idx][0])
             std_ale = math.exp(float(outputs[idx][1])) * dd
             zz = zzs[idx]
-            xx_cam_0 = xx_1 * zz + tt[0]  # Still to verify the sign but negligible
+            xx_cam_0 = xx_1 * zz + tt[0]
             yy_cam_0 = yy_1 * zz + tt[1]
             zz_cam_0 = zz + tt[2]
             dd_cam_0 = math.sqrt(xx_cam_0 ** 2 + yy_cam_0 ** 2 + zz_cam_0 ** 2)
