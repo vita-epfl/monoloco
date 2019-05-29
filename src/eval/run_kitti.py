@@ -38,7 +38,7 @@ class RunKitti:
             os.makedirs(self.dir_out)
             print("Created output directory for txt files")
 
-        self.list_basename = factory_basenames(dir_ann)
+        self.list_basename = factory_basename(dir_ann)
 
         # Load the model
         input_size = 17 * 2
@@ -59,24 +59,12 @@ class RunKitti:
         for basename in self.list_basename:
             if basename == '000153':
                 aa = 5
-            stereo_file = True
             for ite in range(self.iters):
                 path_calib = os.path.join(self.dir_kk, basename + '.txt')
-                p_left, p_right = get_calibration(path_calib)
 
-                if ite == 0:
-                    kk, tt = p_left[:]
-                else:
-                    kk, tt = p_right[:]
+                annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename, ite)
 
-                path_ann = os.path.join(self.dir_ann, basename + '.png.pifpaf.json') if ite == 0 \
-                    else os.path.join(self.dir_ann + '_right', basename + '.png.pifpaf.json')
-
-                try:
-                    with open(path_ann, 'r') as f:
-                        annotations = json.load(f)
-                except FileNotFoundError:
-                    stereo_file = False
+                if not annotations:
                     continue
 
                 boxes, keypoints = preprocess_pif(annotations)
@@ -178,7 +166,7 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
         ff.write("\n")
 
 
-def factory_basenames(dir_ann):
+def factory_basename(dir_ann):
     """ Return all the basenames in the annotations folder"""
 
     list_ann = glob.glob(os.path.join(dir_ann, '*.json'))
@@ -186,6 +174,27 @@ def factory_basenames(dir_ann):
     assert list_basename, " Missing json annotations file to create txt files for KITTI datasets"
 
     return list_basename
+
+
+def factory_file(path_calib, dir_ann, basename, ite):
+    """Choose the annotation and the calibration files"""
+
+    p_left, p_right = get_calibration(path_calib)
+
+    if ite == 0:
+        kk, tt = p_left[:]
+        path_ann = os.path.join(dir_ann, basename + '.png.pifpaf.json')
+    else:
+        kk, tt = p_right[:]
+        path_ann = os.path.join(dir_ann + '_right', basename + '.png.pifpaf.json')
+
+    try:
+        with open(path_ann, 'r') as f:
+            annotations = json.load(f)
+    except FileNotFoundError:
+        annotations = None
+
+    return annotations, kk, tt
 
 
 
