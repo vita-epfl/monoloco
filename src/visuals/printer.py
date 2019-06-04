@@ -16,6 +16,11 @@ class Printer:
     """
     Print results on images: birds eye view and computed distance
     """
+    RADIUS_KPS = 6
+    FONTSIZE_BV = 16
+    FONTSIZE = 18
+    TEXTCOLOR = 'darkorange'
+    COLOR_KPS = 'yellow'
 
     def __init__(self, image, output_path, dic_ann, kk, output_types, show=False,
                  draw_kps=False, text=True, legend=True, epistemic=False, z_max=30, fig_width=10):
@@ -56,6 +61,7 @@ class Printer:
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
         self.ww = self.im.size[0]
         self.hh = self.im.size[1]
+        self.radius = 14 / 1600 * self.ww
 
     def print(self):
         """
@@ -64,12 +70,6 @@ class Printer:
         Either front and/or bird visualization or combined one
         """
         # Parameters
-        radius = 14
-        radius_kps = 6
-        fontsize_bv = 16
-        fontsize = 18
-        textcolor = 'darkorange'
-        color_kps = 'yellow'
 
         # Resize image for aesthetic proportions in combined visualization
         if 'combined' in self.output_types:
@@ -122,16 +122,16 @@ class Printer:
             for idx, uv in enumerate(self.uv_shoulders):
 
                 if self.draw_kps:
-                    ax0 = self.show_kps(ax0, self.uv_kps[idx], y_scale, radius_kps, color_kps)
+                    ax0 = self.show_kps(ax0, self.uv_kps[idx], y_scale, self.RADIUS_KPS, self.COLOR_KPS)
 
                 elif min(self.zz_pred[idx], self.zz_gt[idx]) > 0:
                     color = cmap((self.zz_pred[idx] % self.z_max) / self.z_max)
-                    circle = Circle((uv[0], uv[1] * y_scale), radius=radius, color=color, fill=True)
+                    circle = Circle((uv[0], uv[1] * y_scale), radius=self.radius, color=color, fill=True)
                     ax0.add_patch(circle)
 
                     if self.text:
-                        ax0.text(uv[0]+radius, uv[1] * y_scale - radius, str(num),
-                                 fontsize=fontsize, color=textcolor, weight='bold')
+                        ax0.text(uv[0]+self.radius, uv[1] * y_scale - self.radius, str(num),
+                                 fontsize=self.FONTSIZE, color=self.TEXTCOLOR, weight='bold')
                         num += 1
 
             ax0.get_xaxis().set_visible(False)
@@ -186,8 +186,8 @@ class Printer:
                                           height=1, angle=angle, color='b', fill=False, label="Aleatoric Uncertainty",
                                           linewidth=1.3)
                     ellipse_var = Ellipse((self.xx_pred[idx], self.zz_pred[idx]), width=self.stds_ale_epi[idx] * 2,
-                                          height=1, angle=angle, color='r', fill=False, label="Uncertainty", linewidth=1,
-                                          linestyle='--')
+                                          height=1, angle=angle, color='r', fill=False, label="Uncertainty",
+                                          linewidth=1, linestyle='--')
 
                     ax1.add_patch(ellipse_ale)
                     if self.epistemic:
@@ -200,7 +200,7 @@ class Printer:
                         (_, x_pos), (_, z_pos) = get_confidence(self.xx_pred[idx], self.zz_pred[idx], self.stds_ale_epi[idx])
 
                         if self.text:
-                            ax1.text(x_pos, z_pos, str(num), fontsize=fontsize_bv, color='darkorange')
+                            ax1.text(x_pos, z_pos, str(num), fontsize=self.FONTSIZE_BV, color='darkorange')
                             num += 1
 
             # To avoid repetitions in the legend
@@ -238,7 +238,8 @@ class Printer:
 
         return ax0
 
-    def increase_brightness(self, img, value=30):
+    @staticmethod
+    def increase_brightness(img, value=30):
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
 

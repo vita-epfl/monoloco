@@ -136,7 +136,7 @@ def predict(args):
 
                 # Extract calibration matrix and ground truth file if present
                 with open(image_path, 'rb') as f:
-                    im_orig = Image.open(f)
+                    im_orig = Image.open(f).convert('RGB')
                 im_name = os.path.basename(image_path)
 
                 kk, gt_names = factory_for_gt(im_orig, im_name, args.path_gt)
