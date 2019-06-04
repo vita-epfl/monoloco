@@ -21,9 +21,10 @@ def factory_for_gt(path_gt, image_path):
     try:
         name = os.path.basename(image_path)
         kk = dic_names[name]['K']
+        dic_gt = dic_names[name]
         print("Monoloco: matched ground-truth file!\n" + '-' * 120)
     except KeyError:
-        dic_names = None
+        dic_gt = None
         with open(image_path, 'rb') as f:
             im = Image.open(f)
             x_factor = im.size[0] / 1600
@@ -38,7 +39,7 @@ def factory_for_gt(path_gt, image_path):
         print("Ground-truth annotations for the image not found\n"
               "Using a standard calibration matrix...\n" + '-' * 120)
 
-    return dic_names, kk
+    return kk, dic_gt
 
 
 def factory_outputs(image, output_path, pifpaf_outputs, monoloco_outputs, kk, args):

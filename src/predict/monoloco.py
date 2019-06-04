@@ -43,7 +43,7 @@ class MonoLoco:
         self.model.eval()  # Default is train
         self.model.to(self.device)
 
-    def forward(self, pifpaf_out, im_size, kk, dic_names, image_name):
+    def forward(self, pifpaf_out, im_size, kk, dic_gt=None):
 
         # Preprocess pifpaf outputs
         boxes, keypoints = preprocess_pif(pifpaf_out, im_size)
@@ -84,9 +84,8 @@ class MonoLoco:
 
         # Create output files
         dic_out = defaultdict(list)
-        if dic_names:
-            name = os.path.basename(self.image_path)
-            boxes_gt, dds_gt = dic_names[name]['boxes'], dic_names[name]['dds']
+        if dic_gt:
+            boxes_gt, dds_gt = dic_gt['boxes'], dic_gt['dds']
 
         for idx, box in enumerate(uv_boxes):
             dd_pred = float(outputs[idx][0])
@@ -94,7 +93,7 @@ class MonoLoco:
             var_y = float(varss[idx])
 
             # Find the corresponding ground truth if available
-            if dic_names:
+            if dic_gt:
                 idx_max, iou_max = get_idx_max(box, boxes_gt)
                 if iou_max > self.iou_min:
                     dd_real = dds_gt[idx_max]

@@ -135,9 +135,8 @@ def predict(args):
                            float(image.size()[0] / args.scale))  # Width, Height (original)
 
                 # Extract calibration matrix if ground-truth file is present or use a default one
-                dic_names, kk = factory_for_gt(args.path_gt, args.image_path)
+                kk, gt_names = factory_for_gt(args.path_gt, args.image_path)
 
-                # TODO Add ground truth on factory_for_gt (ground truth = None)
                 monoloco_outputs = monoloco.forward(pifpaf_out, im_size,  kk)
 
             factory_outputs(image, output_path, pifpaf_outputs, monoloco_outputs, args)
