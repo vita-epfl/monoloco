@@ -36,6 +36,7 @@ class Printer:
         self.z_max = z_max  # To include ellipses in the image
         self.fig_width = fig_width
 
+        # TODO remove it
         from utils.camera import pixel_to_camera, get_depth
         self.pixel_to_camera = pixel_to_camera
         self.get_depth = get_depth
@@ -215,6 +216,8 @@ class Printer:
             ax1.set_ylim(0, self.z_max+1)
             ax1.set_xlabel("X [m]")
             ax1.set_ylabel("Z [m]")
+            plt.setp([ax1.get_yticklabels() for aa in fig.axes[:-1]], visible=False)
+            plt.setp([ax1.get_xticklabels() for aa in fig.axes[:-1]], visible=False)
 
             if self.show:
                 plt.show()
