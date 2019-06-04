@@ -14,7 +14,7 @@ from models.architectures import LinearModel
 from utils.camera import get_depth
 from utils.misc import laplace_sampling, get_idx_max
 from utils.normalize import unnormalize_bi
-from utils.pifpaf import get_input_data, preprocess_pif
+from utils.pifpaf import get_input_data
 
 
 class MonoLoco:
@@ -42,10 +42,7 @@ class MonoLoco:
         self.model.eval()  # Default is train
         self.model.to(self.device)
 
-    def forward(self, pifpaf_out, im_size, kk, dic_gt=None):
-
-        # Preprocess pifpaf outputs
-        boxes, keypoints = preprocess_pif(pifpaf_out, im_size)
+    def forward(self, boxes, keypoints, kk, dic_gt=None):
 
         (inputs_norm, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = \
             get_input_data(boxes, keypoints, kk, left_to_right=True)

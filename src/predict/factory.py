@@ -7,7 +7,7 @@ from openpifpaf import show
 from PIL import Image
 
 
-def factory_for_gt(image, name, path_gt):
+def factory_for_gt(image, name=None, path_gt=None):
     """Look for ground-truth annotations file and define calibration matrix based on image size """
 
     try:
@@ -40,7 +40,7 @@ def factory_for_gt(image, name, path_gt):
     return kk, dic_gt
 
 
-def factory_outputs(image, output_path, pifpaf_outputs, monoloco_outputs, kk, args):
+def factory_outputs(args, image, output_path, pifpaf_outputs, monoloco_outputs=None, kk=None):
     """Output json files or images according to the choice"""
 
     # Save json file

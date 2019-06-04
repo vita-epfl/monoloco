@@ -8,6 +8,7 @@ from openpifpaf import decoder
 from openpifpaf import transforms
 from predict.monoloco import MonoLoco
 from predict.factory import factory_for_gt, factory_outputs
+from utils.pifpaf import preprocess_pif
 
 import numpy as np
 import torchvision
@@ -135,15 +136,22 @@ def predict(args):
                            float(image.size()[0] / args.scale))  # Width, Height (original)
 
                 # Extract calibration matrix and ground truth file if present
+                # TODO add compatibility with pifpaf image type
                 with open(image_path, 'rb') as f:
-                    im_orig = Image.open(f).convert('RGB')
+                    image = Image.open(f).convert('RGB')
+
                 im_name = os.path.basename(image_path)
 
-                kk, gt_names = factory_for_gt(im_orig, im_name, args.path_gt)
+                kk, gt_names = factory_for_gt(image, name=im_name, path_gt=args.path_gt)
 
-                monoloco_outputs = monoloco.forward(pifpaf_out, im_size,  kk)
+                # Preprocess pifpaf outputs and run monoloco
+                boxes, keypoints = preprocess_pif(pifpaf_out, im_size)
+                monoloco_outputs = monoloco.forward(boxes, keypoints,  kk)
+            else:
+                monoloco_outputs = None
+                kk = None
 
-            factory_outputs(im_orig, output_path, pifpaf_outputs, monoloco_outputs, kk, args)
+            factory_outputs(args, image, output_path, pifpaf_outputs, monoloco_outputs=monoloco_outputs, kk=kk)
             sys.stdout.write('\r' + 'Saving image {}'.format(cnt) + '\t')
             cnt += 1
 
