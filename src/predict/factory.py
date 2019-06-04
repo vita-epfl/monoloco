@@ -7,7 +7,7 @@ from openpifpaf import show
 from PIL import Image
 
 
-def factory_for_gt(path_gt, image_path):
+def factory_for_gt(image, name, path_gt):
     """Look for ground-truth annotations file and define calibration matrix based on image size """
 
     try:
@@ -19,24 +19,22 @@ def factory_for_gt(path_gt, image_path):
         dic_names = {}
 
     try:
-        name = os.path.basename(image_path)
         kk = dic_names[name]['K']
         dic_gt = dic_names[name]
         print("Monoloco: matched ground-truth file!\n" + '-' * 120)
     except KeyError:
         dic_gt = None
-        with open(image_path, 'rb') as f:
-            im = Image.open(f)
-            x_factor = im.size[0] / 1600
-            y_factor = im.size[1] / 900
-            pixel_factor = (x_factor + y_factor) / 2
-            if im.size[0] / im.size[1] > 2.5:
-                kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
-            else:
-                kk = [[1266.4 * pixel_factor, 0., 816.27 * x_factor],
-                      [0, 1266.4 * pixel_factor, 491.5 * y_factor],
-                      [0., 0., 1.]]  # nuScenes calibration
-        print("Ground-truth annotations for the image not found\n"
+        x_factor = image.size[0] / 1600
+        y_factor = image.size[1] / 900
+        pixel_factor = (x_factor + y_factor) / 2
+        if image.size[0] / image.size[1] > 2.5:
+            kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
+        else:
+            kk = [[1266.4 * pixel_factor, 0., 816.27 * x_factor],
+                  [0, 1266.4 * pixel_factor, 491.5 * y_factor],
+                  [0., 0., 1.]]  # nuScenes calibration
+
+        print("Ground-truth annotations for the image not found\n" 
               "Using a standard calibration matrix...\n" + '-' * 120)
 
     return kk, dic_gt
@@ -77,8 +75,13 @@ def factory_outputs(image, output_path, pifpaf_outputs, monoloco_outputs, kk, ar
 
     if 'monoloco' in args.networks:
         if any((xx in args.output_types for xx in ['front', 'bird', 'combined'])):
+
+            epistemic = False
+            if args.n_dropout > 0:
+                epistemic = True
+
             printer = Printer(image, output_path, monoloco_outputs, kk, output_types=args.output_types,
-                              show=args.show, z_max=args.z_max, epistemic=args.epistemic)
+                              show=args.show, z_max=args.z_max, epistemic=epistemic)
             printer.print()
 
         if 'json' in args.output_types:

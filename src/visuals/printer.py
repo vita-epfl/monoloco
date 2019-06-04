@@ -17,9 +17,10 @@ class Printer:
     Print results on images: birds eye view and computed distance
     """
 
-    def __init__(self, image_path, output_path, dic_ann, kk, output_types, show=False,
+    def __init__(self, image, output_path, dic_ann, kk, output_types, show=False,
                  draw_kps=False, text=True, legend=True, epistemic=False, z_max=30, fig_width=10):
 
+        self.im = image
         self.kk = kk
         self.output_types = output_types
         self.show = show
@@ -27,7 +28,7 @@ class Printer:
         self.text = text
         self.epistemic = epistemic
         self.legend = legend
-        self.z_max = z_max # To include ellipses in the image
+        self.z_max = z_max  # To include ellipses in the image
         self.fig_width = fig_width
 
         from utils.camera import pixel_to_camera, get_depth
@@ -52,11 +53,8 @@ class Printer:
         self.uv_shoulders = dic_ann['uv_shoulders']
         self.uv_kps = dic_ann['uv_kps']
 
-        # Load the image
-        with open(image_path, 'rb') as f:
-            self.im = Image.open(f).convert('RGB')
-
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
+        self.ww = self.im.size[0]
         self.hh = self.im.size[1]
 
     def print(self):
@@ -75,13 +73,12 @@ class Printer:
 
         # Resize image for aesthetic proportions in combined visualization
         if 'combined' in self.output_types:
-            ww = self.im.size[0]
-            hh = self.im.size[1]
-            y_scale = ww / (hh * 1.8)  # Defined proportion
-            self.im = self.im.resize((ww, round(hh * y_scale)))
-            print(y_scale)
-            width = self.fig_width + 0.6 * self.fig_width
-            height = self.fig_width * self.im.size[1] / self.im.size[0]
+            y_scale = self.ww / (self.hh * 1.8)  # Defined proportion
+            self.im = self.im.resize((self.ww, round(self.hh * y_scale)))
+            self.ww = self.im.size[0]
+            self.hh = self.im.size[1]
+            fig_width = self.fig_width + 0.6 * self.fig_width
+            fig_height = self.fig_width * self.hh / self.ww
 
             # Distinguish between KITTI images and general images
             if y_scale > 1.7:
@@ -92,7 +89,7 @@ class Printer:
             ext = '.combined.png'
 
             fig, (ax1, ax0) = plt.subplots(1, 2, sharey=False, gridspec_kw={'width_ratios': [1, width_ratio]},
-                                           figsize=(width, height))
+                                           figsize=(fig_width, fig_height))
             ax1.set_aspect(fig_ar_1)
             fig.set_tight_layout(True)
             fig.subplots_adjust(left=0.02, right=0.98, bottom=0, top=1, hspace=0, wspace=0.02)
@@ -104,7 +101,7 @@ class Printer:
         elif 'front' in self.output_types:
             y_scale = 1
             width = self.fig_width
-            height = self.fig_width * self.im.size[1] / self.im.size[0]
+            height = self.fig_width * self.hh / self.ww
 
             plt.figure(0)
             fig0, ax0 = plt.subplots(1, 1, figsize=(width, height))
@@ -114,8 +111,8 @@ class Printer:
         if any(xx in self.output_types for xx in ['front', 'combined']):
 
             ax0.set_axis_off()
-            ax0.set_xlim(0, self.im.size[0])
-            ax0.set_ylim(self.im.size[1], 0)
+            ax0.set_xlim(0, self.ww)
+            ax0.set_ylim(self.hh, 0)
             ax0.imshow(self.im)
             z_min = 0
             bar_ticks = self.z_max // 5 + 1
@@ -227,9 +224,7 @@ class Printer:
             if self.draw_kps:
                 im = cv2.imread(self.path_out + ext)
                 im = self.increase_brightness(im, value=30)
-                hh = im.size[1]
-                ww = im.size[0]
-                im_new = im[0:hh, 0:round(ww/1.7)]
+                im_new = im[0 : self.hh, 0:round(self.ww / 1.7)]
                 cv2.imwrite(self.path_out, im_new)
 
         plt.close('all')
