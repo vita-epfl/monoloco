@@ -3,63 +3,53 @@
 From a json file output images and json annotations
 """
 
-import sys
 from collections import defaultdict
 import os
-import json
 import logging
 import time
 
 import numpy as np
 import torch
-from PIL import Image
 
 from models.architectures import LinearModel
-from visuals.printer import Printer
 from utils.camera import get_depth
 from utils.misc import laplace_sampling, get_idx_max
 from utils.normalize import unnormalize_bi
-from utils.pifpaf import get_input_data
+from utils.pifpaf import get_input_data, preprocess_pif
 
 
-class PredictMonoLoco:
+class MonoLoco:
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     output_size = 2
     input_size = 17 * 2
+    linear_size = 256
+    iou_min = 0.25
+    n_samples = 100
 
-    def __init__(self, boxes, keypoints, image_path, output_path, args):
-        self.boxes = boxes
-        self.keypoints = keypoints
-        self.image_path = image_path
-        self.output_path = output_path
-        self.device = args.device
-        self.draw_kps = args.draw_kps
-        self.z_max = args.z_max
-        self.output_types = args.output_types
-        self.path_gt = args.path_gt
-        self.show = args.show
-        self.n_samples = 100
-        self.n_dropout = args.n_dropout
+    def __init__(self, model, device, n_dropout=0):
+
+        self.device = device
+        self.n_dropout = n_dropout
         if self.n_dropout > 0:
             self.epistemic = True
         else:
             self.epistemic = False
-        self.iou_min = 0.25
 
         # load the model parameters
-        self.model = LinearModel(input_size=self.input_size, output_size=self.output_size, linear_size=args.hidden_size)
-        self.model.load_state_dict(torch.load(args.model, map_location=lambda storage, loc: storage))
+        self.model = LinearModel(input_size=self.input_size, output_size=self.output_size, linear_size=self.linear_size)
+        self.model.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
         self.model.eval()  # Default is train
         self.model.to(self.device)
 
-    def run(self):
-        # Extract calibration matrix if ground-truth file is present or use a default one
-        cnt = 0
-        dic_names, kk = factory_for_gt(self.path_gt, self.image_path)
+    def forward(self, pifpaf_out, im_size, kk, dic_names, image_name):
+
+        # Preprocess pifpaf outputs
+        boxes, keypoints = preprocess_pif(pifpaf_out, im_size)
+
         (inputs_norm, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = \
-            get_input_data(self.boxes, self.keypoints, kk, left_to_right=True)
+            get_input_data(boxes, keypoints, kk, left_to_right=True)
 
         # Conversion into torch tensor
         if inputs_norm:
@@ -92,7 +82,7 @@ class PredictMonoLoco:
                       .format(self.n_dropout, (end-start) * 1000))
                 print("Single forward pass time = {:.2f} ms".format((end - start_single) * 1000))
 
-        # Print image and save json
+        # Create output files
         dic_out = defaultdict(list)
         if dic_names:
             name = os.path.basename(self.image_path)
@@ -132,47 +122,4 @@ class PredictMonoLoco:
             dic_out['uv_centers'].append(uv_center)
             dic_out['uv_shoulders'].append(uv_shoulders[idx])
 
-        if any((xx in self.output_types for xx in ['front', 'bird', 'combined'])):
-            printer = Printer(self.image_path, self.output_path, dic_out, kk,  output_types=self.output_types,
-                              show=self.show, z_max=self.z_max, epistemic=self.epistemic)
-            printer.print()
-
-        if 'json' in self.output_types:
-            with open(os.path.join(self.output_path + '.monoloco.json'), 'w') as ff:
-                json.dump(dic_out, ff)
-
-        sys.stdout.write('\r' + 'Saving image {}'.format(cnt) + '\t')
-
-
-def factory_for_gt(path_gt, image_path):
-    """Look for ground-truth annotations file and define calibration matrix based on image size """
-
-    try:
-        with open(path_gt, 'r') as f:
-            dic_names = json.load(f)
-        print('-' * 120 + "\nMonoloco: Ground-truth file opened\n")
-    except FileNotFoundError:
-        print('-' * 120 + "\nMonoloco: ground-truth file not found\n")
-        dic_names = {}
-
-    try:
-        name = os.path.basename(image_path)
-        kk = dic_names[name]['K']
-        print("Monoloco: matched ground-truth file!\n" + '-' * 120)
-    except KeyError:
-        dic_names = None
-        with open(image_path, 'rb') as f:
-            im = Image.open(f)
-            x_factor = im.size[0] / 1600
-            y_factor = im.size[1] / 900
-            pixel_factor = (x_factor + y_factor) / 2
-            if im.size[0] / im.size[1] > 2.5:
-                kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
-            else:
-                kk = [[1266.4 * pixel_factor, 0., 816.27 * x_factor],
-                      [0, 1266.4 * pixel_factor, 491.5 * y_factor],
-                      [0., 0., 1.]]  # nuScenes calibration
-        print("Ground-truth annotations for the image not found\n"
-              "Using a standard calibration matrix...\n" + '-' * 120)
-
-    return dic_names, kk
+        return dic_out
