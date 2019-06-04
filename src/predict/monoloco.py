@@ -1,10 +1,9 @@
 
 """
-From a json file output images and json annotations
+Monoloco predictor. It receives pifpaf joints and outputs distances
 """
 
 from collections import defaultdict
-import os
 import logging
 import time
 
@@ -22,11 +21,11 @@ class MonoLoco:
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-    output_size = 2
-    input_size = 17 * 2
-    linear_size = 256
-    iou_min = 0.25
-    n_samples = 100
+    OUTPUT_SIZE = 2
+    INPUT_SIZE = 17 * 2
+    LINEAR_SIZE = 256
+    IOU_MIN = 0.25
+    N_SAMPLES = 100
 
     def __init__(self, model, device, n_dropout=0):
 
@@ -38,7 +37,7 @@ class MonoLoco:
             self.epistemic = False
 
         # load the model parameters
-        self.model = LinearModel(input_size=self.input_size, output_size=self.output_size, linear_size=self.linear_size)
+        self.model = LinearModel(input_size=self.INPUT_SIZE, output_size=self.OUTPUT_SIZE, linear_size=self.LINEAR_SIZE)
         self.model.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
         self.model.eval()  # Default is train
         self.model.to(self.device)
@@ -66,7 +65,7 @@ class MonoLoco:
                     for _ in range(self.n_dropout):
                         outputs = self.model(inputs)
                         outputs = unnormalize_bi(outputs)
-                        samples = laplace_sampling(outputs, self.n_samples)
+                        samples = laplace_sampling(outputs, self.N_SAMPLES)
                         total_outputs = torch.cat((total_outputs, samples), 0)
                     varss = total_outputs.std(0)
                 else:
@@ -95,7 +94,7 @@ class MonoLoco:
             # Find the corresponding ground truth if available
             if dic_gt:
                 idx_max, iou_max = get_idx_max(box, boxes_gt)
-                if iou_max > self.iou_min:
+                if iou_max > self.IOU_MIN:
                     dd_real = dds_gt[idx_max]
                     boxes_gt.pop(idx_max)
                     dds_gt.pop(idx_max)
