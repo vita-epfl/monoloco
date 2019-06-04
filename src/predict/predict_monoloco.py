@@ -163,10 +163,15 @@ def factory_for_gt(path_gt, image_path):
         dic_names = None
         with open(image_path, 'rb') as f:
             im = Image.open(f)
+            x_factor = im.size[0] / 1600
+            y_factor = im.size[1] / 900
+            pixel_factor = (x_factor + y_factor) / 2
             if im.size[0] / im.size[1] > 2.5:
                 kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
             else:
-                kk = [[1266.4, 0., 816.27], [0, 1266.4, 491.5], [0., 0., 1.]]  # Nuscenes calibration
+                kk = [[1266.4 * pixel_factor, 0., 816.27 * x_factor],
+                      [0, 1266.4 * pixel_factor, 491.5 * y_factor],
+                      [0., 0., 1.]]  # nuScenes calibration
         print("Ground-truth annotations for the image not found\n"
               "Using a standard calibration matrix...\n" + '-' * 120)
 
