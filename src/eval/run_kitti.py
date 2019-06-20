@@ -147,6 +147,7 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
         ff.write("\n")
 
 
+
 def factory_basename(dir_ann):
     """ Return all the basenames in the annotations folder"""
 
