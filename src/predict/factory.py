@@ -40,7 +40,7 @@ def factory_for_gt(image, name=None, path_gt=None):
     return kk, dic_gt
 
 
-def factory_outputs(args, image, output_path, pifpaf_outputs, monoloco_outputs=None, kk=None):
+def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_outputs=None, kk=None):
     """Output json files or images according to the choice"""
 
     # Save json file
@@ -58,7 +58,7 @@ def factory_outputs(args, image, output_path, pifpaf_outputs, monoloco_outputs=N
                 json.dump(pifpaf_out, f)
 
         if 'keypoints' in args.output_types:
-            with show.image_canvas(image,
+            with show.image_canvas(images_outputs[0],
                                    output_path + '.keypoints.png',
                                    show=args.show,
                                    fig_width=args.figure_width,
@@ -66,7 +66,7 @@ def factory_outputs(args, image, output_path, pifpaf_outputs, monoloco_outputs=N
                 keypoint_painter.keypoints(ax, keypoint_sets)
 
         if 'skeleton' in args.output_types:
-            with show.image_canvas(image,
+            with show.image_canvas(images_outputs[0],
                                    output_path + '.skeleton.png',
                                    show=args.show,
                                    fig_width=args.figure_width,
@@ -80,7 +80,7 @@ def factory_outputs(args, image, output_path, pifpaf_outputs, monoloco_outputs=N
             if args.n_dropout > 0:
                 epistemic = True
 
-            printer = Printer(image, output_path, monoloco_outputs, kk, output_types=args.output_types,
+            printer = Printer(images_outputs[1], output_path, monoloco_outputs, kk, output_types=args.output_types,
                               show=args.show, z_max=args.z_max, epistemic=epistemic)
             printer.print()
 

@@ -17,9 +17,10 @@ from PIL import Image, ImageFile
 
 
 class ImageList(torch.utils.data.Dataset):
+    """It defines transformations to apply to images and outputs of the dataloader"""
     def __init__(self, image_paths, scale, image_transform=None):
         self.image_paths = image_paths
-        self.image_transform = image_transform or transforms.image_transform
+        self.image_transform = image_transform or transforms.image_transform  # to_tensor + normalize  (from pifpaf)
         self.scale = scale
 
         # data = datasets.ImageList(args.images, preprocess=transforms.RescaleRelative(2
@@ -36,7 +37,8 @@ class ImageList(torch.utils.data.Dataset):
                                                              (round(self.scale * image.size[1]),
                                                               round(self.scale * image.size[0])),
                                                              interpolation=Image.BICUBIC)
-        original_image = torchvision.transforms.functional.to_tensor(image)
+        # PIL images are not iterables
+        original_image = torchvision.transforms.functional.to_tensor(image)  # 0-255 --> 0-1
         image = self.image_transform(image)
 
         return image_path, original_image, image
@@ -130,6 +132,7 @@ def predict(args):
                 for kps in keypoint_sets
             ]
             pifpaf_outputs = [keypoint_sets, scores, pifpaf_out]
+            images_outputs = [image]  # List of 1 or 2 elements with pifpaf tensor (resized) and monoloco original image
 
             if 'monoloco' in args.networks:
                 im_size = (float(image.size()[1] / args.scale),
@@ -137,9 +140,9 @@ def predict(args):
 
                 # Extract calibration matrix and ground truth file if present
 
-                # TODO add compatibility with pifpaf image type
                 with open(image_path, 'rb') as f:
-                    image = Image.open(f).convert('RGB')
+                    pil_image = Image.open(f).convert('RGB')
+                    images_outputs.append(pil_image)
 
                 im_name = os.path.basename(image_path)
 
@@ -152,10 +155,9 @@ def predict(args):
                 monoloco_outputs = None
                 kk = None
 
-            factory_outputs(args, image, output_path, pifpaf_outputs, monoloco_outputs=monoloco_outputs, kk=kk)
+            factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_outputs=monoloco_outputs, kk=kk)
             sys.stdout.write('\r' + 'Saving image {}'.format(cnt) + '\t')
             cnt += 1
-
     return keypoints_whole
 
 
