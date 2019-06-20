@@ -1,13 +1,15 @@
 """Run monoloco over all the pifpaf joints of KITTI images
 and extract and save the annotations in txt files"""
 
-import torch
+
 import math
-import numpy as np
 import os
 import glob
 import json
 import logging
+
+import numpy as np
+import torch
 
 from models.architectures import LinearModel
 from utils.misc import laplace_sampling
@@ -22,7 +24,6 @@ class RunKitti:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     cnt_ann = 0
-    cnt_disparity = 0
     cnt_file = 0
     cnt_no_file = 0
     average_y = 0.48
@@ -66,7 +67,7 @@ class RunKitti:
 
             # Update counting
             self.cnt_ann += len(boxes)
-            if len(inputs) == 0:
+            if not inputs:
                 self.cnt_no_file += 1
             else:
                 self.cnt_file += 1
@@ -76,7 +77,7 @@ class RunKitti:
             if self.n_dropout > 0:
                 total_outputs = torch.empty((0, len(uv_boxes))).to(self.device)
                 self.model.dropout.training = True
-                for ii in range(self.n_dropout):
+                for _ in range(self.n_dropout):
                     outputs = self.model(inputs)
                     outputs = unnormalize_bi(outputs)
                     samples = laplace_sampling(outputs, self.n_samples)
