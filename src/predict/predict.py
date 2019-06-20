@@ -136,6 +136,7 @@ def predict(args):
                            float(image.size()[0] / args.scale))  # Width, Height (original)
 
                 # Extract calibration matrix and ground truth file if present
+
                 # TODO add compatibility with pifpaf image type
                 with open(image_path, 'rb') as f:
                     image = Image.open(f).convert('RGB')

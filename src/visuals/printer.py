@@ -9,7 +9,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Ellipse, Circle
 import cv2
 from collections import OrderedDict
-from PIL import Image
+from utils.camera import pixel_to_camera
 
 
 class Printer:
@@ -35,11 +35,6 @@ class Printer:
         self.legend = legend
         self.z_max = z_max  # To include ellipses in the image
         self.fig_width = fig_width
-
-        # TODO remove it
-        from utils.camera import pixel_to_camera, get_depth
-        self.pixel_to_camera = pixel_to_camera
-        self.get_depth = get_depth
 
         # Define the output dir
         self.path_out = output_path
@@ -164,7 +159,7 @@ class Printer:
         # Create bird or combine it with front)
         if any(xx in self.output_types for xx in ['bird', 'combined']):
             uv_max = np.array([0, self.hh, 1])
-            xyz_max = self.pixel_to_camera(uv_max, self.kk, self.z_max)
+            xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
             x_max = abs(xyz_max[0])  # shortcut to avoid oval circles in case of different kk
 
             for idx, _ in enumerate(self.xx_gt):
