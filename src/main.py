@@ -9,7 +9,7 @@ from openpifpaf.network import nets
 from openpifpaf import decoder
 from features.preprocess_nu import PreprocessNuscenes
 from features.preprocess_ki import PreprocessKitti
-from predict.predict_2d_3d import predict
+from predict.predict import predict
 from models.trainer import Trainer
 from eval.run_kitti import RunKitti
 from eval.geom_baseline import GeomBaseline

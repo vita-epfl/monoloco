@@ -1,26 +1,26 @@
 
 import glob
-import json
 import os
+import sys
 
 import numpy as np
-
-from openpifpaf.network import nets
-from openpifpaf import decoder, show
-from openpifpaf import transforms
-from predict.predict_monoloco import PredictMonoLoco
-from utils.pifpaf import preprocess_pif
-
 import torchvision
 import torch
-
 from PIL import Image, ImageFile
+
+from openpifpaf.network import nets
+from openpifpaf import decoder
+from openpifpaf import transforms
+from predict.monoloco import MonoLoco
+from predict.factory import factory_for_gt, factory_outputs
+from utils.pifpaf import preprocess_pif
 
 
 class ImageList(torch.utils.data.Dataset):
+    """It defines transformations to apply to images and outputs of the dataloader"""
     def __init__(self, image_paths, scale, image_transform=None):
         self.image_paths = image_paths
-        self.image_transform = image_transform or transforms.image_transform
+        self.image_transform = image_transform or transforms.image_transform  # to_tensor + normalize  (from pifpaf)
         self.scale = scale
 
         # data = datasets.ImageList(args.images, preprocess=transforms.RescaleRelative(2
@@ -37,7 +37,8 @@ class ImageList(torch.utils.data.Dataset):
                                                              (round(self.scale * image.size[1]),
                                                               round(self.scale * image.size[0])),
                                                              interpolation=Image.BICUBIC)
-        original_image = torchvision.transforms.functional.to_tensor(image)
+        # PIL images are not iterables
+        original_image = torchvision.transforms.functional.to_tensor(image)  # 0-255 --> 0-1
         image = self.image_transform(image)
 
         return image_path, original_image, image
@@ -76,23 +77,22 @@ def factory_from_args(args):
 
 def predict(args):
 
+    cnt = 0
     factory_from_args(args)
 
-    # load model
-    model, _ = nets.factory_from_args(args)
-    model = model.to(args.device)
-    processor = decoder.factory_from_args(args, model)
+    # load pifpaf model
+    model_pifpaf, _ = nets.factory_from_args(args)
+    model_pifpaf = model_pifpaf.to(args.device)
+    processor = decoder.factory_from_args(args, model_pifpaf)
+
+    # load monoloco
+    monoloco = MonoLoco(model=args.model, device=args.device, n_dropout=args.n_dropout)
 
     # data
     data = ImageList(args.images, scale=args.scale)
     data_loader = torch.utils.data.DataLoader(
         data, batch_size=1, shuffle=False,
         pin_memory=args.pin_memory, num_workers=args.loader_workers)
-
-    # Visualizer
-    keypoint_painter = show.KeypointPainter(show_box=True)
-    skeleton_painter = show.KeypointPainter(show_box=False, color_connections=True,
-                                            markersize=1, linewidth=4)
 
     keypoints_whole = []
     for idx, (image_paths, image_tensors, processed_images_cpu) in enumerate(data_loader):
@@ -121,45 +121,42 @@ def predict(args):
             # Correct to not change the confidence
             scale_np = np.array([args.scale, args.scale, 1] * 17).reshape(17, 3)
 
+            if keypoint_sets.size > 0:
+                keypoints_whole.append(np.around((keypoint_sets / scale_np), 1)
+                                       .reshape(keypoint_sets.shape[0], -1).tolist())
+
             pifpaf_out = [
                 {'keypoints': np.around(kps / scale_np, 1).reshape(-1).tolist(),
                  'bbox': [np.min(kps[:, 0]) / args.scale, np.min(kps[:, 1]) / args.scale,
                           np.max(kps[:, 0]) / args.scale, np.max(kps[:, 1]) / args.scale]}
                 for kps in keypoint_sets
             ]
-
-            # Save json file
-            if 'pifpaf' in args.networks:
-
-                if 'json' in args.output_types and keypoint_sets.size > 0:
-                    with open(output_path + '.pifpaf.json', 'w') as f:
-                        json.dump(pifpaf_out, f)
-
-                if keypoint_sets.size > 0:
-                    keypoints_whole.append(np.around((keypoint_sets / scale_np), 1)
-                                           .reshape(keypoint_sets.shape[0], -1).tolist())
-
-                if 'keypoints' in args.output_types:
-                    with show.image_canvas(image,
-                                           output_path + '.keypoints.png',
-                                           show=args.show,
-                                           fig_width=args.figure_width,
-                                           dpi_factor=args.dpi_factor) as ax:
-                        keypoint_painter.keypoints(ax, keypoint_sets)
-
-                if 'skeleton' in args.output_types:
-                    with show.image_canvas(image,
-                                           output_path + '.skeleton.png',
-                                           show=args.show,
-                                           fig_width=args.figure_width,
-                                           dpi_factor=args.dpi_factor) as ax:
-                        skeleton_painter.keypoints(ax, keypoint_sets, scores=scores)
+            pifpaf_outputs = [keypoint_sets, scores, pifpaf_out]  # keypoints_sets and scores for pifpaf printing
+            images_outputs = [image]  # List of 1 or 2 elements with pifpaf tensor (resized) and monoloco original image
 
             if 'monoloco' in args.networks:
                 im_size = (float(image.size()[1] / args.scale),
                            float(image.size()[0] / args.scale))  # Width, Height (original)
-                boxes, keypoints = preprocess_pif(pifpaf_out, im_size)
-                predict_monoloco = PredictMonoLoco(boxes, keypoints, image_path, output_path, args)
-                predict_monoloco.run()
 
+                # Extract calibration matrix and ground truth file if present
+
+                with open(image_path, 'rb') as f:
+                    pil_image = Image.open(f).convert('RGB')
+                    images_outputs.append(pil_image)
+
+                im_name = os.path.basename(image_path)
+
+                kk, _ = factory_for_gt(image, name=im_name, path_gt=args.path_gt)
+
+                # Preprocess pifpaf outputs and run monoloco
+                boxes, keypoints = preprocess_pif(pifpaf_out, im_size)
+                monoloco_outputs = monoloco.forward(boxes, keypoints, kk)
+            else:
+                monoloco_outputs = None
+                kk = None
+
+            factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_outputs=monoloco_outputs, kk=kk)
+            sys.stdout.write('\r' + 'Saving image {}'.format(cnt) + '\t')
+            cnt += 1
     return keypoints_whole
+

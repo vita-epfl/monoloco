@@ -193,3 +193,15 @@ def get_depth(uv_center, kk, dd):
 
     xyz = pixel_to_camera(uv_center_np, kk, zz).tolist()
     return xyz
+
+
+def get_depth_from_distance(outputs, xy_centers):
+
+    list_zzs = []
+    for idx, _ in enumerate(outputs):
+        dd = float(outputs[idx][0])
+        xx_1 = float(xy_centers[idx][0])
+        yy_1 = float(xy_centers[idx][1])
+        zz = dd / math.sqrt(1 + xx_1 ** 2 + yy_1 ** 2)
+        list_zzs.append(zz)
+    return list_zzs

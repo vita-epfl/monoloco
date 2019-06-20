@@ -64,7 +64,8 @@ class PreprocessKitti:
 
             # Extract keypoints
             path_txt = os.path.join(self.dir_kk, basename + '.txt')
-            kk, tt = get_calibration(path_txt)
+            p_left, _ = get_calibration(path_txt)
+            kk = p_left[0]
 
             # Iterate over each line of the gt file and save box location and distances
             boxes_gt, dds_gt, _, _ = parse_ground_truth(path_gt)

@@ -204,4 +204,3 @@ def append_cluster(dic_jo, phase, xx, dd, kps):
         dic_jo[phase]['clst']['>30']['X'].append(xx)
         dic_jo[phase]['clst']['>30']['Y'].append([dd])
 
-

@@ -60,14 +60,24 @@ def get_calibration(path_txt):
     p2_list = [float(xx) for xx in p2_str]
     p2 = np.array(p2_list).reshape(3, 4)
 
-    kk = p2[:, :-1]
+    p3_str = file[3].split()[1:]
+    p3_list = [float(xx) for xx in p3_str]
+    p3 = np.array(p3_list).reshape(3, 4)
+
+    kk, tt = get_translation(p2)
+    kk_right, tt_right = get_translation(p3)
+
+    return [kk, tt], [kk_right, tt_right]
+
+
+def get_translation(pp):
+    """Separate intrinsic matrix from translation"""
+
+    kk = pp[:, :-1]
     f_x = kk[0, 0]
     f_y = kk[1, 1]
-    x0 = kk[2, 0]
-    y0 = kk[2, 1]
-    aa = p2[0, 3]
-    bb = p2[1, 3]
-    t3 = p2[2, 3]
+    x0, y0 = kk[2, 0:2]
+    aa, bb, t3 = pp[0:3, 3]
     t1 = (aa - x0*t3) / f_x
     t2 = (bb - y0*t3) / f_y
     tt = np.array([t1, t2, t3]).reshape(3, 1)
@@ -102,6 +112,7 @@ def check_conditions(line, mode, thresh=0.5):
             check = True
 
     elif mode == 'gt':
+        # if line[:10] == 'Pedestrian' or line[:10] == 'Person_sit':
         if line[:10] == 'Pedestrian':
             check = True
 

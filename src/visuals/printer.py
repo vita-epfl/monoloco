@@ -9,17 +9,23 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Ellipse, Circle
 import cv2
 from collections import OrderedDict
-from PIL import Image
+from utils.camera import pixel_to_camera
 
 
 class Printer:
     """
     Print results on images: birds eye view and computed distance
     """
+    RADIUS_KPS = 6
+    FONTSIZE_BV = 16
+    FONTSIZE = 18
+    TEXTCOLOR = 'darkorange'
+    COLOR_KPS = 'yellow'
 
-    def __init__(self, image_path, output_path, dic_ann, kk, output_types, show=False,
+    def __init__(self, image, output_path, dic_ann, kk, output_types, show=False,
                  draw_kps=False, text=True, legend=True, epistemic=False, z_max=30, fig_width=10):
 
+        self.im = image
         self.kk = kk
         self.output_types = output_types
         self.show = show
@@ -27,12 +33,8 @@ class Printer:
         self.text = text
         self.epistemic = epistemic
         self.legend = legend
-        self.z_max = z_max # To include ellipses in the image
+        self.z_max = z_max  # To include ellipses in the image
         self.fig_width = fig_width
-
-        from utils.camera import pixel_to_camera, get_depth
-        self.pixel_to_camera = pixel_to_camera
-        self.get_depth = get_depth
 
         # Define the output dir
         self.path_out = output_path
@@ -52,12 +54,10 @@ class Printer:
         self.uv_shoulders = dic_ann['uv_shoulders']
         self.uv_kps = dic_ann['uv_kps']
 
-        # Load the image
-        with open(image_path, 'rb') as f:
-            self.im = Image.open(f).convert('RGB')
-
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
+        self.ww = self.im.size[0]
         self.hh = self.im.size[1]
+        self.radius = 14 / 1600 * self.ww
 
     def print(self):
         """
@@ -66,22 +66,15 @@ class Printer:
         Either front and/or bird visualization or combined one
         """
         # Parameters
-        radius = 14
-        radius_kps = 6
-        fontsize_bv = 16
-        fontsize = 18
-        textcolor = 'darkorange'
-        color_kps = 'yellow'
 
         # Resize image for aesthetic proportions in combined visualization
         if 'combined' in self.output_types:
-            ww = self.im.size[0]
-            hh = self.im.size[1]
-            y_scale = ww / (hh * 1.8)  # Defined proportion
-            self.im = self.im.resize((ww, round(hh * y_scale)))
-            print(y_scale)
-            width = self.fig_width + 0.6 * self.fig_width
-            height = self.fig_width * self.im.size[1] / self.im.size[0]
+            y_scale = self.ww / (self.hh * 1.8)  # Defined proportion
+            self.im = self.im.resize((self.ww, round(self.hh * y_scale)))
+            self.ww = self.im.size[0]
+            self.hh = self.im.size[1]
+            fig_width = self.fig_width + 0.6 * self.fig_width
+            fig_height = self.fig_width * self.hh / self.ww
 
             # Distinguish between KITTI images and general images
             if y_scale > 1.7:
@@ -92,7 +85,7 @@ class Printer:
             ext = '.combined.png'
 
             fig, (ax1, ax0) = plt.subplots(1, 2, sharey=False, gridspec_kw={'width_ratios': [1, width_ratio]},
-                                           figsize=(width, height))
+                                           figsize=(fig_width, fig_height))
             ax1.set_aspect(fig_ar_1)
             fig.set_tight_layout(True)
             fig.subplots_adjust(left=0.02, right=0.98, bottom=0, top=1, hspace=0, wspace=0.02)
@@ -104,7 +97,7 @@ class Printer:
         elif 'front' in self.output_types:
             y_scale = 1
             width = self.fig_width
-            height = self.fig_width * self.im.size[1] / self.im.size[0]
+            height = self.fig_width * self.hh / self.ww
 
             plt.figure(0)
             fig0, ax0 = plt.subplots(1, 1, figsize=(width, height))
@@ -114,8 +107,8 @@ class Printer:
         if any(xx in self.output_types for xx in ['front', 'combined']):
 
             ax0.set_axis_off()
-            ax0.set_xlim(0, self.im.size[0])
-            ax0.set_ylim(self.im.size[1], 0)
+            ax0.set_xlim(0, self.ww)
+            ax0.set_ylim(self.hh, 0)
             ax0.imshow(self.im)
             z_min = 0
             bar_ticks = self.z_max // 5 + 1
@@ -125,16 +118,16 @@ class Printer:
             for idx, uv in enumerate(self.uv_shoulders):
 
                 if self.draw_kps:
-                    ax0 = self.show_kps(ax0, self.uv_kps[idx], y_scale, radius_kps, color_kps)
+                    ax0 = self.show_kps(ax0, self.uv_kps[idx], y_scale, self.RADIUS_KPS, self.COLOR_KPS)
 
                 elif min(self.zz_pred[idx], self.zz_gt[idx]) > 0:
                     color = cmap((self.zz_pred[idx] % self.z_max) / self.z_max)
-                    circle = Circle((uv[0], uv[1] * y_scale), radius=radius, color=color, fill=True)
+                    circle = Circle((uv[0], uv[1] * y_scale), radius=self.radius, color=color, fill=True)
                     ax0.add_patch(circle)
 
                     if self.text:
-                        ax0.text(uv[0]+radius, uv[1] * y_scale - radius, str(num),
-                                 fontsize=fontsize, color=textcolor, weight='bold')
+                        ax0.text(uv[0]+self.radius, uv[1] * y_scale - self.radius, str(num),
+                                 fontsize=self.FONTSIZE, color=self.TEXTCOLOR, weight='bold')
                         num += 1
 
             ax0.get_xaxis().set_visible(False)
@@ -166,7 +159,7 @@ class Printer:
         # Create bird or combine it with front)
         if any(xx in self.output_types for xx in ['bird', 'combined']):
             uv_max = np.array([0, self.hh, 1])
-            xyz_max = self.pixel_to_camera(uv_max, self.kk, self.z_max)
+            xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
             x_max = abs(xyz_max[0])  # shortcut to avoid oval circles in case of different kk
 
             for idx, _ in enumerate(self.xx_gt):
@@ -189,8 +182,8 @@ class Printer:
                                           height=1, angle=angle, color='b', fill=False, label="Aleatoric Uncertainty",
                                           linewidth=1.3)
                     ellipse_var = Ellipse((self.xx_pred[idx], self.zz_pred[idx]), width=self.stds_ale_epi[idx] * 2,
-                                          height=1, angle=angle, color='r', fill=False, label="Uncertainty", linewidth=1,
-                                          linestyle='--')
+                                          height=1, angle=angle, color='r', fill=False, label="Uncertainty",
+                                          linewidth=1, linestyle='--')
 
                     ax1.add_patch(ellipse_ale)
                     if self.epistemic:
@@ -203,7 +196,7 @@ class Printer:
                         (_, x_pos), (_, z_pos) = get_confidence(self.xx_pred[idx], self.zz_pred[idx], self.stds_ale_epi[idx])
 
                         if self.text:
-                            ax1.text(x_pos, z_pos, str(num), fontsize=fontsize_bv, color='darkorange')
+                            ax1.text(x_pos, z_pos, str(num), fontsize=self.FONTSIZE_BV, color='darkorange')
                             num += 1
 
             # To avoid repetitions in the legend
@@ -219,6 +212,10 @@ class Printer:
             ax1.set_xlabel("X [m]")
             ax1.set_ylabel("Z [m]")
 
+            # TO remove axis numbers
+            # plt.setp([ax1.get_yticklabels() for aa in fig.axes[:-1]], visible=False)
+            # plt.setp([ax1.get_xticklabels() for aa in fig.axes[:-1]], visible=False)
+
             if self.show:
                 plt.show()
             else:
@@ -227,9 +224,7 @@ class Printer:
             if self.draw_kps:
                 im = cv2.imread(self.path_out + ext)
                 im = self.increase_brightness(im, value=30)
-                hh = im.size[1]
-                ww = im.size[0]
-                im_new = im[0:hh, 0:round(ww/1.7)]
+                im_new = im[0 : self.hh, 0:round(self.ww / 1.7)]
                 cv2.imwrite(self.path_out, im_new)
 
         plt.close('all')
@@ -243,7 +238,8 @@ class Printer:
 
         return ax0
 
-    def increase_brightness(self, img, value=30):
+    @staticmethod
+    def increase_brightness(img, value=30):
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         h, s, v = cv2.split(hsv)
 
