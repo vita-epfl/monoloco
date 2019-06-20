@@ -1,3 +1,5 @@
+"""Run monoloco over all the pifpaf joints of KITTI images
+and extract and save the annotations in txt files"""
 
 import torch
 import math
@@ -28,7 +30,7 @@ class RunKitti:
     average_y = 0.48
     n_samples = 100
 
-    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=True):
+    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=False):
 
         self.dir_ann = dir_ann
         self.n_dropout = n_dropout
@@ -57,8 +59,6 @@ class RunKitti:
 
         # Run inference
         for basename in self.list_basename:
-            if basename == '001782':
-                aa = 5
             for ite in range(self.iters):
                 path_calib = os.path.join(self.dir_kk, basename + '.txt')
 

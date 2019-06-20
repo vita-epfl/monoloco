@@ -211,8 +211,10 @@ class Printer:
             ax1.set_ylim(0, self.z_max+1)
             ax1.set_xlabel("X [m]")
             ax1.set_ylabel("Z [m]")
-            plt.setp([ax1.get_yticklabels() for aa in fig.axes[:-1]], visible=False)
-            plt.setp([ax1.get_xticklabels() for aa in fig.axes[:-1]], visible=False)
+
+            # TO remove axis numbers
+            # plt.setp([ax1.get_yticklabels() for aa in fig.axes[:-1]], visible=False)
+            # plt.setp([ax1.get_xticklabels() for aa in fig.axes[:-1]], visible=False)
 
             if self.show:
                 plt.show()
