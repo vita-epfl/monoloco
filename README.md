@@ -14,7 +14,7 @@ We further share insights on our model of uncertainty in case of limited observa
 @article{bertoni2019monoloco,
   title={MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation},
   author={Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
-  journal={arXiv preprint arXiv:xxxx},
+  journal={arXiv preprint arXiv:1906.06059},
   year={2019}
 }
 ```
