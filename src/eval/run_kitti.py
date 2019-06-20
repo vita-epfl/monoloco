@@ -101,6 +101,7 @@ class RunKitti:
             all_outputs.append(list_zzs)
             path_txt = os.path.join(self.dir_out, basename + '.txt')
             save_txts(path_txt, all_inputs, all_outputs, all_params)
+            aa = 5
 
         # Print statistics
         print("Saved in {} txt {} annotations. Not found {} images"
