@@ -117,7 +117,7 @@ def check_conditions(line, mode, thresh=0.5):
             check = True
 
     elif mode == 'our':
-        # if line[10] >= thresh:
+        if line[10] >= thresh:
             check = True
 
     return check
