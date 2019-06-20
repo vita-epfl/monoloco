@@ -146,7 +146,7 @@ def predict(args):
 
                 im_name = os.path.basename(image_path)
 
-                kk, _ = factory_for_gt(image, name=im_name, path_gt=args.path_gt)
+                kk, _ = factory_for_gt(im_size, name=im_name, path_gt=args.path_gt)
 
                 # Preprocess pifpaf outputs and run monoloco
                 boxes, keypoints = preprocess_pif(pifpaf_out, im_size)

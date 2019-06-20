@@ -7,7 +7,7 @@ from openpifpaf import show
 from PIL import Image
 
 
-def factory_for_gt(image, name=None, path_gt=None):
+def factory_for_gt(im_size, name=None, path_gt=None):
     """Look for ground-truth annotations file and define calibration matrix based on image size """
 
     try:
@@ -24,10 +24,10 @@ def factory_for_gt(image, name=None, path_gt=None):
         print("Monoloco: matched ground-truth file!\n" + '-' * 120)
     except KeyError:
         dic_gt = None
-        x_factor = image.size[0] / 1600
-        y_factor = image.size[1] / 900
+        x_factor = im_size[0] / 1600
+        y_factor = im_size[1] / 900
         pixel_factor = (x_factor + y_factor) / 2
-        if image.size[0] / image.size[1] > 2.5:
+        if im_size[0] / im_size[1] > 2.5:
             kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
         else:
             kk = [[1266.4 * pixel_factor, 0., 816.27 * x_factor],
@@ -46,7 +46,7 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_
     # Save json file
     if 'pifpaf' in args.networks:
 
-        keypoint_sets, pifpaf_out, scores = pifpaf_outputs[:]
+        keypoint_sets, scores, pifpaf_out = pifpaf_outputs[:]
 
         # Visualizer
         keypoint_painter = show.KeypointPainter(show_box=True)
@@ -85,7 +85,7 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_
             printer.print()
 
         if 'json' in args.output_types:
-            with open(os.path.join(args.output_path + '.monoloco.json'), 'w') as ff:
+            with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:
                 json.dump(monoloco_outputs, ff)
 
 
