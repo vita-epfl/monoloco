@@ -3,17 +3,17 @@ import glob
 import os
 import sys
 
+import numpy as np
+import torchvision
+import torch
+from PIL import Image, ImageFile
+
 from openpifpaf.network import nets
 from openpifpaf import decoder
 from openpifpaf import transforms
 from predict.monoloco import MonoLoco
 from predict.factory import factory_for_gt, factory_outputs
 from utils.pifpaf import preprocess_pif
-
-import numpy as np
-import torchvision
-import torch
-from PIL import Image, ImageFile
 
 
 class ImageList(torch.utils.data.Dataset):
@@ -131,7 +131,7 @@ def predict(args):
                           np.max(kps[:, 0]) / args.scale, np.max(kps[:, 1]) / args.scale]}
                 for kps in keypoint_sets
             ]
-            pifpaf_outputs = [keypoint_sets, scores, pifpaf_out]
+            pifpaf_outputs = [keypoint_sets, scores, pifpaf_out]  # keypoints_sets and scores for pifpaf printing
             images_outputs = [image]  # List of 1 or 2 elements with pifpaf tensor (resized) and monoloco original image
 
             if 'monoloco' in args.networks:
@@ -146,11 +146,11 @@ def predict(args):
 
                 im_name = os.path.basename(image_path)
 
-                kk, gt_names = factory_for_gt(image, name=im_name, path_gt=args.path_gt)
+                kk, _ = factory_for_gt(image, name=im_name, path_gt=args.path_gt)
 
                 # Preprocess pifpaf outputs and run monoloco
                 boxes, keypoints = preprocess_pif(pifpaf_out, im_size)
-                monoloco_outputs = monoloco.forward(boxes, keypoints,  kk)
+                monoloco_outputs = monoloco.forward(boxes, keypoints, kk)
             else:
                 monoloco_outputs = None
                 kk = None
@@ -159,5 +159,4 @@ def predict(args):
             sys.stdout.write('\r' + 'Saving image {}'.format(cnt) + '\t')
             cnt += 1
     return keypoints_whole
-
 
