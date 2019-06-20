@@ -8,11 +8,9 @@ import os
 import glob
 import json
 import logging
-import copy
 
 from models.architectures import LinearModel
 from utils.misc import laplace_sampling
-from utils.stereo import depth_from_disparity
 from utils.kitti import eval_geometric, get_calibration
 from utils.normalize import unnormalize_bi
 from utils.pifpaf import get_input_data, preprocess_pif
@@ -30,7 +28,7 @@ class RunKitti:
     average_y = 0.48
     n_samples = 100
 
-    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout, stereo=False):
+    def __init__(self, model, dir_ann, dropout, hidden_size, n_stage, n_dropout):
 
         self.dir_ann = dir_ann
         self.n_dropout = n_dropout
@@ -52,79 +50,60 @@ class RunKitti:
         self.model.eval()  # Default is train
         self.model.to(self.device)
 
-        # Stereo evaluation
-        self.iters = 2 if stereo else 1
-
     def run(self):
 
         # Run inference
         for basename in self.list_basename:
-            for ite in range(self.iters):
-                path_calib = os.path.join(self.dir_kk, basename + '.txt')
 
-                annotations, kk, tt, stereo_file = factory_file(path_calib, self.dir_ann, basename, ite)
+            path_calib = os.path.join(self.dir_kk, basename + '.txt')
 
-                if not stereo_file:
-                    continue
+            annotations, kk, tt, _ = factory_file(path_calib, self.dir_ann, basename)
 
-                boxes, keypoints = preprocess_pif(annotations)
-                (inputs, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = get_input_data(boxes, keypoints, kk)
+            boxes, keypoints = preprocess_pif(annotations)
+            (inputs, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = get_input_data(boxes, keypoints, kk)
 
-                dds_geom, xy_centers = eval_geometric(uv_kps, uv_centers, uv_shoulders, kk, average_y=0.48)
+            dds_geom, xy_centers = eval_geometric(uv_kps, uv_centers, uv_shoulders, kk, average_y=0.48)
 
-                # Update counting
-                self.cnt_ann += len(boxes)
-                if len(inputs) == 0:
-                    self.cnt_no_file += 1
-                else:
-                    self.cnt_file += 1
-
-                # Run the model
-                inputs = torch.from_numpy(np.array(inputs)).float().to(self.device)
-                if self.n_dropout > 0:
-                    total_outputs = torch.empty((0, len(uv_boxes))).to(self.device)
-                    self.model.dropout.training = True
-                    for ii in range(self.n_dropout):
-                        outputs = self.model(inputs)
-                        outputs = unnormalize_bi(outputs)
-                        samples = laplace_sampling(outputs, self.n_samples)
-                        total_outputs = torch.cat((total_outputs, samples), 0)
-                    varss = total_outputs.std(0)
-
-                else:
-                    varss = [0]*len(uv_boxes)
-
-                # Don't use dropout for the mean prediction and aleatoric uncertainty
-                self.model.dropout.training = False
-                outputs_net = self.model(inputs)
-                outputs = outputs_net.cpu().detach().numpy()
-                if ite == 0:
-                    list_zzs = get_depth_from_distance(outputs, xy_centers)
-                    list_kps = copy.deepcopy(keypoints)
-                    all_outputs = [outputs, varss, dds_geom]
-                    all_inputs = [uv_boxes, xy_centers, xy_kps]
-                    all_params = [kk, tt]
-
-                elif ite == 1:
-                    list_zzs_right = get_depth_from_distance(outputs, xy_centers)
-                    list_kps_right = copy.deepcopy(keypoints)
-
-            if self.iters == 2 and stereo_file:
-                zzs, cnt = depth_from_disparity(list_zzs, list_zzs_right, list_kps, list_kps_right)
-                self.cnt_disparity += cnt
+            # Update counting
+            self.cnt_ann += len(boxes)
+            if len(inputs) == 0:
+                self.cnt_no_file += 1
             else:
-                zzs = list_zzs
+                self.cnt_file += 1
+
+            # Run the model
+            inputs = torch.from_numpy(np.array(inputs)).float().to(self.device)
+            if self.n_dropout > 0:
+                total_outputs = torch.empty((0, len(uv_boxes))).to(self.device)
+                self.model.dropout.training = True
+                for ii in range(self.n_dropout):
+                    outputs = self.model(inputs)
+                    outputs = unnormalize_bi(outputs)
+                    samples = laplace_sampling(outputs, self.n_samples)
+                    total_outputs = torch.cat((total_outputs, samples), 0)
+                varss = total_outputs.std(0)
+
+            else:
+                varss = [0]*len(uv_boxes)
+
+            # Don't use dropout for the mean prediction and aleatoric uncertainty
+            self.model.dropout.training = False
+            outputs_net = self.model(inputs)
+            outputs = outputs_net.cpu().detach().numpy()
+
+            list_zzs = get_depth_from_distance(outputs, xy_centers)
+            all_outputs = [outputs, varss, dds_geom]
+            all_inputs = [uv_boxes, xy_centers, xy_kps]
+            all_params = [kk, tt]
 
             # Save the file
-            all_outputs.append(zzs)
+            all_outputs.append(list_zzs)
             path_txt = os.path.join(self.dir_out, basename + '.txt')
             save_txts(path_txt, all_inputs, all_outputs, all_params)
 
         # Print statistics
         print("Saved in {} txt {} annotations. Not found {} images"
               .format(self.cnt_file, self.cnt_ann, self.cnt_no_file))
-        print("Annotations corrected using stereo: {:.1f}%"
-              .format(self.cnt_disparity/self.cnt_ann*100))
 
 
 def save_txts(path_txt, all_inputs, all_outputs, all_params):
@@ -176,8 +155,8 @@ def factory_basename(dir_ann):
     return list_basename
 
 
-def factory_file(path_calib, dir_ann, basename, ite):
-    """Choose the annotation and the calibration files"""
+def factory_file(path_calib, dir_ann, basename, ite=0):
+    """Choose the annotation and the calibration files. Stereo option with ite = 1"""
 
     stereo_file = True
     p_left, p_right = get_calibration(path_calib)
