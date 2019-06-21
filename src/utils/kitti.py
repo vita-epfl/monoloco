@@ -131,8 +131,10 @@ def get_category(box, trunc, occ):
         cat = 'easy'
     elif trunc <= 0.3 and occ <= 1 and hh >= 25:
         cat = 'moderate'
-    else:
+    elif trunc <= 0.5 and occ <= 2 and hh >= 25:
         cat = 'hard'
+    else:
+        cat = 'excluded'
 
     return cat
 
@@ -175,4 +177,4 @@ def parse_ground_truth(path_gt):
                 boxes_3d.append(loc_gt + wlh)
                 dds_gt.append(math.sqrt(loc_gt[0] ** 2 + loc_gt[1] ** 2 + loc_gt[2] ** 2))
 
-    return boxes_gt, boxes_3d, dds_gt, truncs_gt, occs_gt
+    return (boxes_gt, boxes_3d, dds_gt, truncs_gt, occs_gt)

@@ -64,27 +64,24 @@ class KittiEval:
             path_md = os.path.join(self.dir_md, name)
 
             # Iterate over each line of the gt file and save box location and distances
-            boxes_gt, _, dds_gt, truncs_gt, occs_gt = parse_ground_truth(path_gt)
-            cnt_gt += len(boxes_gt)
+            out_gt = parse_ground_truth(path_gt)
+            cnt_gt += len(out_gt[0])
 
             # Extract annotations for the same file
-            if boxes_gt:
-                boxes_m3d, dds_m3d = self._parse_txts(path_m3d, method='m3d')
-                boxes_3dop, dds_3dop = self._parse_txts(path_3dop, method='3dop')
-                boxes_md, dds_md = self._parse_txts(path_md, method='md')
-                boxes_our, dds_our, stds_ale, stds_epi, _, dds_geom, _, _ = \
-                    self._parse_txts(path_our, method='our')
+            if out_gt[0]:
+                out_m3d = self._parse_txts(path_m3d, method='m3d')
+                out_3dop = self._parse_txts(path_3dop, method='3dop')
+                out_md = self._parse_txts(path_md, method='md')
+                out_our = self._parse_txts(path_our, method='our')
 
                 # Compute the error with ground truth
-                self._estimate_error_base(boxes_m3d, dds_m3d, boxes_gt, dds_gt, truncs_gt, occs_gt, method='m3d')
-                self._estimate_error_base(boxes_3dop, dds_3dop, boxes_gt, dds_gt, truncs_gt, occs_gt, method='3dop')
-                self._estimate_error_base(boxes_md, dds_md, boxes_gt, dds_gt, truncs_gt, occs_gt, method='md')
-                self._estimate_error_mloco(boxes_our, dds_our, stds_ale, stds_epi, dds_geom,
-                                           boxes_gt, dds_gt, truncs_gt, occs_gt)
+                self._estimate_error(out_gt, out_m3d, method='m3d')
+                self._estimate_error(out_gt, out_3dop, method='3dop')
+                self._estimate_error(out_gt, out_md, method='md')
+                self._estimate_error(out_gt, out_our, method='our')
 
                 # Iterate over all the files together to find a pool of common annotations
-                self._compare_error(boxes_m3d, dds_m3d, boxes_3dop, dds_3dop, boxes_md, dds_md, boxes_our, dds_our,
-                                    boxes_gt, dds_gt, truncs_gt, occs_gt, dds_geom)
+                self._compare_error(out_gt, out_m3d, out_3dop, out_md, out_our)
 
         # Update statistics of errors and uncertainty
         for key in self.errors:
@@ -128,8 +125,8 @@ class KittiEval:
         stds_ale = []
         stds_epi = []
         dds_geom = []
-        xyzs = []
-        xy_kps = []
+        # xyzs = []
+        # xy_kps = []
 
         # Iterate over each line of the txt file
         if method in ['3dop', 'm3d']:
@@ -166,26 +163,6 @@ class KittiEval:
             except FileNotFoundError:
                 return [], []
 
-        elif method == 'psm':
-            try:
-                with open(path, "r") as ff:
-                    for line in ff:
-                        box = [float(x[:-1]) for x in line[1:-1].split(',')[0:4]]
-                        delta_h = (box[3] - box[1]) / 10
-                        delta_w = (box[2] - box[0]) / 10
-                        assert delta_h > 0 and delta_w > 0, "Bounding box <=0"
-                        box[0] -= delta_w
-                        box[1] -= delta_h
-                        box[2] += delta_w
-                        box[3] += delta_h
-                        boxes.append(box)
-                        dds.append(float(line.split()[5][:-1]))
-                        self.dic_cnt[method] += 1
-                return boxes, dds
-
-            except FileNotFoundError:
-                return [], []
-
         else:
             assert method == 'our', "method not recognized"
             try:
@@ -195,23 +172,30 @@ class KittiEval:
                     line_list = [float(x) for x in line_our.split()]
                     if check_conditions(line_list, thresh=self.dic_thresh_conf[method], mode=method):
                         boxes.append(line_list[:4])
-                        xyzs.append(line_list[4:7])
+                        # xyzs.append(line_list[4:7])
                         dds.append(line_list[7])
                         stds_ale.append(line_list[8])
                         stds_epi.append(line_list[9])
                         dds_geom.append(line_list[11])
-                        xy_kps.append(line_list[12:])
+                        # xy_kps.append(line_list[12:])
 
                         self.dic_cnt[method] += 1
 
-                kk_list = [float(x) for x in file_lines[-1].split()]
+                # kk_list = [float(x) for x in file_lines[-1].split()]
 
-                return boxes, dds, stds_ale, stds_epi, kk_list, dds_geom, xyzs, xy_kps
+                return boxes, dds, stds_ale, stds_epi, dds_geom
 
             except FileNotFoundError:
-                return [], [], [], [], [], [], [], []
+                return [], [], [], [], []
 
-    def _estimate_error_base(self, boxes, dds, boxes_gt, dds_gt, truncs_gt, occs_gt, method):
+    def _estimate_error(self, out_gt, out, method):
+        """Estimate localization error"""
+
+        boxes_gt, _, dds_gt, truncs_gt, occs_gt = out_gt
+        if method == 'our':
+            boxes, dds, stds_ale, stds_epi, dds_geom = out
+        else:
+            boxes, dds = out
 
         matches = get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou[method])
 
@@ -219,26 +203,27 @@ class KittiEval:
             # Update error if match is found
             cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
             self.update_errors(dds[idx], dds_gt[idx_gt], cat, self.errors[method])
+            if method == 'our':
+                self.update_errors(dds_geom[idx], dds_gt[idx_gt], cat, self.errors['geom'])
+                self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
 
-    def _estimate_error_mloco(self, boxes, dds, stds_ale, stds_epi, dds_geom, boxes_gt, dds_gt, truncs_gt, occs_gt):
-
-        matches = get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou['our'])
-
-        for (idx, idx_gt) in matches:
-            cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
-            self.update_errors(dds[idx], dds_gt[idx_gt], cat, self.errors['our'])
-            self.update_errors(dds_geom[idx], dds_gt[idx_gt], cat, self.errors['geom'])
-            self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
-
-    def _compare_error(self, boxes_m3d, dds_m3d, boxes_3dop, dds_3dop, boxes_md, dds_md, boxes_our, dds_our,
-                       boxes_gt, dds_gt, truncs_gt, occs_gt, dds_geom):
+    def _compare_error(self, out_gt, out_m3d, out_3dop, out_md, out_our):
         """Compare the error for a pool of instances commonly matched by all methods"""
 
+        # Extract outputs of each method
+        boxes_gt, _, dds_gt, truncs_gt, occs_gt = out_gt
+        boxes_m3d, dds_m3d = out_m3d
+        boxes_3dop, dds_3dop = out_3dop
+        boxes_md, dds_md = out_md
+        boxes_our, dds_our, stds_ale, stds_epi, dds_geom = out_our
+
+        # Find IoU matches
         matches_our = get_iou_matches(boxes_our, boxes_gt, self.dic_thresh_iou['our'])
         matches_m3d = get_iou_matches(boxes_m3d, boxes_gt, self.dic_thresh_iou['m3d'])
         matches_3dop = get_iou_matches(boxes_3dop, boxes_gt, self.dic_thresh_iou['3dop'])
         matches_md = get_iou_matches(boxes_md, boxes_gt, self.dic_thresh_iou['md'])
 
+        # Update error of commonly matched instances
         for (idx, idx_gt) in matches_our:
             check, indices = extract_indices(idx_gt, matches_m3d, matches_3dop, matches_md)
             if check:
@@ -365,4 +350,5 @@ def extract_indices(idx_to_check, *args):
                 checks[idx_method] = True
                 indices.append(idx_pred)
     return all(checks), indices
+
 
