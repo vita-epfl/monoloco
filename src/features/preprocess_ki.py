@@ -50,6 +50,8 @@ class PreprocessKitti:
         """Save json files"""
 
         cnt_gt = 0
+        cnt_files = 0
+        cnt_files_ped = 0
         cnt_fnf = 0
         dic_cnt = {'train': 0, 'val': 0, 'test': 0}
 
@@ -73,6 +75,8 @@ class PreprocessKitti:
             self.dic_names[basename + '.png']['dds'] = copy.deepcopy(dds_gt)
             self.dic_names[basename + '.png']['K'] = copy.deepcopy(kk.tolist())
             cnt_gt += len(boxes_gt)
+            cnt_files += 1
+            cnt_files_ped += min(len(boxes_gt), 1)  # if no boxes 0 else 1
 
             # Find the annotations if exists
             try:
@@ -108,8 +112,9 @@ class PreprocessKitti:
         for phase in ['train', 'val', 'test']:
             print("Saved {} annotations for phase {}"
                   .format(dic_cnt[phase], phase))
-        print("Number of GT files: {}. Files not found: {}"
-              .format(cnt_gt, cnt_fnf))
+        print("Number of GT files: {}. Files with at least one pedestrian: {}.  Files not found: {}"
+              .format(cnt_files, cnt_files_ped, cnt_fnf))
+        print("Number of GT annotations: {}".format(cnt_gt))
         print("\nOutput files:\n{}\n{}\n".format(self.path_names, self.path_joints))
 
     def _factory_phase(self, name):

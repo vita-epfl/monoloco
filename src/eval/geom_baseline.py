@@ -44,15 +44,14 @@ class GeomBaseline:
 
         """
         cnt_tot = 0
+        dic_dist = defaultdict(lambda: defaultdict(list))
+
         # Access the joints file
         with open(self.joints, 'r') as ff:
             dic_joints = json.load(ff)
 
-        dic_dist = defaultdict(lambda: defaultdict(list))
-
         # Calculate distances for all the segments
         for phase in ['train', 'val']:
-
             cnt = update_distances(dic_joints[phase], dic_dist, phase, self.average_y)
             cnt_tot += cnt
 
