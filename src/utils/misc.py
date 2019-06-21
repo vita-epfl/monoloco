@@ -64,6 +64,20 @@ def get_idx_max(box, boxes_gt):
     return idx_max, iou_max
 
 
+def get_iou_matrix(boxes, boxes_gt):
+    """
+    Get IoU matrix between predicted and ground truth boxes
+    Dim: (boxes, boxes_gt)
+    """
+    iou_matrix = np.empty(len(boxes), len(boxes_gt))
+
+    for idx, box in boxes:
+        for idx_gt, box_gt in enumerate(boxes_gt):
+            iou_matrix[idx, idx_gt] = calculate_iou(box, box_gt)
+    return iou_matrix.tolist()
+
+
+
 def reparametrize_box3d(box):
     """Reparametrized 3D box in the XZ plane and add the height"""
 
