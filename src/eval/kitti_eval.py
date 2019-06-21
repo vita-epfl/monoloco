@@ -44,7 +44,8 @@ class KittiEval:
         assert os.path.exists(self.dir_m3d) and os.path.exists(self.dir_our) \
                and os.path.exists(self.dir_3dop)
 
-        self.dic_thresh_iou = {'m3d': thresh_iou_m3d, '3dop': thresh_iou_m3d, 'md': thresh_iou_our, 'our': thresh_iou_our}
+        self.dic_thresh_iou = {'m3d': thresh_iou_m3d, '3dop': thresh_iou_m3d,
+                               'md': thresh_iou_our, 'our': thresh_iou_our}
         self.dic_thresh_conf = {'m3d': thresh_conf_m3d, '3dop': thresh_conf_m3d, 'our': thresh_conf_our}
 
         # Extract validation images for evaluation
@@ -215,7 +216,7 @@ class KittiEval:
         boxes_m3d, dds_m3d = out_m3d
         boxes_3dop, dds_3dop = out_3dop
         boxes_md, dds_md = out_md
-        boxes_our, dds_our, stds_ale, stds_epi, dds_geom = out_our
+        boxes_our, dds_our, _, _, dds_geom = out_our
 
         # Find IoU matches
         matches_our = get_iou_matches(boxes_our, boxes_gt, self.dic_thresh_iou['our'])
@@ -350,5 +351,3 @@ def extract_indices(idx_to_check, *args):
                 checks[idx_method] = True
                 indices.append(idx_pred)
     return all(checks), indices
-
-
