@@ -129,7 +129,7 @@ def get_category(box, trunc, occ):
 
     if hh >= 40 and trunc <= 0.15 and occ <= 0:
         cat = 'easy'
-    elif trunc <= 0.3 and occ <= 1:
+    elif trunc <= 0.3 and occ <= 1 and hh >= 25:
         cat = 'moderate'
     else:
         cat = 'hard'
