@@ -64,7 +64,7 @@ class KittiEval:
             path_md = os.path.join(self.dir_md, name)
 
             # Iterate over each line of the gt file and save box location and distances
-            boxes_gt, dds_gt, truncs_gt, occs_gt = parse_ground_truth(path_gt)
+            boxes_gt, _, dds_gt, truncs_gt, occs_gt = parse_ground_truth(path_gt)
             cnt_gt += len(boxes_gt)
 
             # Extract annotations for the same file

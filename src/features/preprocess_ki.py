@@ -18,11 +18,11 @@ class PreprocessKitti:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], K=[],
+    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[],  boxes_3d=[], K=[],
                             clst=defaultdict(lambda: defaultdict(list))),
-              'val': dict(X=[], Y=[], names=[], kps=[], K=[],
+              'val': dict(X=[], Y=[], names=[], kps=[],  boxes_3d=[], K=[],
                           clst=defaultdict(lambda: defaultdict(list))),
-              'test': dict(X=[], Y=[], names=[], kps=[], K=[],
+              'test': dict(X=[], Y=[], names=[], kps=[],  boxes_3d=[], K=[],
                            clst=defaultdict(lambda: defaultdict(list)))}
     dic_names = defaultdict(lambda: defaultdict(list))
 
@@ -68,7 +68,7 @@ class PreprocessKitti:
             kk = p_left[0]
 
             # Iterate over each line of the gt file and save box location and distances
-            boxes_gt, dds_gt, _, _ = parse_ground_truth(path_gt)
+            boxes_gt, boxes_3d, dds_gt, _, _ = parse_ground_truth(path_gt)
             self.dic_names[basename + '.png']['boxes'] = copy.deepcopy(boxes_gt)
             self.dic_names[basename + '.png']['dds'] = copy.deepcopy(dds_gt)
             self.dic_names[basename + '.png']['K'] = copy.deepcopy(kk.tolist())
@@ -93,7 +93,8 @@ class PreprocessKitti:
                     self.dic_jo[phase]['kps'].append(uv_kps[ii])
                     self.dic_jo[phase]['X'].append(inputs[ii])
                     self.dic_jo[phase]['Y'].append([dds_gt[idx_max]])  # Trick to make it (nn,1)
-                    self.dic_jo[phase]['K'] = kk.tolist()
+                    self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_max])
+                    self.dic_jo[phase]['K'].append(kk.tolist())
                     self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
                     append_cluster(self.dic_jo, phase, inputs[ii], dds_gt[idx_max], uv_kps[ii])
                     dic_cnt[phase] += 1
