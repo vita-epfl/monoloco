@@ -4,10 +4,7 @@ import os
 import math
 import logging
 from collections import defaultdict
-import copy
 import datetime
-
-import numpy as np
 
 from utils.misc import get_iou_matches
 from utils.kitti import check_conditions, get_category, split_training, parse_ground_truth
@@ -235,44 +232,24 @@ class KittiEval:
 
     def _compare_error(self, boxes_m3d, dds_m3d, boxes_3dop, dds_3dop, boxes_md, dds_md, boxes_our, dds_our,
                        boxes_gt, dds_gt, truncs_gt, occs_gt, dds_geom):
+        """Compare the error for a pool of instances commonly matched by all methods"""
 
-        boxes_gt = copy.deepcopy(boxes_gt)
-        dds_gt = copy.deepcopy(dds_gt)
-        truncs_gt = copy.deepcopy(truncs_gt)
-        occs_gt = copy.deepcopy(occs_gt)
+        matches_our = get_iou_matches(boxes_our, boxes_gt, self.dic_thresh_iou['our'])
+        matches_m3d = get_iou_matches(boxes_m3d, boxes_gt, self.dic_thresh_iou['m3d'])
+        matches_3dop = get_iou_matches(boxes_3dop, boxes_gt, self.dic_thresh_iou['3dop'])
+        matches_md = get_iou_matches(boxes_md, boxes_gt, self.dic_thresh_iou['md'])
 
-        for idx, box in enumerate(boxes_our):
-            if len(boxes_gt) >= 1:
-                dd_our = dds_our[idx]
-                dd_geom = dds_geom[idx]
-                idx_max, iou_max = get_idx_max(box, boxes_gt)
-                cat = get_category(boxes_gt[idx_max], truncs_gt[idx_max], occs_gt[idx_max])
-
-                idx_max_3dop, iou_max_3dop = get_idx_max(box, boxes_3dop)
-                idx_max_m3d, iou_max_m3d = get_idx_max(box, boxes_m3d)
-                idx_max_md, iou_max_md = get_idx_max(box, boxes_md)
-
-                iou_min = min(iou_max_3dop, iou_max_m3d, iou_max_md)
-
-                if iou_max >= self.dic_thresh_iou['our'] and iou_min >= self.dic_thresh_iou['m3d']:
-                    dd_gt = dds_gt[idx_max]
-                    dd_3dop = dds_3dop[idx_max_3dop]
-                    dd_m3d = dds_m3d[idx_max_m3d]
-                    dd_md = dds_md[idx_max_md]
-
-                    self.update_errors(dd_3dop, dd_gt, cat, self.errors['3dop_merged'])
-                    self.update_errors(dd_our, dd_gt, cat, self.errors['our_merged'])
-                    self.update_errors(dd_m3d, dd_gt, cat, self.errors['m3d_merged'])
-                    self.update_errors(dd_geom, dd_gt, cat, self.errors['geom_merged'])
-                    self.update_errors(dd_md, dd_gt, cat, self.errors['md_merged'])
-                    self.dic_cnt['merged'] += 1
-
-                    boxes_gt.pop(idx_max)
-                    dds_gt.pop(idx_max)
-                    truncs_gt.pop(idx_max)
-                    occs_gt.pop(idx_max)
-            else:
-                break
+        for (idx, idx_gt) in matches_our:
+            check, indices = extract_indices(idx_gt, matches_m3d, matches_3dop, matches_md)
+            if check:
+                cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
+                dd_gt = dds_gt[idx_gt]
+                self.update_errors(dds_our[idx], dd_gt, cat, self.errors['our_merged'])
+                self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
+                self.update_errors(dds_m3d[indices[0]], dd_gt, cat, self.errors['m3d_merged'])
+                self.update_errors(dds_3dop[indices[1]], dd_gt, cat, self.errors['3dop_merged'])
+                self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['md_merged'])
+                self.dic_cnt['merged'] += 1
 
     def update_errors(self, dd, dd_gt, cat, errors):
 
@@ -366,3 +343,26 @@ def find_cluster(dd, clusters):
             return clst
 
     return clusters[-1]
+
+
+def extract_indices(idx_to_check, *args):
+    """
+    Look if a given index j_gt is present in all the other series of indices (_, j)
+    and return the corresponding one for argument
+
+    idx_check --> gt index to check for correspondences in other method
+    idx_method --> index corresponding to the method
+    idx_gt --> index gt of the method
+    idx_pred --> index of the predicted box of the method
+    indices --> list of predicted indices for each method corresponding to the ground truth index to check
+    """
+
+    checks = [False]*len(args)
+    indices = []
+    for idx_method, method in enumerate(args):
+        for (idx_pred, idx_gt) in method:
+            if idx_gt == idx_to_check:
+                checks[idx_method] = True
+                indices.append(idx_pred)
+    return all(checks), indices
+
