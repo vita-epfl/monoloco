@@ -74,8 +74,7 @@ def get_iou_matrix(boxes, boxes_gt):
     for idx, box in boxes:
         for idx_gt, box_gt in enumerate(boxes_gt):
             iou_matrix[idx, idx_gt] = calculate_iou(box, box_gt)
-    return iou_matrix.tolist()
-
+    return iou_matrix
 
 
 def reparametrize_box3d(box):
