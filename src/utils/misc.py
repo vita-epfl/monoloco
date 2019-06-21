@@ -69,12 +69,31 @@ def get_iou_matrix(boxes, boxes_gt):
     Get IoU matrix between predicted and ground truth boxes
     Dim: (boxes, boxes_gt)
     """
-    iou_matrix = np.empty(len(boxes), len(boxes_gt))
+    iou_matrix = np.zeros((len(boxes), len(boxes_gt)))
 
-    for idx, box in boxes:
+    for idx, box in enumerate(boxes):
         for idx_gt, box_gt in enumerate(boxes_gt):
             iou_matrix[idx, idx_gt] = calculate_iou(box, box_gt)
     return iou_matrix
+
+
+def get_iou_matches(boxes, boxes_gt, thresh):
+    """From 2 sets of boxes and a minimum threshold, compute the matching indices for IoU matchings"""
+
+    iou_matrix = get_iou_matrix(boxes, boxes_gt)
+    if not iou_matrix.size:
+        return []
+
+    matches = []
+    iou_max = np.max(iou_matrix)
+    while iou_max > thresh:
+        # Extract the indeces of the max
+        args_max = np.unravel_index(np.argmax(iou_matrix, axis=None), iou_matrix.shape)
+        matches.append(args_max)
+        iou_matrix[args_max[0], :] = 0
+        iou_matrix[:, args_max[1]] = 0
+        iou_max = np.max(iou_matrix)
+    return matches
 
 
 def reparametrize_box3d(box):

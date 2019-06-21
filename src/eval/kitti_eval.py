@@ -6,7 +6,10 @@ import logging
 from collections import defaultdict
 import copy
 import datetime
-from utils.misc import get_idx_max
+
+import numpy as np
+
+from utils.misc import get_iou_matches
 from utils.kitti import check_conditions, get_category, split_training, parse_ground_truth
 from visuals.results import print_results
 
@@ -213,57 +216,22 @@ class KittiEval:
 
     def _estimate_error_base(self, boxes, dds, boxes_gt, dds_gt, truncs_gt, occs_gt, method):
 
-        # Compute error (distance) and save it
-        boxes_gt = copy.deepcopy(boxes_gt)
-        dds_gt = copy.deepcopy(dds_gt)
-        truncs_gt = copy.deepcopy(truncs_gt)
-        occs_gt = copy.deepcopy(occs_gt)
+        matches = get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou[method])
 
-        for idx, box in enumerate(boxes):
-            if len(boxes_gt) >= 1:
-                dd = dds[idx]
-                idx_max, iou_max = get_idx_max(box, boxes_gt)
-                cat = get_category(boxes_gt[idx_max], truncs_gt[idx_max], occs_gt[idx_max])
-                # Update error if match is found
-                if iou_max > self.dic_thresh_iou[method]:
-                    dd_gt = dds_gt[idx_max]
-                    self.update_errors(dd, dd_gt, cat, self.errors[method])
-
-                    boxes_gt.pop(idx_max)
-                    dds_gt.pop(idx_max)
-                    truncs_gt.pop(idx_max)
-                    occs_gt.pop(idx_max)
-            else:
-                break
+        for (idx, idx_gt) in matches:
+            # Update error if match is found
+            cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
+            self.update_errors(dds[idx], dds_gt[idx_gt], cat, self.errors[method])
 
     def _estimate_error_mloco(self, boxes, dds, stds_ale, stds_epi, dds_geom, boxes_gt, dds_gt, truncs_gt, occs_gt):
 
-        # Compute error (distance) and save it
-        boxes_gt = copy.deepcopy(boxes_gt)
-        dds_gt = copy.deepcopy(dds_gt)
-        truncs_gt = copy.deepcopy(truncs_gt)
-        occs_gt = copy.deepcopy(occs_gt)
+        matches = get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou['our'])
 
-        for idx, box in enumerate(boxes):
-            if len(boxes_gt) >= 1:
-                dd = dds[idx]
-                dd_geom = dds_geom[idx]
-                ale = stds_ale[idx]
-                epi = stds_epi[idx]
-                idx_max, iou_max = get_idx_max(box, boxes_gt)
-                cat = get_category(boxes_gt[idx_max], truncs_gt[idx_max], occs_gt[idx_max])
-
-                # Update error if match is found
-                if iou_max > self.dic_thresh_iou['our']:
-                    dd_gt = dds_gt[idx_max]
-                    self.update_errors(dd, dd_gt, cat, self.errors['our'])
-                    self.update_errors(dd_geom, dd_gt, cat, self.errors['geom'])
-                    self.update_uncertainty(ale, epi, dd, dd_gt, cat)
-
-                    boxes_gt.pop(idx_max)
-                    dds_gt.pop(idx_max)
-                    truncs_gt.pop(idx_max)
-                    occs_gt.pop(idx_max)
+        for (idx, idx_gt) in matches:
+            cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
+            self.update_errors(dds[idx], dds_gt[idx_gt], cat, self.errors['our'])
+            self.update_errors(dds_geom[idx], dds_gt[idx_gt], cat, self.errors['geom'])
+            self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
 
     def _compare_error(self, boxes_m3d, dds_m3d, boxes_3dop, dds_3dop, boxes_md, dds_md, boxes_our, dds_our,
                        boxes_gt, dds_gt, truncs_gt, occs_gt, dds_geom):
