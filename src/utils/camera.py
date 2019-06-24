@@ -75,9 +75,6 @@ def preprocess_single(kps, kk):
         uv_kp = np.array([kps[0][idx], kps[1][idx], 1])
         kps_uv.append(uv_kp)
 
-    # Take the ground joint
-    vv_gr = max(kps[1])
-
     # Projection in normalized image coordinates and zero-center with the center of the bounding box
     xy1_center = pixel_to_camera(uv_center, kk, 1) * 10
     for idx, kp in enumerate(kps_uv):

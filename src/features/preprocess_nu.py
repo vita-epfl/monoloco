@@ -133,7 +133,7 @@ class PreprocessNuscenes:
                                 self.dic_jo[phase]['Y'].append([dds[idx_max]])  # Trick to make it (nn,1)
                                 self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
                                 self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_max])
-                                self.dic_jo[phase]['K'] = kk.tolist()
+                                self.dic_jo[phase]['K'].append(kk.tolist())
                                 append_cluster(self.dic_jo, phase, inputs[ii], dds[idx_max], uv_kps[ii])
                                 boxes_gt.pop(idx_max)
                                 dds.pop(idx_max)
