@@ -118,7 +118,7 @@ def check_conditions(line, mode, thresh=0.3):
 
     # Consider also person sitting and cyclists categories
     elif mode == 'gt_all':
-        if line[:10] == 'Pedestrian' or line[:10] == 'Person_sit':
+        if line[:10] == 'Pedestrian' or line[:10] == 'Person_sit' or line[:7] == 'Cyclist':
             check = True
 
     elif mode == 'our':
