@@ -9,7 +9,7 @@ import json
 import datetime
 from utils.kitti import get_calibration, split_training, parse_ground_truth
 from utils.pifpaf import get_input_data, preprocess_pif
-from utils.misc import get_idx_max, append_cluster
+from utils.misc import get_iou_matches, append_cluster
 
 
 class PreprocessKitti:
@@ -89,21 +89,16 @@ class PreprocessKitti:
                 uv_boxes = []
 
             # Match each set of keypoint with a ground truth
-            for ii, box in enumerate(uv_boxes):
-                idx_max, iou_max = get_idx_max(box, boxes_gt)
-
-                if iou_max >= self.iou_thresh:
-
-                    self.dic_jo[phase]['kps'].append(uv_kps[ii])
-                    self.dic_jo[phase]['X'].append(inputs[ii])
-                    self.dic_jo[phase]['Y'].append([dds_gt[idx_max]])  # Trick to make it (nn,1)
-                    self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_max])
-                    self.dic_jo[phase]['K'].append(kk.tolist())
-                    self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
-                    append_cluster(self.dic_jo, phase, inputs[ii], dds_gt[idx_max], uv_kps[ii])
-                    dic_cnt[phase] += 1
-                    boxes_gt.pop(idx_max)
-                    dds_gt.pop(idx_max)
+            matches = get_iou_matches(boxes, boxes_gt, self.iou_thresh)
+            for (idx, idx_gt) in matches:
+                self.dic_jo[phase]['kps'].append(uv_kps[idx])
+                self.dic_jo[phase]['X'].append(inputs[idx])
+                self.dic_jo[phase]['Y'].append([dds_gt[idx_gt]])  # Trick to make it (nn,1)
+                self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
+                self.dic_jo[phase]['K'].append(kk.tolist())
+                self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
+                append_cluster(self.dic_jo, phase, inputs[idx], dds_gt[idx_gt], uv_kps[idx])
+                dic_cnt[phase] += 1
 
         with open(self.path_joints, 'w') as file:
             json.dump(self.dic_jo, file)
