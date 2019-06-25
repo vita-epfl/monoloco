@@ -16,13 +16,15 @@ def pixel_to_camera(uv1, kk, z_met):
     return xyz_met
 
 
-def pixel_to_camera_torch(uv_center, kk, z_met):
+def pixel_to_camera_torch(uv_tensor, kk, z_met):
     """
-    (3,) array --> (3,) array
-    Convert a point in pixel coordinate to absolute camera coordinates
+    Convert a tensor in pixel coordinate to absolute camera coordinates
+    It accepts tensors of (m, 2) or tensors of (m, 2, x) or tensors of (m, x, 2) where x is the number of keypoints
     """
-
-    uv_padded = F.pad(uv_center, pad=(0, 1), mode="constant", value=1)  # pad only last-dim below with value 1
+    if uv_tensor.size()[-1] != 2:
+        uv_tensor = uv_tensor.permute(0, 2, 1)  # permute to have 2 as last dim to be padded
+        assert uv_tensor.size()[-1] == 2, "Tensor size not recognized"
+    uv_padded = F.pad(uv_tensor, pad=(0, 1), mode="constant", value=1)  # pad only last-dim below with value 1
     kk_1 = torch.inverse(kk)
     xyz_met_norm = torch.mm(uv_padded, kk_1)
     xyz_met = xyz_met_norm * z_met

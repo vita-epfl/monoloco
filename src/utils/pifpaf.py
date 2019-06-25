@@ -19,6 +19,7 @@ def get_network_inputs(keypoints, kk):
 
     # Projection in normalized image coordinates and zero-center with the center of the bounding box
     xy1_center = pixel_to_camera_torch(uv_center, kk, 1) * 10
+    xy1_all = pixel_to_camera_torch(keypoints[:, 0:2, :], kk, 1) * 10
 
     for idx, kp in enumerate(kps_uv):
         kp_proj = pixel_to_camera(kp, kk, 1) * 10
