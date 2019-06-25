@@ -3,6 +3,45 @@ import numpy as np
 from utils.camera import preprocess_single, get_keypoints, pixel_to_camera
 
 
+def get_input_data(boxes, keypoints, kk, left_to_right=False):
+    inputs = []
+    xy_centers = []
+    uv_boxes = []
+    uv_centers = []
+    uv_shoulders = []
+    uv_kps = []
+    xy_kps = []
+
+    if left_to_right:  # Order boxes from left to right
+        ordered = np.argsort([xx[0] for xx in boxes])
+
+    else:  # Order boxes from most to less confident
+        confs = []
+        for idx, box in enumerate(boxes):
+            confs.append(box[4])
+        ordered = np.argsort(confs).tolist()[::-1]
+
+    for idx in ordered:
+        kps = keypoints[idx]
+        uv_kps.append(kps)
+        uv_boxes.append(boxes[idx])
+
+        uu_c, vv_c = get_keypoints(kps[0], kps[1], "center")
+        uv_centers.append([round(uu_c), round(vv_c)])
+        xy_center = pixel_to_camera(np.array([uu_c, vv_c, 1]), kk, 1)
+        xy_centers.append(xy_center)
+
+        uu_1, vv_1 = get_keypoints(kps[0], kps[1], "shoulder")
+        uv_shoulders.append([round(uu_1), round(vv_1)])
+
+        # 2 steps of input normalization for each instance
+        kps_prep, kps_orig = preprocess_single(kps, kk)
+        inputs.append(kps_prep)
+        xy_kps.append(kps_orig)
+
+    return (inputs, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders)
+
+
 def preprocess_pif(annotations, im_size=None):
     """
     Preprocess pif annotations:
@@ -45,56 +84,14 @@ def preprocess_pif(annotations, im_size=None):
     return boxes, keypoints
 
 
-def get_input_data(boxes, keypoints, kk, left_to_right=False):
-    inputs = []
-    xy_centers = []
-    uv_boxes = []
-    uv_centers = []
-    uv_shoulders = []
-    uv_kps = []
-    xy_kps = []
-
-    if left_to_right:  # Order boxes from left to right
-        ordered = np.argsort([xx[0] for xx in boxes])
-
-    else:  # Order boxes from most to less confident
-        confs = []
-        for idx, box in enumerate(boxes):
-            confs.append(box[4])
-        ordered = np.argsort(confs).tolist()[::-1]
-
-    for idx in ordered:
-        kps = keypoints[idx]
-        uv_kps.append(kps)
-        uv_boxes.append(boxes[idx])
-
-        uu_c, vv_c = get_keypoints(kps[0], kps[1], "center")
-        uv_centers.append([round(uu_c), round(vv_c)])
-        xy_center = pixel_to_camera(np.array([uu_c, vv_c, 1]), kk, 1)
-        xy_centers.append(xy_center)
-
-        uu_1, vv_1 = get_keypoints(kps[0], kps[1], "shoulder")
-        uv_shoulders.append([round(uu_1), round(vv_1)])
-
-        # 2 steps of input normalization for each instance
-        kps_prep, kps_orig = preprocess_single(kps, kk)
-        inputs.append(kps_prep)
-        xy_kps.append(kps_orig)
-
-    return (inputs, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders)
-
-
 def prepare_pif_kps(kps_in):
     """Convert from a list of 51 to a list of 3, 17"""
 
-    keypoints = np.array(kps_in).reshape(-1, 3).tolist()
-    xxs = []
-    yys = []
-    ccs = []
-
-    for kp_triple in keypoints:
-        xxs.append(kp_triple[0])
-        yys.append(kp_triple[1])
-        ccs.append(kp_triple[2])
+    assert len(kps_in) % 3 == 0, "keypoints expected as a multiple of 3"
+    xxs = kps_in[0:][::3]
+    yys = kps_in[1:][::3]  # from offset 1 every 3
+    ccs = kps_in[2:][::3]
 
     return [xxs, yys, ccs]
+
+
