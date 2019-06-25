@@ -95,7 +95,7 @@ class Trainer:
 
         # Select the device and load the data
         use_cuda = torch.cuda.is_available()
-        self.device = torch.device("cuda:0" if use_cuda else "cpu")
+        self.device = torch.device("cuda:1" if use_cuda else "cpu")
         print('Device: ', self.device)
 
         # Set the seed for random initialization
