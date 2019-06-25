@@ -99,21 +99,26 @@ def get_simplified_calibration(path_txt):
     raise ValueError('Matrix K_02 not found in the file')
 
 
-def check_conditions(line, mode, thresh=0.5):
+def check_conditions(line, mode, thresh=0.3):
 
     """Check conditions of our or m3d txt file"""
 
     check = False
-    assert mode == 'gt' or mode == 'm3d' or mode == '3dop' or mode == 'our', "Type not recognized"
+    assert mode == 'gt_ped' or mode == 'gt_all', mode == 'm3d' or mode == '3dop' or mode == 'our' "Type not recognized"
 
     if mode == 'm3d' or mode == '3dop':
         conf = line.split()[15]
         if line[:10] == 'pedestrian' and float(conf) >= thresh:
             check = True
 
-    elif mode == 'gt':
+    elif mode == 'gt_ped':
         # if line[:10] == 'Pedestrian' or line[:10] == 'Person_sit':
         if line[:10] == 'Pedestrian':
+            check = True
+
+    # Consider also person sitting and cyclists categories
+    elif mode == 'gt_all':
+        if line[:10] == 'Pedestrian' or line[:10] == 'Person_sit':
             check = True
 
     elif mode == 'our':
@@ -158,7 +163,7 @@ def split_training(names_gt, path_train, path_val):
     return set_train, set_val
 
 
-def parse_ground_truth(path_gt):
+def parse_ground_truth(path_gt, mode='gt_ped'):
     """Parse KITTI ground truth files"""
     boxes_gt = []
     dds_gt = []
@@ -168,7 +173,7 @@ def parse_ground_truth(path_gt):
 
     with open(path_gt, "r") as f_gt:
         for line_gt in f_gt:
-            if check_conditions(line_gt, mode='gt'):
+            if check_conditions(line_gt, mode=mode):
                 truncs_gt.append(float(line_gt.split()[1]))
                 occs_gt.append(int(line_gt.split()[2]))
                 boxes_gt.append([float(x) for x in line_gt.split()[4:8]])
@@ -177,4 +182,4 @@ def parse_ground_truth(path_gt):
                 boxes_3d.append(loc_gt + wlh)
                 dds_gt.append(math.sqrt(loc_gt[0] ** 2 + loc_gt[1] ** 2 + loc_gt[2] ** 2))
 
-    return (boxes_gt, boxes_3d, dds_gt, truncs_gt, occs_gt)
+    return boxes_gt, boxes_3d, dds_gt, truncs_gt, occs_gt
