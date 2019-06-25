@@ -245,7 +245,6 @@ class KittiEval:
                 self.dic_cnt['merged'] += 1
 
     def update_errors(self, dd, dd_gt, cat, errors):
-
         """Compute and save errors between a single box and the gt box which match"""
 
         diff = abs(dd - dd_gt)
@@ -314,8 +313,7 @@ class KittiEval:
         eps = 1e-4
         task_error = get_task_error(dd)
         prec_1 = abs(dd - dd_gt) / (std_epi + eps)
-        if std_epi < 0.01:
-            aa = 5
+
         prec_2 = abs(std_epi - task_error)
         self.dic_stds['all']['prec_1'].append(prec_1)
         self.dic_stds[clst]['prec_1'].append(prec_1)

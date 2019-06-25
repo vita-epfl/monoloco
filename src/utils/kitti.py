@@ -104,14 +104,14 @@ def check_conditions(line, mode, thresh=0.3):
     """Check conditions of our or m3d txt file"""
 
     check = False
-    assert mode == 'gt_ped' or mode == 'gt_all', mode == 'm3d' or mode == '3dop' or mode == 'our' "Type not recognized"
+    assert (mode == 'gt' or mode == 'gt_all', mode == 'm3d' or mode == '3dop' or mode == 'our'), "Type not recognized"
 
     if mode == 'm3d' or mode == '3dop':
         conf = line.split()[15]
         if line[:10] == 'pedestrian' and float(conf) >= thresh:
             check = True
 
-    elif mode == 'gt_ped':
+    elif mode == 'gt':
         # if line[:10] == 'Pedestrian' or line[:10] == 'Person_sit':
         if line[:10] == 'Pedestrian':
             check = True
@@ -163,7 +163,7 @@ def split_training(names_gt, path_train, path_val):
     return set_train, set_val
 
 
-def parse_ground_truth(path_gt, mode='gt_ped'):
+def parse_ground_truth(path_gt, mode='gt'):
     """Parse KITTI ground truth files"""
     boxes_gt = []
     dds_gt = []
