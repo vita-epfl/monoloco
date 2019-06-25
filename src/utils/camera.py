@@ -1,7 +1,8 @@
 
 import numpy as np
 import math
-
+import torch
+import torch.nn.functional as F
 
 def pixel_to_camera(uv1, kk, z_met):
     """
@@ -11,6 +12,19 @@ def pixel_to_camera(uv1, kk, z_met):
 
     kk_1 = np.linalg.inv(kk)
     xyz_met_norm = np.dot(kk_1, uv1)
+    xyz_met = xyz_met_norm * z_met
+    return xyz_met
+
+
+def pixel_to_camera_torch(uv_center, kk, z_met):
+    """
+    (3,) array --> (3,) array
+    Convert a point in pixel coordinate to absolute camera coordinates
+    """
+
+    uv_padded = F.pad(uv_center, pad=(0, 1), mode="constant", value=1)  # pad only last-dim below with value 1
+    kk_1 = torch.inverse(kk)
+    xyz_met_norm = torch.mm(uv_padded, kk_1)
     xyz_met = xyz_met_norm * z_met
     return xyz_met
 
@@ -108,6 +122,45 @@ def get_keypoints(kps_0, kps_1, mode):
         vv = float(np.average(kps_1[11:13]))
 
     return uu, vv
+
+
+def get_keypoints_batch(keypoints, mode):
+    """Get the center of 2 lists"""
+
+    assert mode == 'center' or mode == 'shoulder' or mode == 'hip'
+
+    kps_np = np.array(keypoints)  # (m, 3, 17)
+    kps_in = kps_np[:, 0:2, :]  # (m, 2, 17)
+
+    if mode == 'center':
+        kps_out = (np.max(kps_in, axis=2) - np.min(kps_in, axis=2)) / 2 + np.min(kps_in, axis=2)  # (m, 2, 1)
+
+    elif mode == 'shoulder':
+        kps_out = np.average(kps_in[:, :, 5:7], axis=2)
+
+    elif mode == 'hip':
+        kps_out = np.average(kps_in[:, :, 11:13], axis=2)
+
+    return kps_out  # (m, 2, 1)
+
+
+def get_keypoints_torch(keypoints, mode):
+    """Get the center of 2 lists"""
+
+    assert mode == 'center' or mode == 'shoulder' or mode == 'hip'
+    kps_in = keypoints[:, 0:2, :]  # (m, 2, 17)
+    if mode == 'center':
+        kps_max, _ = kps_in.max(2)  # returns value, indices
+        kps_min, _ = kps_in.min(2)
+        kps_out = (kps_max - kps_min) / 2 + kps_min   # (m, 2) as keepdims is False
+
+    elif mode == 'shoulder':
+        kps_out = kps_in[:, :, 5:7].mean(2)
+
+    elif mode == 'hip':
+        kps_out = kps_in[:, :, 11:13].mean(2)
+
+    return kps_out  # (m, 2)
 
 
 def transform_kp(kps, tr_mode):

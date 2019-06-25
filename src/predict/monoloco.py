@@ -14,7 +14,7 @@ from models.architectures import LinearModel
 from utils.camera import get_depth
 from utils.misc import laplace_sampling, get_idx_max
 from utils.normalize import unnormalize_bi
-from utils.pifpaf import get_input_data
+from utils.pifpaf import get_input_data, get_network_inputs
 
 
 class MonoLoco:
@@ -46,6 +46,10 @@ class MonoLoco:
 
         (inputs_norm, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = \
             get_input_data(boxes, keypoints, kk, left_to_right=True)
+
+        kps_torch = torch.tensor(keypoints).to(self.device)
+        kk = torch.tensor(kk).to(self.device)
+        inputs_new = get_network_inputs(kps_torch, kk)
 
         # Conversion into torch tensor
         if inputs_norm:

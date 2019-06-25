@@ -1,6 +1,36 @@
 
 import numpy as np
-from utils.camera import preprocess_single, get_keypoints, pixel_to_camera
+from utils.camera import preprocess_single, get_keypoints, pixel_to_camera, get_keypoints_torch, pixel_to_camera_torch
+
+
+def get_network_inputs(keypoints, kk):
+
+    """ Preprocess input of a single annotations
+    Input_kps = list of 4 elements with 0=x, 1=y, 2= confidence, 3 = ? in pixels
+    Output_kps = [x0, y0, x1,...x15, y15] in meters normalized (z=1) and zero-centered using the center of the box
+    """
+
+    kps_uv = []
+    kps_0c = []
+    kps_orig = []
+
+    # Create center of the bounding box using min max of the keypoints
+    uv_center = get_keypoints_torch(keypoints, mode='center')
+
+    # Projection in normalized image coordinates and zero-center with the center of the bounding box
+    xy1_center = pixel_to_camera_torch(uv_center, kk, 1) * 10
+
+    for idx, kp in enumerate(kps_uv):
+        kp_proj = pixel_to_camera(kp, kk, 1) * 10
+        kp_proj_0c = kp_proj - xy1_center
+        kps_0c.append(float(kp_proj_0c[0]))
+        kps_0c.append(float(kp_proj_0c[1]))
+
+        kp_orig = pixel_to_camera(kp, kk, 1)
+        kps_orig.append(float(kp_orig[0]))
+        kps_orig.append(float(kp_orig[1]))
+
+    return kps_0c, kps_orig
 
 
 def get_input_data(boxes, keypoints, kk, left_to_right=False):
@@ -12,20 +42,23 @@ def get_input_data(boxes, keypoints, kk, left_to_right=False):
     uv_kps = []
     xy_kps = []
 
-    if left_to_right:  # Order boxes from left to right
-        ordered = np.argsort([xx[0] for xx in boxes])
+    # if left_to_right:  # Order boxes from left to right
+    #     ordered = np.argsort([xx[0] for xx in boxes])
 
-    else:  # Order boxes from most to less confident
-        confs = []
-        for idx, box in enumerate(boxes):
-            confs.append(box[4])
-        ordered = np.argsort(confs).tolist()[::-1]
+    # else:  # Order boxes from most to less confident
+    #     confs = []
+    #     for idx, box in enumerate(boxes):
+    #         confs.append(box[4])
+    #     ordered = np.argsort(confs).tolist()[::-1]
 
-    for idx in ordered:
-        kps = keypoints[idx]
+    # for idx in ordered:
+
+    for idx, kps in enumerate(keypoints):
+        # kps = keypoints[idx]
         uv_kps.append(kps)
         uv_boxes.append(boxes[idx])
-
+        if idx == 0:
+            aa = 5
         uu_c, vv_c = get_keypoints(kps[0], kps[1], "center")
         uv_centers.append([round(uu_c), round(vv_c)])
         xy_center = pixel_to_camera(np.array([uu_c, vv_c, 1]), kk, 1)
