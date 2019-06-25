@@ -71,7 +71,7 @@ class PreprocessKitti:
 
             # Iterate over each line of the gt file and save box location and distances
             if phase == 'train':
-                (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, mode='gt_all')  # Also cyclists
+                (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, mode='gt_ped')  # Also cyclists
             else:
                 (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, mode='gt_ped')  # only pedestrians
 
