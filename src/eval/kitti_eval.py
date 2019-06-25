@@ -121,8 +121,8 @@ class KittiEval:
 
         print("\n Annotations inside the confidence interval: {:.1f} %"
               .format(100 * self.dic_stats['test']['our']['all']['interval']))
-        print("precision 1: {:.1f}".format(self.dic_stats['test']['our']['all']['prec_1']))
-        print("precision 2: {:.1f}".format(self.dic_stats['test']['our']['all']['prec_2']))
+        print("precision 1: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_1']))
+        print("precision 2: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_2']))
 
     def printer(self, show):
         print_results(self.dic_stats, show)
