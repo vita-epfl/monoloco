@@ -72,7 +72,7 @@ class PreprocessKitti:
 
             # Iterate over each line of the gt file and save box location and distances
             if phase == 'train':
-                (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, mode='gt_ped')  # Also cyclists
+                (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, mode='gt_all')  # Also cyclists
             else:
                 (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, mode='gt_ped')  # only pedestrians
 
@@ -91,10 +91,10 @@ class PreprocessKitti:
                 (inputs, _), (uv_kps, uv_boxes, _, _) = get_input_data(boxes, keypoints, kk)
 
             except FileNotFoundError:
-                boxes = []
+                uv_boxes = []
 
             # Match each set of keypoint with a ground truth
-            matches = get_iou_matches(boxes, boxes_gt, self.iou_thresh)
+            matches = get_iou_matches(uv_boxes, boxes_gt, self.iou_thresh)
 
             for (idx, idx_gt) in matches:
                 self.dic_jo[phase]['kps'].append(uv_kps[idx])
