@@ -7,6 +7,7 @@ import logging
 from collections import defaultdict
 import json
 import datetime
+
 from utils.kitti import get_calibration, split_training, parse_ground_truth
 from utils.pifpaf import get_input_data, preprocess_pif
 from utils.misc import get_iou_matches, append_cluster
@@ -90,10 +91,11 @@ class PreprocessKitti:
                 (inputs, _), (uv_kps, uv_boxes, _, _) = get_input_data(boxes, keypoints, kk)
 
             except FileNotFoundError:
-                uv_boxes = []
+                boxes = []
 
             # Match each set of keypoint with a ground truth
             matches = get_iou_matches(boxes, boxes_gt, self.iou_thresh)
+
             for (idx, idx_gt) in matches:
                 self.dic_jo[phase]['kps'].append(uv_kps[idx])
                 self.dic_jo[phase]['X'].append(inputs[idx])

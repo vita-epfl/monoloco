@@ -70,7 +70,6 @@ def get_iou_matrix(boxes, boxes_gt):
     Dim: (boxes, boxes_gt)
     """
     iou_matrix = np.zeros((len(boxes), len(boxes_gt)))
-
     for idx, box in enumerate(boxes):
         for idx_gt, box_gt in enumerate(boxes_gt):
             iou_matrix[idx, idx_gt] = calculate_iou(box, box_gt)
