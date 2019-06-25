@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict
 import datetime
 
-from utils.misc import get_iou_matches
+from utils.misc import get_iou_matches, get_task_error
 from utils.kitti import check_conditions, get_category, split_training, parse_ground_truth
 from visuals.results import print_results
 
@@ -58,6 +58,8 @@ class KittiEval:
         # Iterate over each ground truth file in the training set
         cnt_gt = 0
         for name in self.set_val:
+            if name == '002283.txt':
+                aa = 5
             path_gt = os.path.join(self.dir_gt, name)
             path_m3d = os.path.join(self.dir_m3d, name)
             path_our = os.path.join(self.dir_our, name)
@@ -116,6 +118,11 @@ class KittiEval:
 
             print("\n Number of matched annotations: {:.1f} %".format(self.errors[key]['matched']))
             print("-"*100)
+
+        print("\n Annotations inside the confidence interval: {:.1f} %"
+              .format(100 * self.dic_stats['test']['our']['all']['interval']))
+        print("precision 1: {:.1f}".format(self.dic_stats['test']['our']['all']['prec_1']))
+        print("precision 2: {:.1f}".format(self.dic_stats['test']['our']['all']['prec_2']))
 
     def printer(self, show):
         print_results(self.dic_stats, show)
@@ -274,25 +281,48 @@ class KittiEval:
         self.dic_stds[cat]['epi'].append(std_epi)
 
         # Number of annotations inside the confidence interval
-        if dd_gt <= dd:  # Particularly dangerous instances
+        if abs(dd - dd_gt) <= std_epi:
+            self.dic_stds['all']['interval'].append(1)
+            self.dic_stds[clst]['interval'].append(1)
+            self.dic_stds[cat]['interval'].append(1)
+        else:
+            self.dic_stds['all']['interval'].append(0)
+            self.dic_stds[clst]['interval'].append(0)
+            self.dic_stds[cat]['interval'].append(0)
+
+        # Annotations at risk inside the confidence interval
+        if dd_gt <= dd:
             self.dic_stds['all']['at_risk'].append(1)
             self.dic_stds[clst]['at_risk'].append(1)
             self.dic_stds[cat]['at_risk'].append(1)
 
             if abs(dd - dd_gt) <= std_epi:
-                self.dic_stds['all']['interval'].append(1)
-                self.dic_stds[clst]['interval'].append(1)
-                self.dic_stds[cat]['interval'].append(1)
-
+                self.dic_stds['all']['at_risk-interval'].append(1)
+                self.dic_stds[clst]['at_risk-interval'].append(1)
+                self.dic_stds[cat]['at_risk-interval'].append(1)
             else:
-                self.dic_stds['all']['interval'].append(0)
-                self.dic_stds[clst]['interval'].append(0)
-                self.dic_stds[cat]['interval'].append(0)
+                self.dic_stds['all']['at_risk-interval'].append(0)
+                self.dic_stds[clst]['at_risk-interval'].append(0)
+                self.dic_stds[cat]['at_risk-interval'].append(0)
 
         else:
             self.dic_stds['all']['at_risk'].append(0)
             self.dic_stds[clst]['at_risk'].append(0)
             self.dic_stds[cat]['at_risk'].append(0)
+
+        # Precision of uncertainty
+        eps = 1e-4
+        task_error = get_task_error(dd)
+        prec_1 = abs(dd - dd_gt) / (std_epi + eps)
+        if std_epi < 0.01:
+            aa = 5
+        prec_2 = abs(std_epi - task_error)
+        self.dic_stds['all']['prec_1'].append(prec_1)
+        self.dic_stds[clst]['prec_1'].append(prec_1)
+        self.dic_stds[cat]['prec_1'].append(prec_1)
+        self.dic_stds['all']['prec_2'].append(prec_2)
+        self.dic_stds[clst]['prec_2'].append(prec_2)
+        self.dic_stds[cat]['prec_2'].append(prec_2)
 
 
 def get_statistics(dic_stats, errors, dic_stds, key):
@@ -307,6 +337,8 @@ def get_statistics(dic_stats, errors, dic_stds, key):
         dic_stats['std_epi'] = sum(dic_stds['epi']) / float(len(dic_stds['epi']))
         dic_stats['interval'] = sum(dic_stds['interval']) / float(len(dic_stds['interval']))
         dic_stats['at_risk'] = sum(dic_stds['at_risk']) / float(len(dic_stds['at_risk']))
+        dic_stats['prec_1'] = sum(dic_stds['prec_1']) / float(len(dic_stds['prec_1']))
+        dic_stats['prec_2'] = sum(dic_stds['prec_2']) / float(len(dic_stds['prec_2']))
 
 
 def add_true_negatives(err, cnt_gt):

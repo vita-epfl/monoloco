@@ -10,6 +10,7 @@ from matplotlib.patches import Ellipse, Circle
 import cv2
 from collections import OrderedDict
 from utils.camera import pixel_to_camera
+from utils.misc import get_task_error
 
 
 class Printer:
@@ -164,7 +165,7 @@ class Printer:
 
             for idx, _ in enumerate(self.xx_gt):
                 if self.zz_gt[idx] > 0:
-                    target = get_target_error(self.dds_real[idx])
+                    target = get_task_error(self.dds_real[idx])
 
                     angle = get_angle(self.xx_gt[idx], self.zz_gt[idx])
                     ellipse_real = Ellipse((self.xx_gt[idx], self.zz_gt[idx]), width=target * 2, height=1,
@@ -270,9 +271,3 @@ def get_angle(xx, zz):
     angle = theta * (180 / math.pi)
 
     return angle
-
-
-def get_target_error(dd):
-    """Get target error not knowing the gender"""
-    mm_gender = 0.0556
-    return mm_gender * dd

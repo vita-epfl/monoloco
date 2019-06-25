@@ -7,6 +7,7 @@ import os
 import glob
 import json
 import logging
+import shutil
 
 import numpy as np
 import torch
@@ -35,9 +36,12 @@ class RunKitti:
         self.n_dropout = n_dropout
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
         self.dir_out = os.path.join('data', 'kitti', 'monoloco')
-        if not os.path.exists(self.dir_out):
-            os.makedirs(self.dir_out)
-            print("Created output directory for txt files")
+
+        # Remove the output directory if alreaady exists (avoid residual txt files)
+        if os.path.exists(self.dir_out):
+            shutil.rmtree(self.dir_out)
+        os.makedirs(self.dir_out)
+        print("Created output directory for txt files")
 
         self.list_basename = factory_basename(dir_ann)
 
@@ -54,10 +58,9 @@ class RunKitti:
     def run(self):
 
         # Run inference
+
         for basename in self.list_basename:
-
             path_calib = os.path.join(self.dir_kk, basename + '.txt')
-
             annotations, kk, tt, _ = factory_file(path_calib, self.dir_ann, basename)
 
             boxes, keypoints = preprocess_pif(annotations)
@@ -83,6 +86,9 @@ class RunKitti:
                     samples = laplace_sampling(outputs, self.n_samples)
                     total_outputs = torch.cat((total_outputs, samples), 0)
                 varss = total_outputs.std(0)
+                for var in varss:
+                    if float(var) <= 0.1:
+                        aa = 5
 
             else:
                 varss = [0]*len(uv_boxes)
@@ -101,7 +107,6 @@ class RunKitti:
             all_outputs.append(list_zzs)
             path_txt = os.path.join(self.dir_out, basename + '.txt')
             save_txts(path_txt, all_inputs, all_outputs, all_params)
-            aa = 5
 
         # Print statistics
         print("Saved in {} txt {} annotations. Not found {} images"
@@ -145,7 +150,6 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
         for kk_el in kk_list:
             ff.write("%f " % kk_el)
         ff.write("\n")
-
 
 
 def factory_basename(dir_ann):
