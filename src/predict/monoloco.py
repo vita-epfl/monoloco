@@ -42,45 +42,47 @@ class MonoLoco:
         self.model.eval()  # Default is train
         self.model.to(self.device)
 
-    def forward(self, boxes, keypoints, kk, dic_gt=None):
+    def forward(self, keypoints, kk):
+        """forward pass of monoloco network"""
 
-        (inputs_norm, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = \
-            get_input_data(boxes, keypoints, kk, left_to_right=True)
+        if not keypoints:
+            return None
 
-        kps_torch = torch.tensor(keypoints).to(self.device)
-        kk = torch.tensor(kk).to(self.device)
-        inputs_new = get_network_inputs(kps_torch, kk)
+        with torch.no_grad():
+            kps_torch = torch.tensor(keypoints).to(self.device)
+            kk = torch.tensor(kk).to(self.device)
+            inputs = get_network_inputs(kps_torch, kk)
+            start = time.time()
+            if self.n_dropout > 0:
+                self.model.dropout.training = True  # Manually reactivate dropout in eval
+                total_outputs = torch.empty((0, inputs.size()[0])).to(self.device)
 
-        # Conversion into torch tensor
-        if inputs_norm:
-            with torch.no_grad():
-                inputs = torch.from_numpy(np.array(inputs_norm)).float()
-                inputs = inputs.to(self.device)
-                # self.model.to("cpu")
-                start = time.time()
-                # Manually reactivate dropout in eval
-                self.model.dropout.training = True
-                total_outputs = torch.empty((0, len(xy_kps))).to(self.device)
-
-                if self.n_dropout > 0:
-                    for _ in range(self.n_dropout):
-                        outputs = self.model(inputs)
-                        outputs = unnormalize_bi(outputs)
-                        samples = laplace_sampling(outputs, self.N_SAMPLES)
-                        total_outputs = torch.cat((total_outputs, samples), 0)
-                    varss = total_outputs.std(0)
-                else:
-                    varss = [0] * len(inputs_norm)
-
-                # # Don't use dropout for the mean prediction
-                start_single = time.time()
+                for _ in range(self.n_dropout):
+                    outputs = self.model(inputs)
+                    outputs = unnormalize_bi(outputs)
+                    samples = laplace_sampling(outputs, self.N_SAMPLES)
+                    total_outputs = torch.cat((total_outputs, samples), 0)
+                varss = total_outputs.std(0)
                 self.model.dropout.training = False
-                outputs = self.model(inputs)
-                outputs = unnormalize_bi(outputs)
-                end = time.time()
-                print("Total Forward pass time with {} forward passes = {:.2f} ms"
-                      .format(self.n_dropout, (end-start) * 1000))
-                print("Single forward pass time = {:.2f} ms".format((end - start_single) * 1000))
+            else:
+                varss = [0] * inputs.size()[0]
+
+            # # Don't use dropout for the mean prediction
+            start_single = time.time()
+            outputs = self.model(inputs)
+            outputs = unnormalize_bi(outputs)
+            end = time.time()
+            print("Total Forward pass time with {} forward passes = {:.2f} ms"
+                  .format(self.n_dropout, (end-start) * 1000))
+            print("Single forward pass time = {:.2f} ms".format((end - start_single) * 1000))
+            return outputs, varss
+
+    @staticmethod
+    def post_process(outputs, varss, dic_gt=None):
+        """
+        Input --> torch tensor
+        Output --> dictionary for json output and/or visualization
+        """
 
         # Create output files
         dic_out = defaultdict(list)

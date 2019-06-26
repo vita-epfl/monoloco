@@ -150,7 +150,9 @@ def predict(args):
 
                 # Preprocess pifpaf outputs and run monoloco
                 boxes, keypoints = preprocess_pif(pifpaf_out, im_size)
-                monoloco_outputs = monoloco.forward(boxes, keypoints, kk)
+                outputs, varss = monoloco.forward(keypoints, kk)
+                dic_out = monoloco.post_process(outputs, varss, dic_gt=None)
+
             else:
                 monoloco_outputs = None
                 kk = None
