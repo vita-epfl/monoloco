@@ -1,10 +1,10 @@
 
 import json
 import os
+from collections import defaultdict
+
 from visuals.printer import Printer
 from openpifpaf import show
-
-from PIL import Image
 
 
 def factory_for_gt(im_size, name=None, path_gt=None):
@@ -45,7 +45,6 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_
 
     # Save json file
     if 'pifpaf' in args.networks:
-
         keypoint_sets, scores, pifpaf_out = pifpaf_outputs[:]
 
         # Visualizer
@@ -74,18 +73,67 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_
                 skeleton_painter.keypoints(ax, keypoint_sets, scores=scores)
 
     if 'monoloco' in args.networks:
+
+        dic_out = monoloco_post_process(monoloco_outputs)
+
         if any((xx in args.output_types for xx in ['front', 'bird', 'combined'])):
 
             epistemic = False
             if args.n_dropout > 0:
                 epistemic = True
 
-            printer = Printer(images_outputs[1], output_path, monoloco_outputs, kk, output_types=args.output_types,
+            printer = Printer(images_outputs[1], output_path, dic_out, kk, output_types=args.output_types,
                               show=args.show, z_max=args.z_max, epistemic=epistemic)
             printer.print()
 
         if 'json' in args.output_types:
             with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:
                 json.dump(monoloco_outputs, ff)
+
+
+def monoloco_post_process(monoloco_outputs):
+
+    """Post process monoloco to output final dictionary with all information for visualizations"""
+    # Create output files
+    dic_out = defaultdict(list)
+    if dic_gt:
+        boxes_gt, dds_gt = dic_gt['boxes'], dic_gt['dds']
+
+    for idx, box in enumerate(uv_boxes):
+        dd_pred = float(outputs[idx][0])
+        ale = float(outputs[idx][1])
+        var_y = float(varss[idx])
+
+        # Find the corresponding ground truth if available
+        if dic_gt:
+            idx_max, iou_max = get_idx_max(box, boxes_gt)
+            if iou_max > self.IOU_MIN:
+                dd_real = dds_gt[idx_max]
+                boxes_gt.pop(idx_max)
+                dds_gt.pop(idx_max)
+            # In case of no matching
+            else:
+                dd_real = 0
+        # In case of no ground truth
+        else:
+            dd_real = dd_pred
+
+        uv_center = uv_centers[idx]
+        xyz_real = get_depth(uv_center, kk, dd_real)
+        xyz_pred = get_depth(uv_center, kk, dd_pred)
+        dic_out['boxes'].append(box)
+        dic_out['dds_real'].append(dd_real)
+        dic_out['dds_pred'].append(dd_pred)
+        dic_out['stds_ale'].append(ale)
+        dic_out['stds_epi'].append(var_y)
+        dic_out['xyz_real'].append(xyz_real)
+        dic_out['xyz_pred'].append(xyz_pred)
+        dic_out['xy_kps'].append(xy_kps[idx])
+        dic_out['uv_kps'].append(uv_kps[idx])
+        dic_out['uv_centers'].append(uv_center)
+        dic_out['uv_shoulders'].append(uv_shoulders[idx])
+
+    return dic_out
+
 
 
