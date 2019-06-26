@@ -148,9 +148,19 @@ def get_keypoints_batch(keypoints, mode):
 
 
 def get_keypoints_torch(keypoints, mode):
-    """Get the center of 2 lists"""
+    """
+    Extract center, shoulder or hip points of a keypoint
+    Input --> torch.tensor [(m, 3, 17) or (3, 17)] or list
+    Output --> torch.tensor
+    """
+    if type(keypoints) == list:
+        keypoints = torch.tensor(keypoints)
+    if len(keypoints.size()) == 2:  # add batch dim
+        keypoints.unsqueeze(0)
 
+    assert len(keypoints.size()) == 3 and keypoints.size()[1] == 3, "tensor dimensions not recognized"
     assert mode == 'center' or mode == 'shoulder' or mode == 'hip'
+
     kps_in = keypoints[:, 0:2, :]  # (m, 2, 17)
     if mode == 'center':
         kps_max, _ = kps_in.max(2)  # returns value, indices

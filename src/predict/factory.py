@@ -4,8 +4,8 @@ import os
 from collections import defaultdict
 from openpifpaf import show
 from visuals.printer import Printer
-from utils.misc import get_idx_max
-from utils.camera import get_depth, get_keypoints
+from utils.misc import get_iou_matches
+from utils.camera import get_depth, get_keypoints_torch
 
 
 def factory_for_gt(im_size, name=None, path_gt=None):
@@ -99,29 +99,25 @@ def monoloco_post_process(monoloco_outputs, iou_min=0.25):
     outputs, varss, boxes, keypoints, kk, dic_gt = monoloco_outputs[:]
     if dic_gt:
         boxes_gt, dds_gt = dic_gt['boxes'], dic_gt['dds']
+        matches = get_iou_matches(boxes, boxes_gt, thresh=iou_min)
+    else:
+        matches = [(idx, idx_gt) for idx, idx_gt in range(len(boxes))]  # Replicate boxes
 
-    for idx, box in enumerate(boxes):
+    uv_shoulders = get_keypoints_torch(keypoints, mode='shoulder')
+    uv_centers = get_keypoints_torch(keypoints, mode='center')
+
+    # Match with ground truth if available
+    for idx, idx_gt in matches:
         dd_pred = float(outputs[idx][0])
         ale = float(outputs[idx][1])
         var_y = float(varss[idx])
+        dd_real = dds_gt[idx_gt] if dic_gt else dd_pred
 
-        # Find the corresponding ground truth if available
-        if dic_gt:
-            idx_max, iou_max = get_idx_max(box, boxes_gt)
-            if iou_max > iou_min:
-                dd_real = dds_gt[idx_max]
-                boxes_gt.pop(idx_max)
-                dds_gt.pop(idx_max)
-            # In case of no matching
-            else:
-                dd_real = 0
-        # In case of no ground truth
-        else:
-            dd_real = dd_pred
         kps = keypoints[idx]
-        uu_s, vv_s = get_keypoints(kps[0], kps[1], mode='shoulders')
+        box = boxes[idx]
+        uu_s, vv_s = uv_shoulders.tolist()[idx][0:2]
+        uu_c, vv_c = uv_centers.tolist()[idx][0:2]
         uv_shoulder = [round(uu_s), round(vv_s)]
-        uu_c, vv_c = get_keypoints(kps[0], kps[1], mode='shoulders')
         uv_center = [round(uu_c), round(vv_c)]
         xyz_real = get_depth(uv_center, kk, dd_real)
         xyz_pred = get_depth(uv_center, kk, dd_pred)
