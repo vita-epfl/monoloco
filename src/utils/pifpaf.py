@@ -5,14 +5,10 @@ from utils.camera import preprocess_single, get_keypoints, pixel_to_camera, get_
 
 def get_network_inputs(keypoints, kk):
 
-    """ Preprocess input of a single annotations
-    Input_kps = list of 4 elements with 0=x, 1=y, 2= confidence, 3 = ? in pixels
-    Output_kps = [x0, y0, x1,...x15, y15] in meters normalized (z=1) and zero-centered using the center of the box
+    """ Preprocess batches of inputs
+    keypoints = torch tensors of (m, 3, 17)
+    Outputs =  torch tensors of (m, 17, 2) in meters normalized (z=1) and zero-centered using the center of the box
     """
-
-    kps_uv = []
-    kps_0c = []
-    kps_orig = []
 
     # Create center of the bounding box using min max of the keypoints
     uv_center = get_keypoints_torch(keypoints, mode='center')
@@ -20,18 +16,9 @@ def get_network_inputs(keypoints, kk):
     # Projection in normalized image coordinates and zero-center with the center of the bounding box
     xy1_center = pixel_to_camera_torch(uv_center, kk, 1) * 10
     xy1_all = pixel_to_camera_torch(keypoints[:, 0:2, :], kk, 1) * 10
-
-    for idx, kp in enumerate(kps_uv):
-        kp_proj = pixel_to_camera(kp, kk, 1) * 10
-        kp_proj_0c = kp_proj - xy1_center
-        kps_0c.append(float(kp_proj_0c[0]))
-        kps_0c.append(float(kp_proj_0c[1]))
-
-        kp_orig = pixel_to_camera(kp, kk, 1)
-        kps_orig.append(float(kp_orig[0]))
-        kps_orig.append(float(kp_orig[1]))
-
-    return kps_0c, kps_orig
+    kps_norm = xy1_all - xy1_center.unsqueeze(1)  # (m, 17, 3) - (m, 1, 3)
+    kps_out = kps_norm[:, :, 0:2].reshape(kps_norm.size()[0], -1)  # no contiguous for view
+    return kps_out
 
 
 def get_input_data(boxes, keypoints, kk, left_to_right=False):
