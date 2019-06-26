@@ -21,7 +21,6 @@ class MonoLoco:
     OUTPUT_SIZE = 2
     INPUT_SIZE = 17 * 2
     LINEAR_SIZE = 256
-    IOU_MIN = 0.25
     N_SAMPLES = 100
 
     def __init__(self, model, device, n_dropout=0):

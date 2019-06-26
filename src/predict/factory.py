@@ -2,9 +2,10 @@
 import json
 import os
 from collections import defaultdict
-
-from visuals.printer import Printer
 from openpifpaf import show
+from visuals.printer import Printer
+from utils.misc import get_idx_max
+from utils.camera import get_depth, get_keypoints
 
 
 def factory_for_gt(im_size, name=None, path_gt=None):
@@ -91,15 +92,15 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_
                 json.dump(monoloco_outputs, ff)
 
 
-def monoloco_post_process(monoloco_outputs):
-
+def monoloco_post_process(monoloco_outputs, iou_min=0.25):
     """Post process monoloco to output final dictionary with all information for visualizations"""
-    # Create output files
+
     dic_out = defaultdict(list)
+    outputs, varss, boxes, keypoints, kk, dic_gt = monoloco_outputs[:]
     if dic_gt:
         boxes_gt, dds_gt = dic_gt['boxes'], dic_gt['dds']
 
-    for idx, box in enumerate(uv_boxes):
+    for idx, box in enumerate(boxes):
         dd_pred = float(outputs[idx][0])
         ale = float(outputs[idx][1])
         var_y = float(varss[idx])
@@ -107,7 +108,7 @@ def monoloco_post_process(monoloco_outputs):
         # Find the corresponding ground truth if available
         if dic_gt:
             idx_max, iou_max = get_idx_max(box, boxes_gt)
-            if iou_max > self.IOU_MIN:
+            if iou_max > iou_min:
                 dd_real = dds_gt[idx_max]
                 boxes_gt.pop(idx_max)
                 dds_gt.pop(idx_max)
@@ -117,8 +118,11 @@ def monoloco_post_process(monoloco_outputs):
         # In case of no ground truth
         else:
             dd_real = dd_pred
-
-        uv_center = uv_centers[idx]
+        kps = keypoints[idx]
+        uu_s, vv_s = get_keypoints(kps[0], kps[1], mode='shoulders')
+        uv_shoulder = [round(uu_s), round(vv_s)]
+        uu_c, vv_c = get_keypoints(kps[0], kps[1], mode='shoulders')
+        uv_center = [round(uu_c), round(vv_c)]
         xyz_real = get_depth(uv_center, kk, dd_real)
         xyz_pred = get_depth(uv_center, kk, dd_pred)
         dic_out['boxes'].append(box)
@@ -128,10 +132,9 @@ def monoloco_post_process(monoloco_outputs):
         dic_out['stds_epi'].append(var_y)
         dic_out['xyz_real'].append(xyz_real)
         dic_out['xyz_pred'].append(xyz_pred)
-        dic_out['xy_kps'].append(xy_kps[idx])
-        dic_out['uv_kps'].append(uv_kps[idx])
+        dic_out['uv_kps'].append(kps)
         dic_out['uv_centers'].append(uv_center)
-        dic_out['uv_shoulders'].append(uv_shoulders[idx])
+        dic_out['uv_shoulders'].append(uv_shoulder)
 
     return dic_out
 
