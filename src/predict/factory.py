@@ -103,6 +103,7 @@ def monoloco_post_process(monoloco_outputs, iou_min=0.25):
     else:
         matches = [(idx, idx_gt) for idx, idx_gt in range(len(boxes))]  # Replicate boxes
 
+    matches = reorder_matches(matches)
     uv_shoulders = get_keypoints_torch(keypoints, mode='shoulder')
     uv_centers = get_keypoints_torch(keypoints, mode='center')
 

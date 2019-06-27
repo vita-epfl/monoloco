@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import time
 import logging
-# from shapely.geometry import box as Sbox
+
 
 def set_logger(log_path):
     """Set the logger to log info in terminal and file `log_path`.
@@ -109,31 +109,12 @@ def reparametrize_box3d(box):
     return [x1, z1, x2, z2, hh]
 
 
-# def calculate_iou3d(box3d_1, box3d_2):
-#     """3D intersection over union. Boxes are parametrized as x1, z1, x2, z2, hh
-#     We compute 2d iou in the birds plane and then add a factor for height differences (0-1)"""
-#
-#     poly1 = Sbox(box3d_1[0], box3d_1[1], box3d_1[2], box3d_1[3])
-#     poly2 = Sbox(box3d_2[0], box3d_2[1], box3d_2[2], box3d_2[3])
-#
-#     inter_2d = poly1.intersection(poly2).area
-#     union_2d = poly1.area + poly2.area - inter_2d
-#
-#     # height_factor = 1 - abs(box3d_1[4] - box3d_2[4]) / max(box3d_1[4], box3d_2[4])
-#
-#     #
-#     iou_3d = inter_2d / union_2d  # * height_factor
-#
-#     return iou_3d
-
-
 def laplace_sampling(outputs, n_samples):
 
     # np.random.seed(1)
     t0 = time.time()
     mu = outputs[:, 0]
     bi = torch.abs(outputs[:, 1])
-
 
     # Analytical
     # uu = np.random.uniform(low=-0.5, high=0.5, size=mu.shape[0])
@@ -147,30 +128,13 @@ def laplace_sampling(outputs, n_samples):
         device = torch.device(type="cuda", index=get_device)
     else:
         device = torch.device("cpu")
-    t1 = time.time()
 
     xxs = torch.empty((0, mu.shape[0])).to(device)
-    t2 = time.time()
-
     laplace = torch.distributions.Laplace(mu, bi)
-    t3 = time.time()
     for ii in range(1):
         xx = laplace.sample((n_samples,))
-        t4a = time.time()
         xxs = torch.cat((xxs, xx.view(n_samples, -1)), 0)
-    t4 = time.time()
 
-    # time_tot = t4 - t0
-    # time_1 = t1 - t0
-    # time_2 = t2 - t1
-    # time_3 = t3 - t2
-    # time_4a = t4a - t3
-    # time_4 = t4 - t3
-    # print("Time 1: {:.1f}%".format(time_1 / time_tot * 100))
-    # print("Time 2: {:.1f}%".format(time_2 / time_tot * 100))
-    # print("Time 3: {:.1f}%".format(time_3 / time_tot * 100))
-    # print("Time 4a: {:.1f}%".format(time_4a / time_tot * 100))
-    # print("Time 4: {:.1f}%".format(time_4 / time_tot * 100))
     return xxs
 
 
