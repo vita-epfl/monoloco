@@ -86,10 +86,6 @@ class RunKitti:
                     samples = laplace_sampling(outputs, self.n_samples)
                     total_outputs = torch.cat((total_outputs, samples), 0)
                 varss = total_outputs.std(0)
-                for var in varss:
-                    if float(var) <= 0.1:
-                        aa = 5
-
             else:
                 varss = [0]*len(uv_boxes)
 
