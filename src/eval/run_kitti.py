@@ -16,8 +16,8 @@ from models.architectures import LinearModel
 from utils.misc import laplace_sampling
 from utils.kitti import eval_geometric, get_calibration
 from utils.normalize import unnormalize_bi
-from utils.pifpaf import get_input_data, preprocess_pif
-from utils.camera import get_depth_from_distance
+from utils.pifpaf import get_network_inputs, preprocess_pif, get_input_data
+from utils.camera import get_depth_from_distance, get_keypoints_torch
 
 
 class RunKitti:
@@ -64,6 +64,11 @@ class RunKitti:
             annotations, kk, tt, _ = factory_file(path_calib, self.dir_ann, basename)
 
             boxes, keypoints = preprocess_pif(annotations)
+
+            inputs_torch = get_network_inputs(torch.tensor(keypoints).to(self.device), torch.tensor(kk).to(self.device))
+            uv_centers_t = get_keypoints_torch(keypoints, mode='center')
+            uv_shoulders_t = torch.round(get_keypoints_torch(keypoints, mode='shoulder')).int().tolist()
+
             (inputs, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = get_input_data(boxes, keypoints, kk)
 
             dds_geom, xy_centers = eval_geometric(uv_kps, uv_centers, uv_shoulders, kk, average_y=0.48)
@@ -134,12 +139,12 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
                                                   xx_cam_0, yy_cam_0, zz_cam_0, dd_cam_0,
                                                   std_ale, varss[idx], uv_box[4], dds_geom[idx]]]
 
-            keypoints_str = ["%.5f" % vv for vv in xy_kp]
-            for item in twodecimals:
-                ff.write("%s " % item)
-            for item in keypoints_str:
-                ff.write("%s " % item)
-            ff.write("\n")
+            # keypoints_str = ["%.5f" % vv for vv in xy_kp]
+            # for item in twodecimals:
+            #     ff.write("%s " % item)
+            # for item in keypoints_str:
+            #     ff.write("%s " % item)
+            # ff.write("\n")
 
         # Save intrinsic matrix in the last row
         kk_list = kk.reshape(-1, ).tolist()
@@ -179,7 +184,7 @@ def factory_file(path_calib, dir_ann, basename, ite=0):
         if ite == 1:
             stereo_file = False
 
-    return annotations, kk, tt, stereo_file
+    return annotations, kk.tolist(), tt, stereo_file
 
 
 

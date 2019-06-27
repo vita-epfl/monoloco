@@ -104,7 +104,7 @@ def check_conditions(line, mode, thresh=0.3):
     """Check conditions of our or m3d txt file"""
 
     check = False
-    assert (mode == 'gt' or mode == 'gt_all', mode == 'm3d' or mode == '3dop' or mode == 'our'), "Type not recognized"
+    assert mode == 'gt' or mode == 'gt_all', mode == 'm3d' or mode == '3dop' or mode == 'our' "Type not recognized"
 
     if mode == 'm3d' or mode == '3dop':
         conf = line.split()[15]

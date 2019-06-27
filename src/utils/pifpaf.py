@@ -19,7 +19,7 @@ def get_network_inputs(keypoints, kk):
     return kps_out
 
 
-def get_input_data(boxes, keypoints, kk, left_to_right=False):
+def get_input_data(boxes, keypoints, kk):
     inputs = []
     xy_centers = []
     uv_boxes = []
@@ -27,17 +27,6 @@ def get_input_data(boxes, keypoints, kk, left_to_right=False):
     uv_shoulders = []
     uv_kps = []
     xy_kps = []
-
-    # if left_to_right:  # Order boxes from left to right
-    #     ordered = np.argsort([xx[0] for xx in boxes])
-
-    # else:  # Order boxes from most to less confident
-    #     confs = []
-    #     for idx, box in enumerate(boxes):
-    #         confs.append(box[4])
-    #     ordered = np.argsort(confs).tolist()[::-1]
-
-    # for idx in ordered:
 
     for idx, kps in enumerate(keypoints):
         # kps = keypoints[idx]
