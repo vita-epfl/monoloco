@@ -27,10 +27,10 @@ class PreprocessKitti:
                            clst=defaultdict(lambda: defaultdict(list)))}
     dic_names = defaultdict(lambda: defaultdict(list))
 
-    def __init__(self, dir_ann, iou_thresh=0.3):
+    def __init__(self, dir_ann, iou_min=0.3):
 
         self.dir_ann = dir_ann
-        self.iou_thresh = iou_thresh
+        self.iou_min = iou_min
         self.dir_gt = os.path.join('data', 'kitti', 'gt')
         self.names_gt = tuple(os.listdir(self.dir_gt))
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
@@ -94,8 +94,7 @@ class PreprocessKitti:
                 uv_boxes = []
 
             # Match each set of keypoint with a ground truth
-            matches = get_iou_matches(uv_boxes, boxes_gt, self.iou_thresh)
-
+            matches = get_iou_matches(uv_boxes, boxes_gt, self.iou_min)
             for (idx, idx_gt) in matches:
                 self.dic_jo[phase]['kps'].append(uv_kps[idx])
                 self.dic_jo[phase]['X'].append(inputs[idx])

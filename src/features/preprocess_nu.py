@@ -12,7 +12,7 @@ import numpy as np
 
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
-from utils.misc import get_idx_max, append_cluster
+from utils.misc import get_iou_matches, append_cluster
 from utils.nuscenes import select_categories
 from utils.camera import project_3d
 from utils.pifpaf import get_input_data, preprocess_pif
@@ -123,24 +123,17 @@ class PreprocessNuscenes:
                         boxes, keypoints = preprocess_pif(annotations, im_size=None)
                         (inputs, _), (uv_kps, uv_boxes, _, _) = get_input_data(boxes, keypoints, kk)
 
-                        for ii, box in enumerate(uv_boxes):
-                            idx_max, iou_max = get_idx_max(box, boxes_gt)
-
-                            if iou_max > self.iou_min:
-
-                                self.dic_jo[phase]['kps'].append(uv_kps[ii])
-                                self.dic_jo[phase]['X'].append(inputs[ii])
-                                self.dic_jo[phase]['Y'].append([dds[idx_max]])  # Trick to make it (nn,1)
-                                self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
-                                self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_max])
-                                self.dic_jo[phase]['K'].append(kk.tolist())
-                                append_cluster(self.dic_jo, phase, inputs[ii], dds[idx_max], uv_kps[ii])
-                                boxes_gt.pop(idx_max)
-                                dds.pop(idx_max)
-                                boxes_3d.pop(idx_max)
-                                cnt_ann += 1
-                                sys.stdout.write('\r' + 'Saved annotations {}'
-                                                 .format(cnt_ann) + '\t')
+                        matches = get_iou_matches(uv_boxes, boxes_gt, self.iou_min)
+                        for (idx, idx_gt) in matches:
+                            self.dic_jo[phase]['kps'].append(uv_kps[ii])
+                            self.dic_jo[phase]['X'].append(inputs[ii])
+                            self.dic_jo[phase]['Y'].append([dds[idx_gt]])  # Trick to make it (nn,1)
+                            self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
+                            self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
+                            self.dic_jo[phase]['K'].append(kk.tolist())
+                            append_cluster(self.dic_jo, phase, inputs[ii], dds[idx_gt], uv_kps[ii])
+                            cnt_ann += 1
+                            sys.stdout.write('\r' + 'Saved annotations {}'.format(cnt_ann) + '\t')
 
                 current_token = sample_dic['next']
 
