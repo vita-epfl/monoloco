@@ -125,13 +125,13 @@ class PreprocessNuscenes:
 
                         matches = get_iou_matches(uv_boxes, boxes_gt, self.iou_min)
                         for (idx, idx_gt) in matches:
-                            self.dic_jo[phase]['kps'].append(uv_kps[ii])
-                            self.dic_jo[phase]['X'].append(inputs[ii])
+                            self.dic_jo[phase]['kps'].append(uv_kps[idx])
+                            self.dic_jo[phase]['X'].append(inputs[idx])
                             self.dic_jo[phase]['Y'].append([dds[idx_gt]])  # Trick to make it (nn,1)
                             self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
                             self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
                             self.dic_jo[phase]['K'].append(kk.tolist())
-                            append_cluster(self.dic_jo, phase, inputs[ii], dds[idx_gt], uv_kps[ii])
+                            append_cluster(self.dic_jo, phase, inputs[idx], dds[idx_gt], uv_kps[idx])
                             cnt_ann += 1
                             sys.stdout.write('\r' + 'Saved annotations {}'.format(cnt_ann) + '\t')
 
