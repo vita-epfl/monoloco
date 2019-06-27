@@ -95,18 +95,21 @@ def get_iou_matches(boxes, boxes_gt, thresh):
     return matches
 
 
-def reparametrize_box3d(box):
-    """Reparametrized 3D box in the XZ plane and add the height"""
+def reorder_matches(matches, boxes, mode='left_rigth'):
+    """
+    Reorder a list of (idx, idx_gt) matches based on position of the detections in the image
+    ordered_boxes = (5, 6, 7, 0, 1, 4, 2, 4)
+    matches = [(0, x), (2,x), (4,x), (3,x), (5,x)]
+    Output --> [(5, x), (0, x), (3, x), (2, x), (5, x)]
+    """
 
-    hh, ww, ll = box[0:3]
-    x_c, y_c, z_c = box[3:6]
+    assert mode == 'left_right'
 
-    x1 = x_c - ll/2
-    z1 = z_c - ww/2
-    x2 = x_c + ll/2
-    z2 = z_c + ww / 2
+    # Order the boxes based on the left-right position in the image and
+    ordered_boxes = np.argsort([box[0] for box in boxes])  # indices of boxes ordered from left to right
+    matches_left = [idx for (idx, _) in matches]
 
-    return [x1, z1, x2, z2, hh]
+    return [matches[matches_left.index(idx_boxes)] for idx_boxes in ordered_boxes if idx_boxes in matches_left]
 
 
 def laplace_sampling(outputs, n_samples):
