@@ -6,7 +6,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from utils.camera import pixel_to_camera_torch, get_keypoints
+from utils.camera import pixel_to_camera, get_keypoints
 
 AVERAGE_Y = 0.48
 CLUSTERS = ['10', '20', '30', 'all']
@@ -71,8 +71,8 @@ def update_distances(dic_fin, dic_dist, phase, average_y):
         z_met = dic_fin['boxes_3d'][idx][2]
 
         # Create a dict with all annotations in meters
-        dic_xyz = {key: pixel_to_camera_torch(dic_uv[key], kk, z_met) for key in dic_uv}
-        dic_xyz_norm = {key: pixel_to_camera_torch(dic_uv[key], kk, 1) for key in dic_uv}
+        dic_xyz = {key: pixel_to_camera(dic_uv[key], kk, z_met) for key in dic_uv}
+        dic_xyz_norm = {key: pixel_to_camera(dic_uv[key], kk, 1) for key in dic_uv}
 
         # Compute real height
         dy_met = abs(float((dic_xyz['hip'][0][1] - dic_xyz['shoulder'][0][1])))

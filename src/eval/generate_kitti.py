@@ -16,7 +16,7 @@ from predict.monoloco import MonoLoco
 from utils.kitti import get_calibration
 from eval.geom_baseline import compute_distance
 from utils.pifpaf import preprocess_pif
-from utils.camera import get_depth_from_distance, get_keypoints, pixel_to_camera_torch
+from utils.camera import get_depth_from_distance, get_keypoints, pixel_to_camera
 
 
 def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
@@ -49,7 +49,7 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
         outputs, varss = monoloco.forward(keypoints, kk)
 
         uv_centers = get_keypoints(keypoints, mode='center')
-        xy_centers = pixel_to_camera_torch(uv_centers, torch.tensor(kk), 1)
+        xy_centers = pixel_to_camera(uv_centers, kk, 1)
 
         dds_geom = eval_geometric(keypoints, kk, average_y=0.48)
 
@@ -149,9 +149,9 @@ def eval_geometric(keypoints, kk, average_y=0.48):
     uv_shoulders = get_keypoints(keypoints, mode='shoulder')
     uv_hips = get_keypoints(keypoints, mode='hip')
 
-    xy_centers = pixel_to_camera_torch(uv_centers, torch.tensor(kk), 1)
-    xy_shoulders = pixel_to_camera_torch(uv_shoulders, torch.tensor(kk), 1)
-    xy_hips = pixel_to_camera_torch(uv_hips, torch.tensor(kk), 1)
+    xy_centers = pixel_to_camera(uv_centers, kk, 1)
+    xy_shoulders = pixel_to_camera(uv_shoulders, kk, 1)
+    xy_hips = pixel_to_camera(uv_hips, kk, 1)
 
     for idx, xy_center in enumerate(xy_centers):
         zz = compute_distance(xy_shoulders[idx], xy_hips[idx], average_y)

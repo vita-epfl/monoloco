@@ -5,19 +5,7 @@ import torch
 import torch.nn.functional as F
 
 
-def pixel_to_camera(uv1, kk, z_met):
-    """
-    (3,) array --> (3,) array
-    Convert a point in pixel coordinate to absolute camera coordinates
-    """
-
-    kk_1 = np.linalg.inv(kk)
-    xyz_met_norm = np.dot(kk_1, uv1)
-    xyz_met = xyz_met_norm * z_met
-    return xyz_met
-
-
-def pixel_to_camera_torch(uv_tensor, kk, z_met):
+def pixel_to_camera(uv_tensor, kk, z_met):
     """
     Convert a tensor in pixel coordinate to absolute camera coordinates
     It accepts lists or tensors of (m, 2) or tensors of (m, 2, x) or tensors of (m, x, 2)
@@ -76,26 +64,6 @@ def project_3d(box_obj, kk):
         box_2d.append(vv)
 
     return box_2d
-
-
-def get_keypoints(kps_0, kps_1, mode):
-    """Get the center of 2 lists"""
-
-    assert mode == 'center' or mode == 'shoulder' or mode == 'hip'
-
-    if mode == 'center':
-        uu = (max(kps_0) - min(kps_0)) / 2 + min(kps_0)
-        vv = (max(kps_1) - min(kps_1)) / 2 + min(kps_1)
-
-    elif mode == 'shoulder':
-        uu = float(np.average(kps_0[5:7]))
-        vv = float(np.average(kps_1[5:7]))
-
-    elif mode == 'hip':
-        uu = float(np.average(kps_0[11:13]))
-        vv = float(np.average(kps_1[11:13]))
-
-    return uu, vv
 
 
 def get_keypoints(keypoints, mode):
