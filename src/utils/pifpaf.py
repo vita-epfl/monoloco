@@ -61,37 +61,6 @@ def get_network_inputs(keypoints, kk):
     return kps_out
 
 
-def get_input_data(boxes, keypoints, kk):
-    inputs = []
-    xy_centers = []
-    uv_boxes = []
-    uv_centers = []
-    uv_shoulders = []
-    uv_kps = []
-    xy_kps = []
-
-    for idx, kps in enumerate(keypoints):
-        # kps = keypoints[idx]
-        uv_kps.append(kps)
-        uv_boxes.append(boxes[idx])
-        if idx == 0:
-            aa = 5
-        uu_c, vv_c = get_keypoints(kps[0], kps[1], "center")
-        uv_centers.append([round(uu_c), round(vv_c)])
-        xy_center = pixel_to_camera(np.array([uu_c, vv_c, 1]), kk, 1)
-        xy_centers.append(xy_center)
-
-        uu_1, vv_1 = get_keypoints(kps[0], kps[1], "shoulder")
-        uv_shoulders.append([round(uu_1), round(vv_1)])
-
-        # 2 steps of input normalization for each instance
-        kps_prep, kps_orig = preprocess_single(kps, kk)
-        inputs.append(kps_prep)
-        xy_kps.append(kps_orig)
-
-    return (inputs, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders)
-
-
 def preprocess_pif(annotations, im_size=None):
     """
     Preprocess pif annotations:

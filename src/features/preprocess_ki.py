@@ -7,9 +7,10 @@ import logging
 from collections import defaultdict
 import json
 import datetime
+import torch
 
 from utils.kitti import get_calibration, split_training, parse_ground_truth
-from utils.pifpaf import get_input_data, preprocess_pif
+from utils.pifpaf import get_network_inputs, preprocess_pif
 from utils.misc import get_iou_matches, append_cluster
 
 
@@ -78,7 +79,7 @@ class PreprocessKitti:
 
             self.dic_names[basename + '.png']['boxes'] = copy.deepcopy(boxes_gt)
             self.dic_names[basename + '.png']['dds'] = copy.deepcopy(dds_gt)
-            self.dic_names[basename + '.png']['K'] = copy.deepcopy(kk.tolist())
+            self.dic_names[basename + '.png']['K'] = copy.deepcopy(kk)
             cnt_gt += len(boxes_gt)
             cnt_files += 1
             cnt_files_ped += min(len(boxes_gt), 1)  # if no boxes 0 else 1
@@ -87,22 +88,22 @@ class PreprocessKitti:
             try:
                 with open(os.path.join(self.dir_ann, basename + '.png.pifpaf.json'), 'r') as f:
                     annotations = json.load(f)
-                boxes, keypoints = preprocess_pif(annotations)
-                (inputs, _), (uv_kps, uv_boxes, _, _) = get_input_data(boxes, keypoints, kk)
+                boxes, keypoints = preprocess_pif(annotations, im_size=(1238, 374))
+                inputs = get_network_inputs(torch.tensor(keypoints), torch.tensor(kk)).tolist()
 
             except FileNotFoundError:
-                uv_boxes = []
+                boxes = []
 
             # Match each set of keypoint with a ground truth
-            matches = get_iou_matches(uv_boxes, boxes_gt, self.iou_min)
+            matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
             for (idx, idx_gt) in matches:
-                self.dic_jo[phase]['kps'].append(uv_kps[idx])
+                self.dic_jo[phase]['kps'].append(keypoints[idx])
                 self.dic_jo[phase]['X'].append(inputs[idx])
                 self.dic_jo[phase]['Y'].append([dds_gt[idx_gt]])  # Trick to make it (nn,1)
                 self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
-                self.dic_jo[phase]['K'].append(kk.tolist())
+                self.dic_jo[phase]['K'].append(kk)
                 self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
-                append_cluster(self.dic_jo, phase, inputs[idx], dds_gt[idx_gt], uv_kps[idx])
+                append_cluster(self.dic_jo, phase, inputs[idx], dds_gt[idx_gt], keypoints[idx])
                 dic_cnt[phase] += 1
 
         with open(self.path_joints, 'w') as file:
