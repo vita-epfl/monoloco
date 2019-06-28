@@ -86,7 +86,7 @@ def predict(args):
     processor = decoder.factory_from_args(args, model_pifpaf)
 
     # load monoloco
-    monoloco = MonoLoco(model=args.model, device=args.device, n_dropout=args.n_dropout)
+    monoloco = MonoLoco(model_path=args.model, device=args.device, n_dropout=args.n_dropout, p_dropout=args.dropout)
 
     # data
     data = ImageList(args.images, scale=args.scale)

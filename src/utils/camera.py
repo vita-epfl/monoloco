@@ -27,19 +27,6 @@ def pixel_to_camera(uv_tensor, kk, z_met):
     return xyz_met
 
 
-def pixel_to_camera_old(uv1, kk, z_met):
-    """
-    (3,) array --> (3,) array
-    Convert a point in pixel coordinate to absolute camera coordinates
-    """
-    if len(uv1) == 2:
-        uv1.append(1)
-    kk_1 = np.linalg.inv(kk)
-    xyz_met_norm = np.dot(kk_1, uv1)
-    xyz_met = xyz_met_norm * z_met
-    return xyz_met
-
-
 def project_to_pixels(xyz, kk):
     """Project a single point in space into the image"""
     xx, yy, zz = np.dot(kk, xyz)
@@ -183,26 +170,33 @@ def transform_kp(kps, tr_mode):
     return [uus, vvs, kps[2], []]
 
 
-def get_depth(uv_center, kk, dd):
+def xyz_from_distance(distances, xy_centers):
+    """
+    From distances and normalized image coordinates (z=1), extract the real world position xyz
+    distances --> tensor (m,1) or (m) or float
+    xy_centers --> tensor(m,3) or (3)
+    """
 
-    xyz_norm = pixel_to_camera(uv_center, kk, 1)
-    zz = dd / math.sqrt(1 + float(xyz_norm[0]) ** 2 + float(xyz_norm[1]) ** 2)
-    xyz = pixel_to_camera(uv_center, kk, zz).tolist()
-    return xyz
+    if type(distances) == float:
+        distances = torch.tensor(distances).unsqueeze(0)
+    if len(distances.size()) == 1:
+        distances = torch.tensor(distances).unsqueeze(1)
+    if len(xy_centers.size()) == 1:
+        xy_centers = xy_centers.unsqueeze(0)
+
+    assert xy_centers.size()[-1] == 3 and distances.size()[-1] == 1, "Size of tensor not recognized"
+
+    return xy_centers * distances / torch.sqrt(1 + xy_centers[:, 0:1].pow(2) + xy_centers[:, 1:2].pow(2))
 
 
-def get_depth_from_distance(outputs, xy_centers):
-
-    list_zzs = []
-    for idx, _ in enumerate(outputs):
-        dd = float(outputs[idx][0])
-        xx_1 = float(xy_centers[idx][0])
-        yy_1 = float(xy_centers[idx][1])
-        zz = dd / math.sqrt(1 + xx_1 ** 2 + yy_1 ** 2)
-        list_zzs.append(zz)
-    return list_zzs
-
-
-def depth_from_distance(dds, xy1):
-    """Extract depths from distances and normalized image coordinates xy1"""
-    return None
+def pixel_to_camera_old(uv1, kk, z_met):
+    """
+    (3,) array --> (3,) array
+    Convert a point in pixel coordinate to absolute camera coordinates
+    """
+    if len(uv1) == 2:
+        uv1.append(1)
+    kk_1 = np.linalg.inv(kk)
+    xyz_met_norm = np.dot(kk_1, uv1)
+    xyz_met = xyz_met_norm * z_met
+    return xyz_met

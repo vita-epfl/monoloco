@@ -4,7 +4,6 @@ Monoloco predictor. It receives pifpaf joints and outputs distances
 """
 
 import logging
-import time
 
 import torch
 
@@ -56,7 +55,7 @@ class MonoLoco:
                 varss = total_outputs.std(0)
                 self.model.dropout.training = False
             else:
-                varss = [0] * inputs.size()[0]
+                varss = torch.zeros(inputs.size()[0])
 
             #  Don't use dropout for the mean prediction
             outputs = self.model(inputs)

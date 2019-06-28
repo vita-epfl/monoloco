@@ -5,7 +5,7 @@ from collections import defaultdict
 from openpifpaf import show
 from visuals.printer import Printer
 from utils.misc import get_iou_matches, reorder_matches
-from utils.camera import get_depth, get_keypoints
+from utils.camera import get_keypoints, pixel_to_camera, xyz_from_distance
 
 
 def factory_for_gt(im_size, name=None, path_gt=None):
@@ -14,7 +14,7 @@ def factory_for_gt(im_size, name=None, path_gt=None):
     try:
         with open(path_gt, 'r') as f:
             dic_names = json.load(f)
-        print('-' * 120 + "\nMonoloco: Ground-truth file opened\n")
+        print('-' * 120 + "\nMonoloco: Ground-truth file opened")
     except FileNotFoundError:
         print('-' * 120 + "\nMonoloco: ground-truth file not found\n")
         dic_names = {}
@@ -106,6 +106,7 @@ def monoloco_post_process(monoloco_outputs, iou_min=0.25):
     matches = reorder_matches(matches, boxes, mode='left_right')
     uv_shoulders = get_keypoints(keypoints, mode='shoulder')
     uv_centers = get_keypoints(keypoints, mode='center')
+    xy_centers = pixel_to_camera(uv_centers, kk, 1)
 
     # Match with ground truth if available
     for idx, idx_gt in matches:
@@ -120,15 +121,15 @@ def monoloco_post_process(monoloco_outputs, iou_min=0.25):
         uu_c, vv_c = uv_centers.tolist()[idx][0:2]
         uv_shoulder = [round(uu_s), round(vv_s)]
         uv_center = [round(uu_c), round(vv_c)]
-        xyz_real = get_depth(uv_center, kk, dd_real)
-        xyz_pred = get_depth(uv_center, kk, dd_pred)
+        xyz_real = xyz_from_distance(dd_real, xy_centers[idx])
+        xyz_pred = xyz_from_distance(dd_pred, xy_centers[idx])
         dic_out['boxes'].append(box)
         dic_out['dds_real'].append(dd_real)
         dic_out['dds_pred'].append(dd_pred)
         dic_out['stds_ale'].append(ale)
         dic_out['stds_epi'].append(var_y)
-        dic_out['xyz_real'].append(xyz_real)
-        dic_out['xyz_pred'].append(xyz_pred)
+        dic_out['xyz_real'].append(xyz_real.squeeze().tolist())
+        dic_out['xyz_pred'].append(xyz_pred.squeeze().tolist())
         dic_out['uv_kps'].append(kps)
         dic_out['uv_centers'].append(uv_center)
         dic_out['uv_shoulders'].append(uv_shoulder)

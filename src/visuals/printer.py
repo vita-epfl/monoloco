@@ -1,13 +1,15 @@
 
-import os
 import math
 import numpy as np
+import torch
+import cv2
+
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Ellipse, Circle
-import cv2
+
 from collections import OrderedDict
 from utils.camera import pixel_to_camera
 from utils.misc import get_task_error
@@ -159,7 +161,7 @@ class Printer:
 
         # Create bird or combine it with front)
         if any(xx in self.output_types for xx in ['bird', 'combined']):
-            uv_max = np.array([0, self.hh, 1])
+            uv_max = [0., float(self.hh)]
             xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
             x_max = abs(xyz_max[0])  # shortcut to avoid oval circles in case of different kk
 

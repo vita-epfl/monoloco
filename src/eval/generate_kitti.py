@@ -16,7 +16,7 @@ from predict.monoloco import MonoLoco
 from utils.kitti import get_calibration
 from eval.geom_baseline import compute_distance
 from utils.pifpaf import preprocess_pif
-from utils.camera import get_depth_from_distance, get_keypoints, pixel_to_camera, pixel_to_camera_old
+from utils.camera import xyz_from_distance, get_keypoints, pixel_to_camera
 
 
 def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
@@ -53,16 +53,16 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
             outputs, varss = monoloco.forward(keypoints, kk)
             dds_geom = eval_geometric(keypoints, kk, average_y=0.48)
 
-            # Update counting
-            cnt_ann += len(boxes)
-            cnt_file += 1
-
         # Save the file
-        all_outputs = [outputs, varss, dds_geom]
+        all_outputs = [outputs.detach().cpu(), varss.detach().cpu(), dds_geom]
         all_inputs = [boxes, keypoints]
         all_params = [kk, tt]
         path_txt = os.path.join(dir_out, basename + '.txt')
         save_txts(path_txt, all_inputs, all_outputs, all_params)
+
+        # Update counting
+        cnt_ann += len(boxes)
+        cnt_file += 1
 
     # Print statistics
     print("Saved in {} txt {} annotations. Not found {} images"
@@ -77,23 +77,23 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
 
     uv_centers = get_keypoints(keypoints, mode='center')
     xy_centers = pixel_to_camera(uv_centers, kk, 1)
-    zzs = get_depth_from_distance(outputs, xy_centers)
+    zzs = xyz_from_distance(outputs[:, 0:1], xy_centers)[:, 2].tolist()
 
     with open(path_txt, "w+") as ff:
         for idx in range(outputs.shape[0]):
-            xx_1 = float(xy_centers[idx][0])
-            yy_1 = float(xy_centers[idx][1])
             std_ale = math.exp(float(outputs[idx][1])) * float(outputs[idx][0])
-            
-            cam_0 = [xx_1 * zzs[idx] + tt[0], yy_1 * zzs[idx] + tt[1], zzs[idx] + tt[2]]
-            cam_0.append(math.sqrt(cam_0[0] ** 2 + cam_0[1] ** 2 + cam_0[2] ** 2))  # X, Y, Z, D
+            xx = float(xy_centers[idx][0]) * zzs[idx] + tt[0]
+            yy = float(xy_centers[idx][1]) * zzs[idx] + tt[1]
+            zz = zzs[idx] + tt[2]
+            dd = math.sqrt(xx ** 2 + yy ** 2 + zz ** 2)
+            cam_0 = [xx, yy, zz, dd]
 
             for el in uv_boxes[idx][:]:
                 ff.write("%s " % el)
             for el in cam_0:
                 ff.write("%s " % el)
             ff.write("%s " % std_ale)
-            ff.write("%s " % varss[idx])
+            ff.write("%s " % float(varss[idx]))
             ff.write("%s " % dds_geom[idx])
             ff.write("\n")
 
@@ -109,7 +109,6 @@ def factory_basename(dir_ann):
     list_ann = glob.glob(os.path.join(dir_ann, '*.json'))
     list_basename = [os.path.basename(x).split('.')[0] for x in list_ann]
     assert list_basename, " Missing json annotations file to create txt files for KITTI datasets"
-
     return list_basename
 
 
