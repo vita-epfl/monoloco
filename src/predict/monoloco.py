@@ -23,32 +23,27 @@ class MonoLoco:
     LINEAR_SIZE = 256
     N_SAMPLES = 100
 
-    def __init__(self, model, device, n_dropout=0):
+    def __init__(self, model_path, device, n_dropout=0, p_dropout=0.2):
 
         self.device = device
         self.n_dropout = n_dropout
-        if self.n_dropout > 0:
-            self.epistemic = True
-        else:
-            self.epistemic = False
+        self.epistemic = True if self.n_dropout > 0 else False
 
         # load the model parameters
-        self.model = LinearModel(input_size=self.INPUT_SIZE, output_size=self.OUTPUT_SIZE, linear_size=self.LINEAR_SIZE)
-        self.model.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
+        self.model = LinearModel(p_dropout=p_dropout,
+                                 input_size=self.INPUT_SIZE, output_size=self.OUTPUT_SIZE, linear_size=self.LINEAR_SIZE,
+                                 )
+        self.model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))
         self.model.eval()  # Default is train
         self.model.to(self.device)
 
     def forward(self, keypoints, kk):
         """forward pass of monoloco network"""
-
         if not keypoints:
             return None
 
         with torch.no_grad():
-            kps_torch = torch.tensor(keypoints).to(self.device)
-            kk = torch.tensor(kk).to(self.device)
-            inputs = get_network_inputs(kps_torch, kk)
-            start = time.time()
+            inputs = get_network_inputs(torch.tensor(keypoints).to(self.device), torch.tensor(kk).to(self.device))
             if self.n_dropout > 0:
                 self.model.dropout.training = True  # Manually reactivate dropout in eval
                 total_outputs = torch.empty((0, inputs.size()[0])).to(self.device)
@@ -63,12 +58,7 @@ class MonoLoco:
             else:
                 varss = [0] * inputs.size()[0]
 
-            # # Don't use dropout for the mean prediction
-            start_single = time.time()
+            #  Don't use dropout for the mean prediction
             outputs = self.model(inputs)
             outputs = unnormalize_bi(outputs)
-        end = time.time()
-        print("Total Forward pass time with {} forward passes = {:.2f} ms"
-              .format(self.n_dropout, (end-start) * 1000))
-        print("Single forward pass time = {:.2f} ms".format((end - start_single) * 1000))
         return outputs, varss

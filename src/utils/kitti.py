@@ -104,7 +104,8 @@ def check_conditions(line, mode, thresh=0.3):
     """Check conditions of our or m3d txt file"""
 
     check = False
-    assert mode == 'gt' or mode == 'gt_all', mode == 'm3d' or mode == '3dop' or mode == 'our' "Type not recognized"
+    assert mode == 'gt' or mode == 'gt_all' or mode == 'm3d' or mode == '3dop' or mode == 'our', \
+        "Mode %r not recognized" % mode
 
     if mode == 'm3d' or mode == '3dop':
         conf = line.split()[15]
@@ -131,7 +132,6 @@ def check_conditions(line, mode, thresh=0.3):
 def get_category(box, trunc, occ):
 
     hh = box[3] - box[1]
-
     if hh >= 40 and trunc <= 0.15 and occ <= 0:
         cat = 'easy'
     elif trunc <= 0.3 and occ <= 1 and hh >= 25:
@@ -140,7 +140,6 @@ def get_category(box, trunc, occ):
         cat = 'hard'
     else:
         cat = 'excluded'
-
     return cat
 
 

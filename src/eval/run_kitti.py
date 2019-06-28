@@ -139,15 +139,15 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
                                                   xx_cam_0, yy_cam_0, zz_cam_0, dd_cam_0,
                                                   std_ale, varss[idx], uv_box[4], dds_geom[idx]]]
 
-            # keypoints_str = ["%.5f" % vv for vv in xy_kp]
-            # for item in twodecimals:
-            #     ff.write("%s " % item)
-            # for item in keypoints_str:
-            #     ff.write("%s " % item)
-            # ff.write("\n")
+            keypoints_str = ["%.5f" % vv for vv in xy_kp]
+            for item in twodecimals:
+                ff.write("%s " % item)
+            for item in keypoints_str:
+                ff.write("%s " % item)
+            ff.write("\n")
 
         # Save intrinsic matrix in the last row
-        kk_list = kk.reshape(-1, ).tolist()
+        kk_list = np.array(kk).reshape(-1, ).tolist()   # TODO Change it
         for kk_el in kk_list:
             ff.write("%f " % kk_el)
         ff.write("\n")
