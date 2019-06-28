@@ -114,22 +114,18 @@ def update_distances(dic_fin, dic_dist, phase, average_y):
     return cnt
 
 
-def compute_distance_single(uv_1, uv_2, kk, average_y, mode='average', dy_met=0):
-
+def compute_distance_single(xyz_norm_1, xyz_norm_2, average_y, mode='average', dy_met=0):
     """
     Compute distance Z of a mask annotation (solving a linear system) for 2 possible cases:
     1. knowing specific height of the annotation (head-ankle) dy_met
     2. using mean height of people (average_y)
     """
     assert mode == 'average' or mode == 'real'
-    # Trasform into normalized camera coordinates (plane at 1m)
-    xyz_met_norm_1 = pixel_to_camera(uv_1, kk, 1)
-    xyz_met_norm_2 = pixel_to_camera(uv_2, kk, 1)
 
-    x1 = xyz_met_norm_1[0]
-    y1 = xyz_met_norm_1[1]
-    x2 = xyz_met_norm_2[0]
-    y2 = xyz_met_norm_2[1]
+    x1 = float(xyz_norm_1[0])
+    y1 = float(xyz_norm_1[1])
+    x2 = float(xyz_norm_2[0])
+    y2 = float(xyz_norm_2[1])
     xx = (x1 + x2) / 2
 
     # Choose if solving for provided height or average one.
@@ -151,11 +147,7 @@ def compute_distance_single(uv_1, uv_2, kk, average_y, mode='average', dy_met=0)
     xx = np.linalg.lstsq(Aa, bb, rcond=None)
     z_met = abs(np.float(xx[0][1]))  # Abs take into account specularity behind the observer
 
-    # Compute the absolute x and y coordinates in meters
-    xyz_met_1 = xyz_met_norm_1 * z_met
-    xyz_met_2 = xyz_met_norm_2 * z_met
-
-    return z_met, (xyz_met_1, xyz_met_2)
+    return z_met
 
 
 def extract_pixel_coord(kps):

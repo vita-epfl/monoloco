@@ -8,14 +8,15 @@ import glob
 import json
 import shutil
 import itertools
-import numpy as np  #TODO remove
 
+import numpy as np
 import torch
 
 from predict.monoloco import MonoLoco
-from utils.kitti import eval_geometric, get_calibration
-from utils.pifpaf import preprocess_pif, get_input_data
-from utils.camera import get_depth_from_distance, get_keypoints_torch
+from utils.kitti import get_calibration
+from eval.geom_baseline import compute_distance_single
+from utils.pifpaf import preprocess_pif
+from utils.camera import get_depth_from_distance, get_keypoints_torch, pixel_to_camera_torch
 
 
 def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
@@ -47,10 +48,10 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
         boxes, keypoints = preprocess_pif(annotations, im_size=(1242, 374))
         outputs, varss = monoloco.forward(keypoints, kk)
 
-        uv_centers = torch.round(get_keypoints_torch(keypoints, mode='center')).int().tolist()
-        uv_shoulders = torch.round(get_keypoints_torch(keypoints, mode='shoulder')).int().tolist()
+        uv_centers = get_keypoints_torch(keypoints, mode='center')
+        xy_centers = pixel_to_camera_torch(uv_centers, torch.tensor(kk), 1)
 
-        dds_geom, xy_centers = eval_geometric(keypoints, uv_centers, uv_shoulders, kk, average_y=0.48)
+        dds_geom = eval_geometric(keypoints, kk, average_y=0.48)
 
         # Update counting
         cnt_ann += len(boxes)
@@ -138,6 +139,29 @@ def factory_file(path_calib, dir_ann, basename, ite=0):
             stereo_file = False
 
     return annotations, kk, tt, stereo_file
+
+
+def eval_geometric(keypoints, kk, average_y=0.48):
+    """ Evaluate geometric distance"""
+
+    dds_geom = []
+
+    uv_centers = get_keypoints_torch(keypoints, mode='center')
+    uv_shoulders = get_keypoints_torch(keypoints, mode='shoulder')
+    uv_hips = get_keypoints_torch(keypoints, mode='hip')
+
+    xy_centers = pixel_to_camera_torch(uv_centers, torch.tensor(kk), 1)
+    xy_shoulders = pixel_to_camera_torch(uv_shoulders, torch.tensor(kk), 1)
+    xy_hips = pixel_to_camera_torch(uv_hips, torch.tensor(kk), 1)
+
+    for idx, xy_center in enumerate(xy_centers):
+        zz = compute_distance_single(xy_shoulders[idx], xy_hips[idx], average_y)
+        xyz_center = np.array([xy_center[0], xy_center[1], zz])
+        dd_geom = float(np.linalg.norm(xyz_center))
+        dds_geom.append(dd_geom)
+
+    return dds_geom
+
 
 
 

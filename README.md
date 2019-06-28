@@ -190,7 +190,7 @@ in txt file with format comparable to other baseline.
 Then the model performs evaluation.
 
 The following graph is obtained running:
-`python3 src/main.py eval --dataset kitti --run_kitti --model data/models/monoloco-190513-1437.pkl 
+`python3 src/main.py eval --dataset kitti --generate --model data/models/monoloco-190513-1437.pkl 
 --dir_ann <folder containing pifpaf annotations of KITTI images>`
 ![kitti_evaluation](docs/results.png)
 

@@ -1,36 +1,6 @@
 
 import numpy as np
-import copy
 import math
-
-from utils.camera import pixel_to_camera, get_keypoints
-from eval.geom_baseline import compute_distance_single
-
-
-def eval_geometric(uv_kps, uv_centers, uv_shoulders, kk, average_y=0.48):
-    """
-    Evaluate geometric distance
-    """
-    xy_centers = []
-    dds_geom = []
-    for idx, _ in enumerate(uv_centers):
-        uv_center = copy.deepcopy(uv_centers[idx])
-        uv_center.append(1)
-        uv_shoulder = copy.deepcopy(uv_shoulders[idx])
-        uv_shoulder.append(1)
-        uv_kp = uv_kps[idx]
-        xy_center = pixel_to_camera(uv_center, kk, 1)
-        xy_centers.append(xy_center.tolist())
-
-        uu_2, vv_2 = get_keypoints(uv_kp[0], uv_kp[1], mode='hip')
-        uv_hip = [uu_2, vv_2, 1]
-
-        zz, _ = compute_distance_single(uv_shoulder, uv_hip, kk, average_y)
-        xyz_center = np.array([xy_center[0], xy_center[1], zz])
-        dd_geom = float(np.linalg.norm(xyz_center))
-        dds_geom.append(dd_geom)
-
-    return dds_geom, xy_centers
 
 
 def get_calibration(path_txt):

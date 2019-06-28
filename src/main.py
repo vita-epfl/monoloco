@@ -11,7 +11,6 @@ from features.preprocess_nu import PreprocessNuscenes
 from features.preprocess_ki import PreprocessKitti
 from predict.predict import predict
 from models.trainer import Trainer
-from eval.run_kitti import RunKitti
 from eval.generate_kitti import generate_kitti
 from eval.geom_baseline import GeomBaseline
 from models.hyp_tuning import HypTuning
@@ -89,7 +88,7 @@ def cli():
     # Evaluation
     eval_parser.add_argument('--dataset', help='datasets to evaluate, kitti or nuscenes', default='kitti')
     eval_parser.add_argument('--geometric',  help='to evaluate geometric distance', action='store_true')
-    eval_parser.add_argument('--run_kitti', help='create txt files for KITTI evaluation', action='store_true')
+    eval_parser.add_argument('--generate', help='create txt files for KITTI evaluation', action='store_true')
     eval_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints (for KITTI evaluation')
     eval_parser.add_argument('--model', help='path of MonoLoco model to load', required=True)
     eval_parser.add_argument('--joints', help='Json file with input joints to evaluate (for nuScenes evaluation)')
@@ -137,11 +136,7 @@ def main():
             geometric_baseline = GeomBaseline(args.joints)
             geometric_baseline.run()
 
-        if args.run_kitti:
-            # run_kitti = RunKitti(model=args.model, dir_ann=args.dir_ann,
-            #                      dropout=args.dropout, hidden_size=args.hidden_size, n_stage=args.n_stage,
-            #                      n_dropout=args.n_dropout)
-            # run_kitti.run()
+        if args.generate:
             generate_kitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout)
 
         if args.dataset == 'kitti':

@@ -4,6 +4,7 @@ import math
 import torch
 import torch.nn.functional as F
 
+
 def pixel_to_camera(uv1, kk, z_met):
     """
     (3,) array --> (3,) array
@@ -72,41 +73,6 @@ def project_3d(box_obj, kk):
     return box_2d
 
 
-def preprocess_single(kps, kk):
-
-    """ Preprocess input of a single annotations
-    Input_kps = list of 4 elements with 0=x, 1=y, 2= confidence, 3 = ? in pixels
-    Output_kps = [x0, y0, x1,...x15, y15] in meters normalized (z=1) and zero-centered using the center of the box
-    """
-
-    kps_uv = []
-    kps_0c = []
-    kps_orig = []
-
-    # Create center of the bounding box using min max of the keypoints
-    uu_c, vv_c = get_keypoints(kps[0], kps[1], mode='center')
-    uv_center = np.array([uu_c, vv_c, 1])
-
-    # Create a list of single arrays of (u, v, 1)
-    for idx, _ in enumerate(kps[0]):
-        uv_kp = np.array([kps[0][idx], kps[1][idx], 1])
-        kps_uv.append(uv_kp)
-
-    # Projection in normalized image coordinates and zero-center with the center of the bounding box
-    xy1_center = pixel_to_camera(uv_center, kk, 1) * 10
-    for idx, kp in enumerate(kps_uv):
-        kp_proj = pixel_to_camera(kp, kk, 1) * 10
-        kp_proj_0c = kp_proj - xy1_center
-        kps_0c.append(float(kp_proj_0c[0]))
-        kps_0c.append(float(kp_proj_0c[1]))
-
-        kp_orig = pixel_to_camera(kp, kk, 1)
-        kps_orig.append(float(kp_orig[0]))
-        kps_orig.append(float(kp_orig[1]))
-
-    return kps_0c, kps_orig
-
-
 def get_keypoints(kps_0, kps_1, mode):
     """Get the center of 2 lists"""
 
@@ -127,31 +93,11 @@ def get_keypoints(kps_0, kps_1, mode):
     return uu, vv
 
 
-def get_keypoints_batch(keypoints, mode):
-    """Get the center of 2 lists"""
-
-    assert mode == 'center' or mode == 'shoulder' or mode == 'hip'
-
-    kps_np = np.array(keypoints)  # (m, 3, 17)
-    kps_in = kps_np[:, 0:2, :]  # (m, 2, 17)
-
-    if mode == 'center':
-        kps_out = (np.max(kps_in, axis=2) - np.min(kps_in, axis=2)) / 2 + np.min(kps_in, axis=2)  # (m, 2, 1)
-
-    elif mode == 'shoulder':
-        kps_out = np.average(kps_in[:, :, 5:7], axis=2)
-
-    elif mode == 'hip':
-        kps_out = np.average(kps_in[:, :, 11:13], axis=2)
-
-    return kps_out  # (m, 2, 1)
-
-
 def get_keypoints_torch(keypoints, mode):
     """
     Extract center, shoulder or hip points of a keypoint
     Input --> torch.tensor [(m, 3, 17) or (3, 17)] or list
-    Output --> torch.tensor
+    Output --> torch.tensor [(m, 2)]
     """
     if type(keypoints) == list:
         keypoints = torch.tensor(keypoints)

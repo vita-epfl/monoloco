@@ -1,6 +1,6 @@
 
 import numpy as np
-from utils.camera import preprocess_single, get_keypoints, pixel_to_camera, get_keypoints_torch, pixel_to_camera_torch
+from utils.camera import get_keypoints, pixel_to_camera, get_keypoints_torch, pixel_to_camera_torch
 
 
 def get_network_inputs(keypoints, kk):
