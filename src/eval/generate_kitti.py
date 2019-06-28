@@ -44,19 +44,17 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
         path_calib = os.path.join(dir_kk, basename + '.txt')
         annotations, kk, tt, _ = factory_file(path_calib, dir_ann, basename)
 
-        boxes, keypoints = preprocess_pif(annotations)  # TODO Add image size
+        boxes, keypoints = preprocess_pif(annotations, im_size=(1242, 374))
         outputs, varss = monoloco.forward(keypoints, kk)
 
-        # uv_centers_t = get_keypoints_torch(keypoints, mode='center')
-        # uv_shoulders_t = torch.round(get_keypoints_torch(keypoints, mode='shoulder')).int().tolist()
+        uv_centers = torch.round(get_keypoints_torch(keypoints, mode='center')).int().tolist()
+        uv_shoulders = torch.round(get_keypoints_torch(keypoints, mode='shoulder')).int().tolist()
 
-        (inputs, xy_kps), (uv_kps, uv_boxes, uv_centers, uv_shoulders) = get_input_data(boxes, keypoints, kk)
-
-        dds_geom, xy_centers = eval_geometric(uv_kps, uv_centers, uv_shoulders, kk, average_y=0.48)
+        dds_geom, xy_centers = eval_geometric(keypoints, uv_centers, uv_shoulders, kk, average_y=0.48)
 
         # Update counting
         cnt_ann += len(boxes)
-        if not inputs:
+        if not keypoints:
             cnt_no_file += 1
         else:
             cnt_file += 1
@@ -65,7 +63,7 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
 
         list_zzs = get_depth_from_distance(outputs, xy_centers)
         all_outputs = [outputs, varss, dds_geom]
-        all_inputs = [uv_boxes, xy_centers, xy_kps]
+        all_inputs = [boxes, xy_centers]
         all_params = [kk, tt]
 
         # Save the file
@@ -81,7 +79,7 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
 def save_txts(path_txt, all_inputs, all_outputs, all_params):
 
     outputs, varss, dds_geom, zzs = all_outputs[:]
-    uv_boxes, xy_centers, xy_kps = all_inputs[:]
+    uv_boxes, xy_centers = all_inputs[:]
     kk, tt = all_params[:]
 
     with open(path_txt, "w+") as ff:
@@ -98,7 +96,7 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
                 ff.write("%s " % el)
             ff.write("%s " % std_ale)
             ff.write("%s " % varss[idx])
-            ff.write("%s " % uv_boxes[idx][4])
+            ff.write("%s " % uv_boxes[idx][4])  # TODO CHange order
             ff.write("%s " % dds_geom[idx])
             ff.write("\n")
 
