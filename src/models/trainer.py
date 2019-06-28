@@ -331,24 +331,20 @@ class Trainer:
 
         else:
             mean_bi = torch.mean(outputs[:, 1]).item()
-            max_bi = torch.max(outputs[:, 1]).item()
 
             low_bound_bi = labels >= (outputs[:, 0] - outputs[:, 1])
             up_bound_bi = labels <= (outputs[:, 0] + outputs[:, 1])
             bools_bi = low_bound_bi & up_bound_bi
             conf_bi = float(torch.sum(bools_bi)) / float(bools_bi.shape[0])
 
-            if varss[0] == 0:
-                aa = 5
-
-            else:
-                mean_var = torch.mean(varss).item()
-                max_var = torch.max(varss).item()
-
-                low_bound_var = labels >= (outputs[:, 0] - varss)
-                up_bound_var = labels <= (outputs[:, 0] + varss)
-                bools_var = low_bound_var & up_bound_var
-                conf_var = float(torch.sum(bools_var)) / float(bools_var.shape[0])
+            # if varss[0] >= 0:
+            #     mean_var = torch.mean(varss).item()
+            #     max_var = torch.max(varss).item()
+            #
+            #     low_bound_var = labels >= (outputs[:, 0] - varss)
+            #     up_bound_var = labels <= (outputs[:, 0] + varss)
+            #     bools_var = low_bound_var & up_bound_var
+            #     conf_var = float(torch.sum(bools_var)) / float(bools_var.shape[0])
 
             dic_err['mean'] += mean_mu * (outputs.size(0) / size_eval)
             dic_err['bi'] += mean_bi * (outputs.size(0) / size_eval)

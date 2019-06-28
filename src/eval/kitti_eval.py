@@ -58,8 +58,6 @@ class KittiEval:
         # Iterate over each ground truth file in the training set
         cnt_gt = 0
         for name in self.set_val:
-            if name == '002283.txt':
-                aa = 5
             path_gt = os.path.join(self.dir_gt, name)
             path_m3d = os.path.join(self.dir_m3d, name)
             path_our = os.path.join(self.dir_our, name)
