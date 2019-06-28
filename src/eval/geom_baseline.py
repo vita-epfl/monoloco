@@ -1,83 +1,68 @@
 
-import glob
+"""
+List of json files --> 2 lists with mean and std for each segment and the total count of instances
+
+For each annotation:
+1. From gt boxes calculate the height (deltaY) for the segments head, shoulder, hip, ankle
+2. From mask boxes calculate distance of people using average height of people and real pixel height
+
+For left-right ambiguities we chose always the average of the joints
+
+The joints are mapped from 0 to 16 in the following order:
+['nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear', 'left_shoulder', 'right_shoulder', 'left_elbow',
+'right_elbow', 'left_wrist', 'right_wrist', 'left_hip', 'right_hip', 'left_knee', 'right_knee', 'left_ankle',
+'right_ankle']
+
+"""
+
 import json
 import logging
-import os
 import numpy as np
 import math
 from collections import defaultdict
 from utils.camera import pixel_to_camera
 
+AVERAGE_Y = 0.48
+CLUSTERS = ['10', '20', '30', 'all']
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-class GeomBaseline:
 
-    def __init__(self, joints):
+def geometric_baseline(joints):
 
-        # Initialize directories
-        self.clusters = ['10', '20', '30', '>30', 'all']
-        self.average_y = 0.48
-        self.joints = joints
+    cnt_tot = 0
+    dic_dist = defaultdict(lambda: defaultdict(list))
 
-        from utils.misc import calculate_iou
-        self.calculate_iou = calculate_iou
-        from utils.nuscenes import get_unique_tokens, split_scenes
-        self.get_unique_tokens = get_unique_tokens
-        self.split_scenes = split_scenes
+    # Access the joints file
+    with open(joints, 'r') as ff:
+        dic_joints = json.load(ff)
 
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
+    # Calculate distances for all the instances in the joints dictionary
+    for phase in ['train', 'val']:
+        cnt = update_distances(dic_joints[phase], dic_dist, phase, AVERAGE_Y)
+        cnt_tot += cnt
 
-    def run(self):
-        """
-        List of json files --> 2 lists with mean and std for each segment and the total count of instances
+    # Calculate mean and std of each segment
+    dic_h_means = calculate_heights(dic_dist['heights'], mode='mean')
+    dic_h_stds = calculate_heights(dic_dist['heights'], mode='std')
+    errors = calculate_error(dic_dist['error'])
 
-        For each annotation:
-        1. From gt boxes calculate the height (deltaY) for the segments head, shoulder, hip, ankle
-        2. From mask boxes calculate distance of people using average height of people and real pixel height
-
-        For left-right ambiguities we chose always the average of the joints
-
-        The joints are mapped from 0 to 16 in the following order:
-        ['nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear', 'left_shoulder', 'right_shoulder', 'left_elbow',
-        'right_elbow', 'left_wrist', 'right_wrist', 'left_hip', 'right_hip', 'left_knee', 'right_knee', 'left_ankle',
-        'right_ankle']
-
-        """
-        cnt_tot = 0
-        dic_dist = defaultdict(lambda: defaultdict(list))
-
-        # Access the joints file
-        with open(self.joints, 'r') as ff:
-            dic_joints = json.load(ff)
-
-        # Calculate distances for all the segments
-        for phase in ['train', 'val']:
-            cnt = update_distances(dic_joints[phase], dic_dist, phase, self.average_y)
-            cnt_tot += cnt
-
-        dic_h_means = calculate_heights(dic_dist['heights'], mode='mean')
-        dic_h_stds = calculate_heights(dic_dist['heights'], mode='std')
-
-        self.logger.info("Computed distance of {} annotations".format(cnt_tot))
-
-        for key in dic_h_means:
-            self.logger.info("Average height of segment {} is {:.2f} with a std of {:.2f}".
-                             format(key, dic_h_means[key], dic_h_stds[key]))
-
-        errors = calculate_error(dic_dist['error'])
-
-        for clst in self.clusters:
-            self.logger.info("Average distance over the val set for clst {}: {:.2f}".format(clst, errors[clst]))
-
-        self.logger.info("Joints used: {}".format(self.joints))
+    # Show results
+    logger.info("Computed distance of {} annotations".format(cnt_tot))
+    for key in dic_h_means:
+        logger.info("Average height of segment {} is {:.2f} with a std of {:.2f}".
+                    format(key, dic_h_means[key], dic_h_stds[key]))
+    for clst in CLUSTERS:
+        logger.info("Average error over the val set for clst {}: {:.2f}".format(clst, errors[clst]))
+    logger.info("Joints used: {}".format(joints))
 
 
 def update_distances(dic_fin, dic_dist, phase, average_y):
 
     # Loop over each annotation in the json file corresponding to the image
-
     cnt = 0
     for idx, kps in enumerate(dic_fin['kps']):
+
         # Extract pixel coordinates of head, shoulder, hip, ankle and and save them
         dic_uv = extract_pixel_coord(kps)
 
@@ -92,20 +77,13 @@ def update_distances(dic_fin, dic_dist, phase, average_y):
         dy_met = abs(dic_xyz['hip'][1] - dic_xyz['shoulder'][1])
 
         # Estimate distance for a single annotation
-        z_met_real, _ = compute_distance_single(dic_uv['shoulder'], dic_uv['hip'], kk, average_y,
-                                                mode='real', dy_met=dy_met)
-        z_met_approx, _ = compute_distance_single(dic_uv['shoulder'], dic_uv['hip'], kk, average_y,
-                                                  mode='average')
+        z_met_real = compute_distance(dic_xyz['shoulder'], dic_xyz['hip'], average_y, mode='real', dy_met=dy_met)
+        z_met_approx = compute_distance(dic_xyz['shoulder'], dic_xyz['hip'], average_y, mode='average')
 
         # Compute distance with respect to the center of the 3D bounding box
-        xyz_met = np.array(dic_fin['boxes_3d'][idx][0:3])
-        d_met = np.linalg.norm(xyz_met)
         d_real = math.sqrt(z_met_real ** 2 + dic_fin['boxes_3d'][idx][0] ** 2 + dic_fin['boxes_3d'][idx][1] ** 2)
         d_approx = math.sqrt(z_met_approx ** 2 +
                              dic_fin['boxes_3d'][idx][0] ** 2 + dic_fin['boxes_3d'][idx][1] ** 2)
-
-        # if abs(d_qmet - d_real) > 1e-1:  # "Error in computing distance with real height in pixels"
-        #     aa = 5
 
         # Update the dictionary with distance and heights metrics
         dic_dist = update_dic_dist(dic_dist, dic_xyz, d_real, d_approx, phase)
@@ -114,7 +92,7 @@ def update_distances(dic_fin, dic_dist, phase, average_y):
     return cnt
 
 
-def compute_distance_single(xyz_norm_1, xyz_norm_2, average_y, mode='average', dy_met=0):
+def compute_distance(xyz_norm_1, xyz_norm_2, average_y, mode='average', dy_met=0):
     """
     Compute distance Z of a mask annotation (solving a linear system) for 2 possible cases:
     1. knowing specific height of the annotation (head-ankle) dy_met
@@ -133,9 +111,6 @@ def compute_distance_single(xyz_norm_1, xyz_norm_2, average_y, mode='average', d
         cc = - average_y  # Y axis goes down
     else:
         cc = -dy_met
-
-    # if - 3 * average_y <= cc <= -2:
-    #     aa = 5
 
     # Solving the linear system Ax = b
     Aa = np.array([[y1, 0, -xx],
@@ -227,11 +202,8 @@ def calculate_error(dic_errors):
     """
      Compute statistics of distances based on the distance
      """
-
     errors = {}
     for clst in dic_errors:
-
         errors[clst] = np.float(np.mean(np.array(dic_errors[clst])))
-
     return errors
 

@@ -14,7 +14,7 @@ import torch
 
 from predict.monoloco import MonoLoco
 from utils.kitti import get_calibration
-from eval.geom_baseline import compute_distance_single
+from eval.geom_baseline import compute_distance
 from utils.pifpaf import preprocess_pif
 from utils.camera import get_depth_from_distance, get_keypoints_torch, pixel_to_camera_torch
 
@@ -155,7 +155,7 @@ def eval_geometric(keypoints, kk, average_y=0.48):
     xy_hips = pixel_to_camera_torch(uv_hips, torch.tensor(kk), 1)
 
     for idx, xy_center in enumerate(xy_centers):
-        zz = compute_distance_single(xy_shoulders[idx], xy_hips[idx], average_y)
+        zz = compute_distance(xy_shoulders[idx], xy_hips[idx], average_y)
         xyz_center = np.array([xy_center[0], xy_center[1], zz])
         dd_geom = float(np.linalg.norm(xyz_center))
         dds_geom.append(dd_geom)

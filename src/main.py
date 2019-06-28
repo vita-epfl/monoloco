@@ -12,7 +12,7 @@ from features.preprocess_ki import PreprocessKitti
 from predict.predict import predict
 from models.trainer import Trainer
 from eval.generate_kitti import generate_kitti
-from eval.geom_baseline import GeomBaseline
+from eval.geom_baseline import geometric_baseline
 from models.hyp_tuning import HypTuning
 from eval.kitti_eval import KittiEval
 
@@ -133,8 +133,7 @@ def main():
 
     elif args.command == 'eval':
         if args.geometric:
-            geometric_baseline = GeomBaseline(args.joints)
-            geometric_baseline.run()
+            geometric_baseline(args.joints)
 
         if args.generate:
             generate_kitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout)
