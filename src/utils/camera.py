@@ -98,10 +98,10 @@ def get_keypoints(kps_0, kps_1, mode):
     return uu, vv
 
 
-def get_keypoints_torch(keypoints, mode):
+def get_keypoints(keypoints, mode):
     """
     Extract center, shoulder or hip points of a keypoint
-    Input --> torch.tensor [(m, 3, 17) or (3, 17)] or list
+    Input --> list or torch.tensor [(m, 3, 17) or (3, 17)]
     Output --> torch.tensor [(m, 2)]
     """
     if type(keypoints) == list:

@@ -16,7 +16,7 @@ from predict.monoloco import MonoLoco
 from utils.kitti import get_calibration
 from eval.geom_baseline import compute_distance
 from utils.pifpaf import preprocess_pif
-from utils.camera import get_depth_from_distance, get_keypoints_torch, pixel_to_camera_torch
+from utils.camera import get_depth_from_distance, get_keypoints, pixel_to_camera_torch
 
 
 def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
@@ -48,7 +48,7 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
         boxes, keypoints = preprocess_pif(annotations, im_size=(1242, 374))
         outputs, varss = monoloco.forward(keypoints, kk)
 
-        uv_centers = get_keypoints_torch(keypoints, mode='center')
+        uv_centers = get_keypoints(keypoints, mode='center')
         xy_centers = pixel_to_camera_torch(uv_centers, torch.tensor(kk), 1)
 
         dds_geom = eval_geometric(keypoints, kk, average_y=0.48)
@@ -91,13 +91,12 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
             cam_0 = [xx_1 * zzs[idx] + tt[0], yy_1 * zzs[idx] + tt[1], zzs[idx] + tt[2]]
             cam_0.append(math.sqrt(cam_0[0] ** 2 + cam_0[1] ** 2 + cam_0[2] ** 2))  # X, Y, Z, D
 
-            for el in uv_boxes[idx][:-1]:
+            for el in uv_boxes[idx][:]:
                 ff.write("%s " % el)
             for el in cam_0:
                 ff.write("%s " % el)
             ff.write("%s " % std_ale)
             ff.write("%s " % varss[idx])
-            ff.write("%s " % uv_boxes[idx][4])  # TODO CHange order
             ff.write("%s " % dds_geom[idx])
             ff.write("\n")
 
@@ -146,9 +145,9 @@ def eval_geometric(keypoints, kk, average_y=0.48):
 
     dds_geom = []
 
-    uv_centers = get_keypoints_torch(keypoints, mode='center')
-    uv_shoulders = get_keypoints_torch(keypoints, mode='shoulder')
-    uv_hips = get_keypoints_torch(keypoints, mode='hip')
+    uv_centers = get_keypoints(keypoints, mode='center')
+    uv_shoulders = get_keypoints(keypoints, mode='shoulder')
+    uv_hips = get_keypoints(keypoints, mode='hip')
 
     xy_centers = pixel_to_camera_torch(uv_centers, torch.tensor(kk), 1)
     xy_shoulders = pixel_to_camera_torch(uv_shoulders, torch.tensor(kk), 1)

@@ -181,13 +181,10 @@ class KittiEval:
 
                     if check_conditions(line_list, thresh=self.dic_thresh_conf[method], mode=method):
                         boxes.append(line_list[:4])
-                        # xyzs.append(line_list[4:7])
-                        dds.append(line_list[7])
-                        stds_ale.append(line_list[8])
-                        stds_epi.append(line_list[9])
+                        dds.append(line_list[8])
+                        stds_ale.append(line_list[9])
+                        stds_epi.append(line_list[10])
                         dds_geom.append(line_list[11])
-                        # xy_kps.append(line_list[12:])
-
                         self.dic_cnt[method] += 1
 
                 # kk_list = [float(x) for x in file_lines[-1].split()]

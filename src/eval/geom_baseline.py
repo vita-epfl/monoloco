@@ -6,7 +6,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from utils.camera import pixel_to_camera_torch, get_keypoints_torch
+from utils.camera import pixel_to_camera_torch, get_keypoints
 
 AVERAGE_Y = 0.48
 CLUSTERS = ['10', '20', '30', 'all']
@@ -64,7 +64,7 @@ def update_distances(dic_fin, dic_dist, phase, average_y):
     for idx, kps in enumerate(dic_fin['kps']):
 
         # Extract pixel coordinates of head, shoulder, hip, ankle and and save them
-        dic_uv = {mode: get_keypoints_torch(kps, mode) for mode in ['head', 'shoulder', 'hip', 'ankle']}
+        dic_uv = {mode: get_keypoints(kps, mode) for mode in ['head', 'shoulder', 'hip', 'ankle']}
 
         # Convert segments from pixel coordinate to camera coordinate
         kk = dic_fin['K'][idx]

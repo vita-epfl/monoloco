@@ -5,7 +5,7 @@ from collections import defaultdict
 from openpifpaf import show
 from visuals.printer import Printer
 from utils.misc import get_iou_matches, reorder_matches
-from utils.camera import get_depth, get_keypoints_torch
+from utils.camera import get_depth, get_keypoints
 
 
 def factory_for_gt(im_size, name=None, path_gt=None):
@@ -104,8 +104,8 @@ def monoloco_post_process(monoloco_outputs, iou_min=0.25):
         matches = [(idx, idx_gt) for idx, idx_gt in range(len(boxes))]  # Replicate boxes
 
     matches = reorder_matches(matches, boxes, mode='left_right')
-    uv_shoulders = get_keypoints_torch(keypoints, mode='shoulder')
-    uv_centers = get_keypoints_torch(keypoints, mode='center')
+    uv_shoulders = get_keypoints(keypoints, mode='shoulder')
+    uv_centers = get_keypoints(keypoints, mode='center')
 
     # Match with ground truth if available
     for idx, idx_gt in matches:

@@ -1,6 +1,6 @@
 
 import numpy as np
-from utils.camera import get_keypoints, pixel_to_camera, get_keypoints_torch, pixel_to_camera_torch
+from utils.camera import get_keypoints, pixel_to_camera, get_keypoints, pixel_to_camera_torch
 
 
 def preprocess_pif(annotations, im_size=None):
@@ -53,7 +53,7 @@ def get_network_inputs(keypoints, kk):
     """
 
     # Projection in normalized image coordinates and zero-center with the center of the bounding box
-    uv_center = get_keypoints_torch(keypoints, mode='center')
+    uv_center = get_keypoints(keypoints, mode='center')
     xy1_center = pixel_to_camera_torch(uv_center, kk, 1) * 10
     xy1_all = pixel_to_camera_torch(keypoints[:, 0:2, :], kk, 1) * 10
     kps_norm = xy1_all - xy1_center.unsqueeze(1)  # (m, 17, 3) - (m, 1, 3)
