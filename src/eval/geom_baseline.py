@@ -1,26 +1,12 @@
 
-"""
-List of json files --> 2 lists with mean and std for each segment and the total count of instances
-
-For each annotation:
-1. From gt boxes calculate the height (deltaY) for the segments head, shoulder, hip, ankle
-2. From mask boxes calculate distance of people using average height of people and real pixel height
-
-For left-right ambiguities we chose always the average of the joints
-
-The joints are mapped from 0 to 16 in the following order:
-['nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear', 'left_shoulder', 'right_shoulder', 'left_elbow',
-'right_elbow', 'left_wrist', 'right_wrist', 'left_hip', 'right_hip', 'left_knee', 'right_knee', 'left_ankle',
-'right_ankle']
-
-"""
-
 import json
 import logging
-import numpy as np
 import math
 from collections import defaultdict
-from utils.camera import pixel_to_camera
+
+import numpy as np
+
+from utils.camera import pixel_to_camera_torch, get_keypoints_torch
 
 AVERAGE_Y = 0.48
 CLUSTERS = ['10', '20', '30', 'all']
@@ -29,7 +15,21 @@ logger = logging.getLogger(__name__)
 
 
 def geometric_baseline(joints):
+    """
+    List of json files --> 2 lists with mean and std for each segment and the total count of instances
 
+    For each annotation:
+    1. From gt boxes calculate the height (deltaY) for the segments head, shoulder, hip, ankle
+    2. From mask boxes calculate distance of people using average height of people and real pixel height
+
+    For left-right ambiguities we chose always the average of the joints
+
+    The joints are mapped from 0 to 16 in the following order:
+    ['nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear', 'left_shoulder', 'right_shoulder', 'left_elbow',
+    'right_elbow', 'left_wrist', 'right_wrist', 'left_hip', 'right_hip', 'left_knee', 'right_knee', 'left_ankle',
+    'right_ankle']
+
+    """
     cnt_tot = 0
     dic_dist = defaultdict(lambda: defaultdict(list))
 
@@ -64,21 +64,22 @@ def update_distances(dic_fin, dic_dist, phase, average_y):
     for idx, kps in enumerate(dic_fin['kps']):
 
         # Extract pixel coordinates of head, shoulder, hip, ankle and and save them
-        dic_uv = extract_pixel_coord(kps)
+        dic_uv = {mode: get_keypoints_torch(kps, mode) for mode in ['head', 'shoulder', 'hip', 'ankle']}
 
         # Convert segments from pixel coordinate to camera coordinate
         kk = dic_fin['K'][idx]
         z_met = dic_fin['boxes_3d'][idx][2]
 
         # Create a dict with all annotations in meters
-        dic_xyz = {key: pixel_to_camera(dic_uv[key], kk, z_met) for key in dic_uv}
-
+        dic_xyz = {key: pixel_to_camera_torch(dic_uv[key], kk, z_met) for key in dic_uv}
+        dic_xyz_norm = {key: pixel_to_camera_torch(dic_uv[key], kk, 1) for key in dic_uv}
         # Compute real height
         dy_met = abs(dic_xyz['hip'][1] - dic_xyz['shoulder'][1])
 
         # Estimate distance for a single annotation
-        z_met_real = compute_distance(dic_xyz['shoulder'], dic_xyz['hip'], average_y, mode='real', dy_met=dy_met)
-        z_met_approx = compute_distance(dic_xyz['shoulder'], dic_xyz['hip'], average_y, mode='average')
+        z_met_real = compute_distance(dic_xyz_norm['shoulder'], dic_xyz_norm['hip'], average_y,
+                                      mode='real', dy_met=dy_met)
+        z_met_approx = compute_distance(dic_xyz_norm['shoulder'], dic_xyz_norm['hip'], average_y, mode='average')
 
         # Compute distance with respect to the center of the 3D bounding box
         d_real = math.sqrt(z_met_real ** 2 + dic_fin['boxes_3d'][idx][0] ** 2 + dic_fin['boxes_3d'][idx][1] ** 2)
@@ -123,21 +124,6 @@ def compute_distance(xyz_norm_1, xyz_norm_2, average_y, mode='average', dy_met=0
     z_met = abs(np.float(xx[0][1]))  # Abs take into account specularity behind the observer
 
     return z_met
-
-
-def extract_pixel_coord(kps):
-
-    """Extract uv coordinates from keypoints and save them in a dict """
-    # For each level of height (e.g. 5 points in the head), take the average of them
-
-    uv_head = np.array([np.average(kps[0][0:5]), np.average(kps[1][0:5]), 1])
-    uv_shoulder = np.array([np.average(kps[0][5:7]), np.average(kps[1][5:7]), 1])
-    uv_hip = np.array([np.average(kps[0][11:13]), np.average(kps[1][11:13]), 1])
-    uv_ankle = np.array([np.average(kps[0][15:17]), np.average(kps[1][15:17]), 1])
-
-    dic_uv = {'head': uv_head, 'shoulder': uv_shoulder, 'hip': uv_hip, 'ankle': uv_ankle}
-
-    return dic_uv
 
 
 def update_dic_dist(dic_dist, dic_xyz, d_real, d_approx, phase):

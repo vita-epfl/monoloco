@@ -20,14 +20,19 @@ def pixel_to_camera(uv1, kk, z_met):
 def pixel_to_camera_torch(uv_tensor, kk, z_met):
     """
     Convert a tensor in pixel coordinate to absolute camera coordinates
-    It accepts tensors of (m, 2) or tensors of (m, 2, x) or tensors of (m, x, 2) where x is the number of keypoints
+    It accepts lists or tensors of (m, 2) or tensors of (m, 2, x) or tensors of (m, x, 2)
+    where x is the number of keypoints
     """
+    if type(uv_tensor) == list:
+        uv_tensor = torch.tensor(uv_tensor)
+    if type(kk) == list:
+        kk = torch.tensor(kk)
     if uv_tensor.size()[-1] != 2:
         uv_tensor = uv_tensor.permute(0, 2, 1)  # permute to have 2 as last dim to be padded
         assert uv_tensor.size()[-1] == 2, "Tensor size not recognized"
     uv_padded = F.pad(uv_tensor, pad=(0, 1), mode="constant", value=1)  # pad only last-dim below with value 1
-    kk_1 = torch.inverse(kk)
 
+    kk_1 = torch.inverse(kk)
     xyz_met_norm = torch.matmul(uv_padded, kk_1)  # More general than torch.mm
     xyz_met = xyz_met_norm * z_met
     return xyz_met
@@ -118,6 +123,9 @@ def get_keypoints_torch(keypoints, mode):
 
     elif mode == 'hip':
         kps_out = kps_in[:, :, 11:13].mean(2)
+
+    elif mode == 'ankle':
+        kps_out = kps_in[:, :, 15:17].mean(2)
 
     return kps_out  # (m, 2)
 
