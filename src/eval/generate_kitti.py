@@ -16,7 +16,7 @@ from predict.monoloco import MonoLoco
 from utils.kitti import get_calibration
 from eval.geom_baseline import compute_distance
 from utils.pifpaf import preprocess_pif
-from utils.camera import depth_from_distance, get_keypoints, pixel_to_camera
+from utils.camera import get_depth_from_distance, get_keypoints, pixel_to_camera, pixel_to_camera_old
 
 
 def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
@@ -44,29 +44,23 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
     for basename in list_basename:
         path_calib = os.path.join(dir_kk, basename + '.txt')
         annotations, kk, tt, _ = factory_file(path_calib, dir_ann, basename)
-
         boxes, keypoints = preprocess_pif(annotations, im_size=(1242, 374))
-        outputs, varss = monoloco.forward(keypoints, kk)
 
-        uv_centers = get_keypoints(keypoints, mode='center')
-        xy_centers = pixel_to_camera(uv_centers, kk, 1)
-
-        dds_geom = eval_geometric(keypoints, kk, average_y=0.48)
-
-        # Update counting
-        cnt_ann += len(boxes)
         if not keypoints:
             cnt_no_file += 1
         else:
+            # Run the network and the geometric baseline
+            outputs, varss = monoloco.forward(keypoints, kk)
+            dds_geom = eval_geometric(keypoints, kk, average_y=0.48)
+
+            # Update counting
+            cnt_ann += len(boxes)
             cnt_file += 1
 
-        list_zzs = depth_from_distances(outputs[:, 0], xy_centers)
-        all_outputs = [outputs, varss, dds_geom]
-        all_inputs = [boxes, xy_centers]
-        all_params = [kk, tt]
-
         # Save the file
-        all_outputs.append(list_zzs)
+        all_outputs = [outputs, varss, dds_geom]
+        all_inputs = [boxes, keypoints]
+        all_params = [kk, tt]
         path_txt = os.path.join(dir_out, basename + '.txt')
         save_txts(path_txt, all_inputs, all_outputs, all_params)
 
@@ -77,15 +71,20 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
 
 def save_txts(path_txt, all_inputs, all_outputs, all_params):
 
-    outputs, varss, dds_geom, zzs = all_outputs[:]
-    uv_boxes, xy_centers = all_inputs[:]
+    outputs, varss, dds_geom = all_outputs[:]
+    uv_boxes, keypoints = all_inputs[:]
     kk, tt = all_params[:]
+
+    uv_centers = get_keypoints(keypoints, mode='center')
+    xy_centers = pixel_to_camera(uv_centers, kk, 1)
+    zzs = get_depth_from_distance(outputs, xy_centers)
 
     with open(path_txt, "w+") as ff:
         for idx in range(outputs.shape[0]):
             xx_1 = float(xy_centers[idx][0])
             yy_1 = float(xy_centers[idx][1])
             std_ale = math.exp(float(outputs[idx][1])) * float(outputs[idx][0])
+            
             cam_0 = [xx_1 * zzs[idx] + tt[0], yy_1 * zzs[idx] + tt[1], zzs[idx] + tt[2]]
             cam_0.append(math.sqrt(cam_0[0] ** 2 + cam_0[1] ** 2 + cam_0[2] ** 2))  # X, Y, Z, D
 

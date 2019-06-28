@@ -8,7 +8,7 @@ import torch.nn.functional as F
 def pixel_to_camera(uv_tensor, kk, z_met):
     """
     Convert a tensor in pixel coordinate to absolute camera coordinates
-    It accepts lists or tensors of (m, 2) or tensors of (m, 2, x) or tensors of (m, x, 2)
+    It accepts lists or tensors of (m, 2) or (m, x, 2) or (m, 2, x)
     where x is the number of keypoints
     """
     if type(uv_tensor) == list:
@@ -21,7 +21,21 @@ def pixel_to_camera(uv_tensor, kk, z_met):
     uv_padded = F.pad(uv_tensor, pad=(0, 1), mode="constant", value=1)  # pad only last-dim below with value 1
 
     kk_1 = torch.inverse(kk)
-    xyz_met_norm = torch.matmul(uv_padded, kk_1)  # More general than torch.mm
+    xyz_met_norm = torch.matmul(uv_padded, kk_1.t())  # More general than torch.mm
+    xyz_met = xyz_met_norm * z_met
+
+    return xyz_met
+
+
+def pixel_to_camera_old(uv1, kk, z_met):
+    """
+    (3,) array --> (3,) array
+    Convert a point in pixel coordinate to absolute camera coordinates
+    """
+    if len(uv1) == 2:
+        uv1.append(1)
+    kk_1 = np.linalg.inv(kk)
+    xyz_met_norm = np.dot(kk_1, uv1)
     xyz_met = xyz_met_norm * z_met
     return xyz_met
 
