@@ -89,7 +89,7 @@ class PreprocessKitti:
                 with open(os.path.join(self.dir_ann, basename + '.png.pifpaf.json'), 'r') as f:
                     annotations = json.load(f)
                 boxes, keypoints = preprocess_pif(annotations, im_size=(1238, 374))
-                inputs = get_network_inputs(torch.tensor(keypoints), torch.tensor(kk)).tolist()
+                inputs = get_network_inputs(keypoints, kk).tolist()
 
             except FileNotFoundError:
                 boxes = []

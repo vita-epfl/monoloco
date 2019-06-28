@@ -1,6 +1,7 @@
 
 import numpy as np
-from utils.camera import get_keypoints, pixel_to_camera, get_keypoints, pixel_to_camera
+import torch 
+from utils.camera import get_keypoints, pixel_to_camera
 
 
 def preprocess_pif(annotations, im_size=None):
@@ -48,10 +49,13 @@ def preprocess_pif(annotations, im_size=None):
 def get_network_inputs(keypoints, kk):
 
     """ Preprocess batches of inputs
-    keypoints = torch tensors of (m, 3, 17)  [3 = (u, v, confidence)]
+    keypoints = torch tensors of (m, 3, 17)  or list [3,17]
     Outputs =  torch tensors of (m, 34) in meters normalized (z=1) and zero-centered using the center of the box
     """
-
+    if type(keypoints) == list:
+        keypoints = torch.tensor(keypoints)
+    if type(kk) == list:
+        kk = torch.tensor(kk)
     # Projection in normalized image coordinates and zero-center with the center of the bounding box
     uv_center = get_keypoints(keypoints, mode='center')
     xy1_center = pixel_to_camera(uv_center, kk, 1) * 10

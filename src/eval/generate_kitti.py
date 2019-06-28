@@ -13,8 +13,8 @@ import numpy as np
 import torch
 
 from predict.monoloco import MonoLoco
-from utils.kitti import get_calibration
 from eval.geom_baseline import compute_distance
+from utils.kitti import get_calibration
 from utils.pifpaf import preprocess_pif
 from utils.camera import xyz_from_distance, get_keypoints, pixel_to_camera
 
@@ -81,7 +81,7 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
 
     with open(path_txt, "w+") as ff:
         for idx in range(outputs.shape[0]):
-            std_ale = math.exp(float(outputs[idx][1])) * float(outputs[idx][0])
+
             xx = float(xy_centers[idx][0]) * zzs[idx] + tt[0]
             yy = float(xy_centers[idx][1]) * zzs[idx] + tt[1]
             zz = zzs[idx] + tt[2]
@@ -92,7 +92,7 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
                 ff.write("%s " % el)
             for el in cam_0:
                 ff.write("%s " % el)
-            ff.write("%s " % std_ale)
+            ff.write("%s " % float(outputs[idx][1]))
             ff.write("%s " % float(varss[idx]))
             ff.write("%s " % dds_geom[idx])
             ff.write("\n")
@@ -156,8 +156,4 @@ def eval_geometric(keypoints, kk, average_y=0.48):
         dds_geom.append(dd_geom)
 
     return dds_geom
-
-
-
-
 

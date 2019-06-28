@@ -278,7 +278,8 @@ class KittiEval:
         self.dic_stds[cat]['epi'].append(std_epi)
 
         # Number of annotations inside the confidence interval
-        if abs(dd - dd_gt) <= std_epi:
+        std = std_epi if std_epi > 0 else std_ale  # consider aleatoric uncertainty if epistemic is not calculated
+        if abs(dd - dd_gt) <= std:
             self.dic_stds['all']['interval'].append(1)
             self.dic_stds[clst]['interval'].append(1)
             self.dic_stds[cat]['interval'].append(1)

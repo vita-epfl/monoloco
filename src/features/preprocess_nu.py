@@ -15,7 +15,7 @@ from nuscenes.utils import splits
 from utils.misc import get_iou_matches, append_cluster
 from utils.nuscenes import select_categories
 from utils.camera import project_3d
-from utils.pifpaf import preprocess_pif
+from utils.pifpaf import preprocess_pif, get_network_inputs
 
 
 class PreprocessNuscenes:
@@ -90,6 +90,7 @@ class PreprocessNuscenes:
                     sd_token = sample_dic['data'][cam]
                     cnt_sd += 1
                     path_im, boxes_obj, kk = self.nusc.get_sample_data(sd_token, box_vis_level=1)  # At least one corner
+                    kk = kk.tolist()
 
                     # Extract all the annotations of the person
                     boxes_gt = []
@@ -110,7 +111,7 @@ class PreprocessNuscenes:
                             boxes_3d.append(box_3d)
                             self.dic_names[name]['boxes'].append(box)
                             self.dic_names[name]['dds'].append(dd)
-                            self.dic_names[name]['K'] = kk.tolist()
+                            self.dic_names[name]['K'] = kk
 
                     # Run IoU with pifpaf detections and save
                     path_pif = os.path.join(self.dir_ann, name + '.pifpaf.json')
@@ -120,20 +121,22 @@ class PreprocessNuscenes:
                         with open(path_pif, 'r') as file:
                             annotations = json.load(file)
 
-                        boxes, keypoints = preprocess_pif(annotations, im_size=None)
-                        (inputs, _), (uv_kps, uv_boxes, _, _) = get_input_data(boxes, keypoints, kk)
+                        boxes, keypoints = preprocess_pif(annotations, im_size=(1600, 900))
 
-                        matches = get_iou_matches(uv_boxes, boxes_gt, self.iou_min)
-                        for (idx, idx_gt) in matches:
-                            self.dic_jo[phase]['kps'].append(uv_kps[idx])
-                            self.dic_jo[phase]['X'].append(inputs[idx])
-                            self.dic_jo[phase]['Y'].append([dds[idx_gt]])  # Trick to make it (nn,1)
-                            self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
-                            self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
-                            self.dic_jo[phase]['K'].append(kk.tolist())
-                            append_cluster(self.dic_jo, phase, inputs[idx], dds[idx_gt], uv_kps[idx])
-                            cnt_ann += 1
-                            sys.stdout.write('\r' + 'Saved annotations {}'.format(cnt_ann) + '\t')
+                        if keypoints:
+                            inputs = get_network_inputs(keypoints, kk).tolist()
+
+                            matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
+                            for (idx, idx_gt) in matches:
+                                self.dic_jo[phase]['kps'].append(keypoints[idx])
+                                self.dic_jo[phase]['X'].append(inputs[idx])
+                                self.dic_jo[phase]['Y'].append([dds[idx_gt]])  # Trick to make it (nn,1)
+                                self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
+                                self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
+                                self.dic_jo[phase]['K'].append(kk)
+                                append_cluster(self.dic_jo, phase, inputs[idx], dds[idx_gt], keypoints[idx])
+                                cnt_ann += 1
+                                sys.stdout.write('\r' + 'Saved annotations {}'.format(cnt_ann) + '\t')
 
                 current_token = sample_dic['next']
 

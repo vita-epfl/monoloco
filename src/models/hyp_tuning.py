@@ -32,11 +32,7 @@ class HypTuning:
 
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
-
-        if baseline:
-            name_out = 'hyp-baseline-' + 'drop_' + str(self.dropout)[-1] + '-'
-        else:
-            name_out = 'hyp-monoloco-' + 'drop_' + str(self.dropout)[-1] + '-'  #TODO Change name
+        name_out = 'hyp-baseline-' if baseline else 'hyp-monoloco-'
 
         self.path_log = os.path.join(dir_logs, name_out + now_time)
         self.path_model = os.path.join(dir_out, name_out + now_time + '.pkl')
