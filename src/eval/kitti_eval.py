@@ -178,6 +178,7 @@ class KittiEval:
                     file_lines = ff.readlines()
                 for line_our in file_lines[:-1]:
                     line_list = [float(x) for x in line_our.split()]
+
                     if check_conditions(line_list, thresh=self.dic_thresh_conf[method], mode=method):
                         boxes.append(line_list[:4])
                         # xyzs.append(line_list[4:7])

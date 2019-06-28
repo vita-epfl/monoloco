@@ -71,17 +71,17 @@ def get_calibration(path_txt):
 
 
 def get_translation(pp):
-    """Separate intrinsic matrix from translation"""
+    """Separate intrinsic matrix from translation and convert in lists"""
 
     kk = pp[:, :-1]
     f_x = kk[0, 0]
     f_y = kk[1, 1]
     x0, y0 = kk[2, 0:2]
     aa, bb, t3 = pp[0:3, 3]
-    t1 = (aa - x0*t3) / f_x
-    t2 = (bb - y0*t3) / f_y
-    tt = np.array([t1, t2, t3]).reshape(3, 1)
-    return kk, tt
+    t1 = float((aa - x0*t3) / f_x)
+    t2 = float((bb - y0*t3) / f_y)
+    tt = [t1, t2, float(t3)]
+    return kk.tolist(), tt
 
 
 def get_simplified_calibration(path_txt):

@@ -7,6 +7,7 @@ import os
 import glob
 import json
 import shutil
+import itertools
 import numpy as np  #TODO remove
 
 import torch
@@ -87,31 +88,22 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
         for idx in range(outputs.shape[0]):
             xx_1 = float(xy_centers[idx][0])
             yy_1 = float(xy_centers[idx][1])
-            xy_kp = xy_kps[idx]
-            dd = float(outputs[idx][0])
-            std_ale = math.exp(float(outputs[idx][1])) * dd
-            zz = zzs[idx]
-            xx_cam_0 = xx_1 * zz + tt[0]
-            yy_cam_0 = yy_1 * zz + tt[1]
-            zz_cam_0 = zz + tt[2]
-            dd_cam_0 = math.sqrt(xx_cam_0 ** 2 + yy_cam_0 ** 2 + zz_cam_0 ** 2)
+            std_ale = math.exp(float(outputs[idx][1])) * float(outputs[idx][0])
+            cam_0 = [xx_1 * zzs[idx] + tt[0], yy_1 * zzs[idx] + tt[1], zzs[idx] + tt[2]]
+            cam_0.append(math.sqrt(cam_0[0] ** 2 + cam_0[1] ** 2 + cam_0[2] ** 2))  # X, Y, Z, D
 
-            uv_box = uv_boxes[idx]
-
-            twodecimals = ["%.3f" % vv for vv in [uv_box[0], uv_box[1], uv_box[2], uv_box[3],
-                                                  xx_cam_0, yy_cam_0, zz_cam_0, dd_cam_0,
-                                                  std_ale, varss[idx], uv_box[4], dds_geom[idx]]]
-
-            keypoints_str = ["%.5f" % vv for vv in xy_kp]
-            for item in twodecimals:
-                ff.write("%s " % item)
-            for item in keypoints_str:
-                ff.write("%s " % item)
+            for el in uv_boxes[idx][:-1]:
+                ff.write("%s " % el)
+            for el in cam_0:
+                ff.write("%s " % el)
+            ff.write("%s " % std_ale)
+            ff.write("%s " % varss[idx])
+            ff.write("%s " % uv_boxes[idx][4])
+            ff.write("%s " % dds_geom[idx])
             ff.write("\n")
 
         # Save intrinsic matrix in the last row
-        kk_list = np.array(kk).reshape(-1, ).tolist()   # TODO Change it
-        for kk_el in kk_list:
+        for kk_el in itertools.chain(*kk):  # Flatten a list of lists
             ff.write("%f " % kk_el)
         ff.write("\n")
 
@@ -147,7 +139,7 @@ def factory_file(path_calib, dir_ann, basename, ite=0):
         if ite == 1:
             stereo_file = False
 
-    return annotations, kk.tolist(), tt, stereo_file
+    return annotations, kk, tt, stereo_file
 
 
 
