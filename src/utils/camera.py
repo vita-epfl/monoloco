@@ -39,9 +39,7 @@ def project_3d(box_obj, kk):
     """
     Project a 3D bounding box into the image plane using the central corners
     """
-
     box_2d = []
-
     # Obtain the 3d points of the box
     xc, yc, zc = box_obj.center
     ww, ll, hh, = box_obj.wlh
@@ -109,7 +107,7 @@ def transform_kp(kps, tr_mode):
            or tr_mode == 'shoulder' or tr_mode == 'knee' or tr_mode == 'upside' or tr_mode == 'falling' \
            or tr_mode == 'random'
 
-    uu_c, vv_c = get_keypoints(kps[0], kps[1], mode='center')
+    uu_c, vv_c = get_keypoints(kps, mode='center')
 
     if tr_mode == "None":
         return kps
@@ -173,13 +171,9 @@ def transform_kp(kps, tr_mode):
 
 def get_depth(uv_center, kk, dd):
 
-    if len(uv_center) == 2:
-        uv_center.extend([1])
-    uv_center_np = np.array(uv_center)
     xyz_norm = pixel_to_camera(uv_center, kk, 1)
-    zz = dd / math.sqrt(1 + xyz_norm[0] ** 2 + xyz_norm[1] ** 2)
-
-    xyz = pixel_to_camera(uv_center_np, kk, zz).tolist()
+    zz = dd / math.sqrt(1 + float(xyz_norm[0]) ** 2 + float(xyz_norm[1]) ** 2)
+    xyz = pixel_to_camera(uv_center, kk, zz).tolist()
     return xyz
 
 
@@ -194,37 +188,7 @@ def get_depth_from_distance(outputs, xy_centers):
         list_zzs.append(zz)
     return list_zzs
 
-# TODO remove
-def preprocess_single(kps, kk):
 
-    """ Preprocess input of a single annotations
-    Input_kps = list of 4 elements with 0=x, 1=y, 2= confidence, 3 = ? in pixels
-    Output_kps = [x0, y0, x1,...x15, y15] in meters normalized (z=1) and zero-centered using the center of the box
-    """
-
-    kps_uv = []
-    kps_0c = []
-    kps_orig = []
-
-    # Create center of the bounding box using min max of the keypoints
-    uu_c, vv_c = get_keypoints(kps[0], kps[1], mode='center')
-    uv_center = np.array([uu_c, vv_c, 1])
-
-    # Create a list of single arrays of (u, v, 1)
-    for idx, _ in enumerate(kps[0]):
-        uv_kp = np.array([kps[0][idx], kps[1][idx], 1])
-        kps_uv.append(uv_kp)
-
-    # Projection in normalized image coordinates and zero-center with the center of the bounding box
-    xy1_center = pixel_to_camera(uv_center, kk, 1) * 10
-    for idx, kp in enumerate(kps_uv):
-        kp_proj = pixel_to_camera(kp, kk, 1) * 10
-        kp_proj_0c = kp_proj - xy1_center
-        kps_0c.append(float(kp_proj_0c[0]))
-        kps_0c.append(float(kp_proj_0c[1]))
-
-        kp_orig = pixel_to_camera(kp, kk, 1)
-        kps_orig.append(float(kp_orig[0]))
-        kps_orig.append(float(kp_orig[1]))
-
-    return kps_0c, kps_orig
+def depth_from_distance(dds, xy1):
+    """Extract depths from distances and normalized image coordinates xy1"""
+    return None

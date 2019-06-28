@@ -16,7 +16,7 @@ from predict.monoloco import MonoLoco
 from utils.kitti import get_calibration
 from eval.geom_baseline import compute_distance
 from utils.pifpaf import preprocess_pif
-from utils.camera import get_depth_from_distance, get_keypoints, pixel_to_camera
+from utils.camera import depth_from_distance, get_keypoints, pixel_to_camera
 
 
 def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
@@ -60,9 +60,7 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
         else:
             cnt_file += 1
 
-        outputs = outputs.cpu().detach().numpy()
-
-        list_zzs = get_depth_from_distance(outputs, xy_centers)
+        list_zzs = depth_from_distances(outputs[:, 0], xy_centers)
         all_outputs = [outputs, varss, dds_geom]
         all_inputs = [boxes, xy_centers]
         all_params = [kk, tt]
