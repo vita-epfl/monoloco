@@ -73,13 +73,14 @@ def update_distances(dic_fin, dic_dist, phase, average_y):
         # Create a dict with all annotations in meters
         dic_xyz = {key: pixel_to_camera_torch(dic_uv[key], kk, z_met) for key in dic_uv}
         dic_xyz_norm = {key: pixel_to_camera_torch(dic_uv[key], kk, 1) for key in dic_uv}
+
         # Compute real height
-        dy_met = abs(dic_xyz['hip'][1] - dic_xyz['shoulder'][1])
+        dy_met = abs(float((dic_xyz['hip'][0][1] - dic_xyz['shoulder'][0][1])))
 
         # Estimate distance for a single annotation
-        z_met_real = compute_distance(dic_xyz_norm['shoulder'], dic_xyz_norm['hip'], average_y,
+        z_met_real = compute_distance(dic_xyz_norm['shoulder'][0], dic_xyz_norm['hip'][0], average_y,
                                       mode='real', dy_met=dy_met)
-        z_met_approx = compute_distance(dic_xyz_norm['shoulder'], dic_xyz_norm['hip'], average_y, mode='average')
+        z_met_approx = compute_distance(dic_xyz_norm['shoulder'][0], dic_xyz_norm['hip'][0], average_y, mode='average')
 
         # Compute distance with respect to the center of the 3D bounding box
         d_real = math.sqrt(z_met_real ** 2 + dic_fin['boxes_3d'][idx][0] ** 2 + dic_fin['boxes_3d'][idx][1] ** 2)
@@ -131,10 +132,10 @@ def update_dic_dist(dic_dist, dic_xyz, d_real, d_approx, phase):
 
     # Update the dict with heights metric
     if phase == 'train':
-        dic_dist['heights']['head'].append(np.float(dic_xyz['head'][1]))
-        dic_dist['heights']['shoulder'].append(np.float(dic_xyz['shoulder'][1]))
-        dic_dist['heights']['hip'].append(np.float(dic_xyz['hip'][1]))
-        dic_dist['heights']['ankle'].append(np.float(dic_xyz['ankle'][1]))
+        dic_dist['heights']['head'].append(float(dic_xyz['head'][0][1]))
+        dic_dist['heights']['shoulder'].append(float(dic_xyz['shoulder'][0][1]))
+        dic_dist['heights']['hip'].append(float(dic_xyz['hip'][0][1]))
+        dic_dist['heights']['ankle'].append(float(dic_xyz['ankle'][0][1]))
 
     # Update the dict with distance metrics for the test phase
     if phase == 'val':

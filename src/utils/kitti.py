@@ -70,12 +70,10 @@ def get_simplified_calibration(path_txt):
 
 
 def check_conditions(line, mode, thresh=0.3):
-
     """Check conditions of our or m3d txt file"""
 
     check = False
-    assert mode == 'gt' or mode == 'gt_all' or mode == 'm3d' or mode == '3dop' or mode == 'our', \
-        "Mode %r not recognized" % mode
+    assert mode in ['gt', 'gt_all', 'm3d', '3dop','our'], "Mode %r not recognized" % mode
 
     if mode == 'm3d' or mode == '3dop':
         conf = line.split()[15]

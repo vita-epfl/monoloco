@@ -107,16 +107,19 @@ def get_keypoints_torch(keypoints, mode):
     if type(keypoints) == list:
         keypoints = torch.tensor(keypoints)
     if len(keypoints.size()) == 2:  # add batch dim
-        keypoints.unsqueeze(0)
+        keypoints = keypoints.unsqueeze(0)
 
     assert len(keypoints.size()) == 3 and keypoints.size()[1] == 3, "tensor dimensions not recognized"
-    assert mode == 'center' or mode == 'shoulder' or mode == 'hip'
+    assert mode in ['center', 'head', 'shoulder', 'hip' , 'ankle']
 
     kps_in = keypoints[:, 0:2, :]  # (m, 2, 17)
     if mode == 'center':
         kps_max, _ = kps_in.max(2)  # returns value, indices
         kps_min, _ = kps_in.min(2)
         kps_out = (kps_max - kps_min) / 2 + kps_min   # (m, 2) as keepdims is False
+
+    elif mode == 'head':
+        kps_out = kps_in[:, :, 0:5].mean(2)
 
     elif mode == 'shoulder':
         kps_out = kps_in[:, :, 5:7].mean(2)
@@ -222,3 +225,38 @@ def get_depth_from_distance(outputs, xy_centers):
         zz = dd / math.sqrt(1 + xx_1 ** 2 + yy_1 ** 2)
         list_zzs.append(zz)
     return list_zzs
+
+# TODO remove
+def preprocess_single(kps, kk):
+
+    """ Preprocess input of a single annotations
+    Input_kps = list of 4 elements with 0=x, 1=y, 2= confidence, 3 = ? in pixels
+    Output_kps = [x0, y0, x1,...x15, y15] in meters normalized (z=1) and zero-centered using the center of the box
+    """
+
+    kps_uv = []
+    kps_0c = []
+    kps_orig = []
+
+    # Create center of the bounding box using min max of the keypoints
+    uu_c, vv_c = get_keypoints(kps[0], kps[1], mode='center')
+    uv_center = np.array([uu_c, vv_c, 1])
+
+    # Create a list of single arrays of (u, v, 1)
+    for idx, _ in enumerate(kps[0]):
+        uv_kp = np.array([kps[0][idx], kps[1][idx], 1])
+        kps_uv.append(uv_kp)
+
+    # Projection in normalized image coordinates and zero-center with the center of the bounding box
+    xy1_center = pixel_to_camera(uv_center, kk, 1) * 10
+    for idx, kp in enumerate(kps_uv):
+        kp_proj = pixel_to_camera(kp, kk, 1) * 10
+        kp_proj_0c = kp_proj - xy1_center
+        kps_0c.append(float(kp_proj_0c[0]))
+        kps_0c.append(float(kp_proj_0c[1]))
+
+        kp_orig = pixel_to_camera(kp, kk, 1)
+        kps_orig.append(float(kp_orig[0]))
+        kps_orig.append(float(kp_orig[1]))
+
+    return kps_0c, kps_orig
