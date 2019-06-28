@@ -11,8 +11,8 @@ from features.preprocess_nu import PreprocessNuscenes
 from features.preprocess_ki import PreprocessKitti
 from predict.predict import predict
 from models.trainer import Trainer
-from eval.run_kitti import RunKitti
-from eval.geom_baseline import GeomBaseline
+from eval.generate_kitti import generate_kitti
+from eval.geom_baseline import geometric_baseline
 from models.hyp_tuning import HypTuning
 from eval.kitti_eval import KittiEval
 
@@ -66,6 +66,7 @@ def cli():
     predict_parser.add_argument('--predict', help='whether to make prediction', action='store_true')
     predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=22)
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
+    predict_parser.add_argument('--dropout', type=float, help='dropout parameter', default=0.2)
     predict_parser.add_argument('--combined', help='to print combined images', action='store_true')
 
     # Training
@@ -88,7 +89,7 @@ def cli():
     # Evaluation
     eval_parser.add_argument('--dataset', help='datasets to evaluate, kitti or nuscenes', default='kitti')
     eval_parser.add_argument('--geometric',  help='to evaluate geometric distance', action='store_true')
-    eval_parser.add_argument('--run_kitti', help='create txt files for KITTI evaluation', action='store_true')
+    eval_parser.add_argument('--generate', help='create txt files for KITTI evaluation', action='store_true')
     eval_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints (for KITTI evaluation')
     eval_parser.add_argument('--model', help='path of MonoLoco model to load', required=True)
     eval_parser.add_argument('--joints', help='Json file with input joints to evaluate (for nuScenes evaluation)')
@@ -133,14 +134,10 @@ def main():
 
     elif args.command == 'eval':
         if args.geometric:
-            geometric_baseline = GeomBaseline(args.joints)
-            geometric_baseline.run()
+            geometric_baseline(args.joints)
 
-        if args.run_kitti:
-            run_kitti = RunKitti(model=args.model, dir_ann=args.dir_ann,
-                                 dropout=args.dropout, hidden_size=args.hidden_size, n_stage=args.n_stage,
-                                 n_dropout=args.n_dropout)
-            run_kitti.run()
+        if args.generate:
+            generate_kitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout)
 
         if args.dataset == 'kitti':
             kitti_eval = KittiEval()

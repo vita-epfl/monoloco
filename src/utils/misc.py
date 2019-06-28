@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import time
 import logging
-# from shapely.geometry import box as Sbox
+
 
 def set_logger(log_path):
     """Set the logger to log info in terminal and file `log_path`.
@@ -70,7 +70,6 @@ def get_iou_matrix(boxes, boxes_gt):
     Dim: (boxes, boxes_gt)
     """
     iou_matrix = np.zeros((len(boxes), len(boxes_gt)))
-
     for idx, box in enumerate(boxes):
         for idx_gt, box_gt in enumerate(boxes_gt):
             iou_matrix[idx, idx_gt] = calculate_iou(box, box_gt)
@@ -96,36 +95,21 @@ def get_iou_matches(boxes, boxes_gt, thresh):
     return matches
 
 
-def reparametrize_box3d(box):
-    """Reparametrized 3D box in the XZ plane and add the height"""
+def reorder_matches(matches, boxes, mode='left_rigth'):
+    """
+    Reorder a list of (idx, idx_gt) matches based on position of the detections in the image
+    ordered_boxes = (5, 6, 7, 0, 1, 4, 2, 4)
+    matches = [(0, x), (2,x), (4,x), (3,x), (5,x)]
+    Output --> [(5, x), (0, x), (3, x), (2, x), (5, x)]
+    """
 
-    hh, ww, ll = box[0:3]
-    x_c, y_c, z_c = box[3:6]
+    assert mode == 'left_right'
 
-    x1 = x_c - ll/2
-    z1 = z_c - ww/2
-    x2 = x_c + ll/2
-    z2 = z_c + ww / 2
+    # Order the boxes based on the left-right position in the image and
+    ordered_boxes = np.argsort([box[0] for box in boxes])  # indices of boxes ordered from left to right
+    matches_left = [idx for (idx, _) in matches]
 
-    return [x1, z1, x2, z2, hh]
-
-
-# def calculate_iou3d(box3d_1, box3d_2):
-#     """3D intersection over union. Boxes are parametrized as x1, z1, x2, z2, hh
-#     We compute 2d iou in the birds plane and then add a factor for height differences (0-1)"""
-#
-#     poly1 = Sbox(box3d_1[0], box3d_1[1], box3d_1[2], box3d_1[3])
-#     poly2 = Sbox(box3d_2[0], box3d_2[1], box3d_2[2], box3d_2[3])
-#
-#     inter_2d = poly1.intersection(poly2).area
-#     union_2d = poly1.area + poly2.area - inter_2d
-#
-#     # height_factor = 1 - abs(box3d_1[4] - box3d_2[4]) / max(box3d_1[4], box3d_2[4])
-#
-#     #
-#     iou_3d = inter_2d / union_2d  # * height_factor
-#
-#     return iou_3d
+    return [matches[matches_left.index(idx_boxes)] for idx_boxes in ordered_boxes if idx_boxes in matches_left]
 
 
 def laplace_sampling(outputs, n_samples):
@@ -134,7 +118,6 @@ def laplace_sampling(outputs, n_samples):
     t0 = time.time()
     mu = outputs[:, 0]
     bi = torch.abs(outputs[:, 1])
-
 
     # Analytical
     # uu = np.random.uniform(low=-0.5, high=0.5, size=mu.shape[0])
@@ -148,30 +131,13 @@ def laplace_sampling(outputs, n_samples):
         device = torch.device(type="cuda", index=get_device)
     else:
         device = torch.device("cpu")
-    t1 = time.time()
 
     xxs = torch.empty((0, mu.shape[0])).to(device)
-    t2 = time.time()
-
     laplace = torch.distributions.Laplace(mu, bi)
-    t3 = time.time()
     for ii in range(1):
         xx = laplace.sample((n_samples,))
-        t4a = time.time()
         xxs = torch.cat((xxs, xx.view(n_samples, -1)), 0)
-    t4 = time.time()
 
-    # time_tot = t4 - t0
-    # time_1 = t1 - t0
-    # time_2 = t2 - t1
-    # time_3 = t3 - t2
-    # time_4a = t4a - t3
-    # time_4 = t4 - t3
-    # print("Time 1: {:.1f}%".format(time_1 / time_tot * 100))
-    # print("Time 2: {:.1f}%".format(time_2 / time_tot * 100))
-    # print("Time 3: {:.1f}%".format(time_3 / time_tot * 100))
-    # print("Time 4a: {:.1f}%".format(time_4a / time_tot * 100))
-    # print("Time 4: {:.1f}%".format(time_4 / time_tot * 100))
     return xxs
 
 
@@ -191,48 +157,30 @@ def append_cluster(dic_jo, phase, xx, dd, kps):
 
     """Append the annotation based on its distance"""
 
-    # if dd <= 6:
-    #     dic_jo[phase]['clst']['6']['kps'].append(kps)
-    #     dic_jo[phase]['clst']['6']['X'].append(xx)
-    #     dic_jo[phase]['clst']['6']['Y'].append([dd])  # Trick to make it (nn,1) instead of (nn, )
-
     if dd <= 10:
         dic_jo[phase]['clst']['10']['kps'].append(kps)
         dic_jo[phase]['clst']['10']['X'].append(xx)
         dic_jo[phase]['clst']['10']['Y'].append([dd])
-
-    # elif dd <= 15:
-    #     dic_jo[phase]['clst']['15']['kps'].append(kps)
-    #     dic_jo[phase]['clst']['15']['X'].append(xx)
-    #     dic_jo[phase]['clst']['15']['Y'].append([dd])
 
     elif dd <= 20:
         dic_jo[phase]['clst']['20']['kps'].append(kps)
         dic_jo[phase]['clst']['20']['X'].append(xx)
         dic_jo[phase]['clst']['20']['Y'].append([dd])
 
-    # elif dd <= 25:
-    #     dic_jo[phase]['clst']['25']['kps'].append(kps)
-    #     dic_jo[phase]['clst']['25']['X'].append(xx)
-    #     dic_jo[phase]['clst']['25']['Y'].append([dd])
-
     elif dd <= 30:
         dic_jo[phase]['clst']['30']['kps'].append(kps)
         dic_jo[phase]['clst']['30']['X'].append(xx)
         dic_jo[phase]['clst']['30']['Y'].append([dd])
 
-    # elif dd <= 40:
-    #     dic_jo[phase]['clst']['40']['kps'].append(kps)
-    #     dic_jo[phase]['clst']['40']['X'].append(xx)
-    #     dic_jo[phase]['clst']['40']['Y'].append([dd])
-    #
-    # elif dd <= 50:
-    #     dic_jo[phase]['clst']['50']['kps'].append(kps)
-    #     dic_jo[phase]['clst']['50']['X'].append(xx)
-    #     dic_jo[phase]['clst']['50']['Y'].append([dd])
-
     else:
         dic_jo[phase]['clst']['>30']['kps'].append(kps)
         dic_jo[phase]['clst']['>30']['X'].append(xx)
         dic_jo[phase]['clst']['>30']['Y'].append([dd])
+
+
+def get_task_error(dd):
+    """Get target error not knowing the gender"""
+    mm_gender = 0.0556
+    return mm_gender * dd
+
 

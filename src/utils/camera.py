@@ -1,17 +1,29 @@
 
 import numpy as np
 import math
+import torch
+import torch.nn.functional as F
 
 
-def pixel_to_camera(uv1, kk, z_met):
+def pixel_to_camera(uv_tensor, kk, z_met):
     """
-    (3,) array --> (3,) array
-    Convert a point in pixel coordinate to absolute camera coordinates
+    Convert a tensor in pixel coordinate to absolute camera coordinates
+    It accepts lists or tensors of (m, 2) or (m, x, 2) or (m, 2, x)
+    where x is the number of keypoints
     """
+    if type(uv_tensor) == list:
+        uv_tensor = torch.tensor(uv_tensor)
+    if type(kk) == list:
+        kk = torch.tensor(kk)
+    if uv_tensor.size()[-1] != 2:
+        uv_tensor = uv_tensor.permute(0, 2, 1)  # permute to have 2 as last dim to be padded
+        assert uv_tensor.size()[-1] == 2, "Tensor size not recognized"
+    uv_padded = F.pad(uv_tensor, pad=(0, 1), mode="constant", value=1)  # pad only last-dim below with value 1
 
-    kk_1 = np.linalg.inv(kk)
-    xyz_met_norm = np.dot(kk_1, uv1)
+    kk_1 = torch.inverse(kk)
+    xyz_met_norm = torch.matmul(uv_padded, kk_1.t())  # More general than torch.mm
     xyz_met = xyz_met_norm * z_met
+
     return xyz_met
 
 
@@ -28,9 +40,7 @@ def project_3d(box_obj, kk):
     """
     Project a 3D bounding box into the image plane using the central corners
     """
-
     box_2d = []
-
     # Obtain the 3d points of the box
     xc, yc, zc = box_obj.center
     ww, ll, hh, = box_obj.wlh
@@ -55,59 +65,39 @@ def project_3d(box_obj, kk):
     return box_2d
 
 
-def preprocess_single(kps, kk):
-
-    """ Preprocess input of a single annotations
-    Input_kps = list of 4 elements with 0=x, 1=y, 2= confidence, 3 = ? in pixels
-    Output_kps = [x0, y0, x1,...x15, y15] in meters normalized (z=1) and zero-centered using the center of the box
+def get_keypoints(keypoints, mode):
     """
+    Extract center, shoulder or hip points of a keypoint
+    Input --> list or torch.tensor [(m, 3, 17) or (3, 17)]
+    Output --> torch.tensor [(m, 2)]
+    """
+    if type(keypoints) == list:
+        keypoints = torch.tensor(keypoints)
+    if len(keypoints.size()) == 2:  # add batch dim
+        keypoints = keypoints.unsqueeze(0)
 
-    kps_uv = []
-    kps_0c = []
-    kps_orig = []
+    assert len(keypoints.size()) == 3 and keypoints.size()[1] == 3, "tensor dimensions not recognized"
+    assert mode in ['center', 'head', 'shoulder', 'hip' , 'ankle']
 
-    # Create center of the bounding box using min max of the keypoints
-    uu_c, vv_c = get_keypoints(kps[0], kps[1], mode='center')
-    uv_center = np.array([uu_c, vv_c, 1])
-
-    # Create a list of single arrays of (u, v, 1)
-    for idx, _ in enumerate(kps[0]):
-        uv_kp = np.array([kps[0][idx], kps[1][idx], 1])
-        kps_uv.append(uv_kp)
-
-    # Projection in normalized image coordinates and zero-center with the center of the bounding box
-    xy1_center = pixel_to_camera(uv_center, kk, 1) * 10
-    for idx, kp in enumerate(kps_uv):
-        kp_proj = pixel_to_camera(kp, kk, 1) * 10
-        kp_proj_0c = kp_proj - xy1_center
-        kps_0c.append(float(kp_proj_0c[0]))
-        kps_0c.append(float(kp_proj_0c[1]))
-
-        kp_orig = pixel_to_camera(kp, kk, 1)
-        kps_orig.append(float(kp_orig[0]))
-        kps_orig.append(float(kp_orig[1]))
-
-    return kps_0c, kps_orig
-
-
-def get_keypoints(kps_0, kps_1, mode):
-    """Get the center of 2 lists"""
-
-    assert mode == 'center' or mode == 'shoulder' or mode == 'hip'
-
+    kps_in = keypoints[:, 0:2, :]  # (m, 2, 17)
     if mode == 'center':
-        uu = (max(kps_0) - min(kps_0)) / 2 + min(kps_0)
-        vv = (max(kps_1) - min(kps_1)) / 2 + min(kps_1)
+        kps_max, _ = kps_in.max(2)  # returns value, indices
+        kps_min, _ = kps_in.min(2)
+        kps_out = (kps_max - kps_min) / 2 + kps_min   # (m, 2) as keepdims is False
+
+    elif mode == 'head':
+        kps_out = kps_in[:, :, 0:5].mean(2)
 
     elif mode == 'shoulder':
-        uu = float(np.average(kps_0[5:7]))
-        vv = float(np.average(kps_1[5:7]))
+        kps_out = kps_in[:, :, 5:7].mean(2)
 
     elif mode == 'hip':
-        uu = float(np.average(kps_0[11:13]))
-        vv = float(np.average(kps_1[11:13]))
+        kps_out = kps_in[:, :, 11:13].mean(2)
 
-    return uu, vv
+    elif mode == 'ankle':
+        kps_out = kps_in[:, :, 15:17].mean(2)
+
+    return kps_out  # (m, 2)
 
 
 def transform_kp(kps, tr_mode):
@@ -118,7 +108,7 @@ def transform_kp(kps, tr_mode):
            or tr_mode == 'shoulder' or tr_mode == 'knee' or tr_mode == 'upside' or tr_mode == 'falling' \
            or tr_mode == 'random'
 
-    uu_c, vv_c = get_keypoints(kps[0], kps[1], mode='center')
+    uu_c, vv_c = get_keypoints(kps, mode='center')
 
     if tr_mode == "None":
         return kps
@@ -180,25 +170,33 @@ def transform_kp(kps, tr_mode):
     return [uus, vvs, kps[2], []]
 
 
-def get_depth(uv_center, kk, dd):
+def xyz_from_distance(distances, xy_centers):
+    """
+    From distances and normalized image coordinates (z=1), extract the real world position xyz
+    distances --> tensor (m,1) or (m) or float
+    xy_centers --> tensor(m,3) or (3)
+    """
 
-    if len(uv_center) == 2:
-        uv_center.extend([1])
-    uv_center_np = np.array(uv_center)
-    xyz_norm = pixel_to_camera(uv_center, kk, 1)
-    zz = dd / math.sqrt(1 + xyz_norm[0] ** 2 + xyz_norm[1] ** 2)
+    if type(distances) == float:
+        distances = torch.tensor(distances).unsqueeze(0)
+    if len(distances.size()) == 1:
+        distances = torch.tensor(distances).unsqueeze(1)
+    if len(xy_centers.size()) == 1:
+        xy_centers = xy_centers.unsqueeze(0)
 
-    xyz = pixel_to_camera(uv_center_np, kk, zz).tolist()
-    return xyz
+    assert xy_centers.size()[-1] == 3 and distances.size()[-1] == 1, "Size of tensor not recognized"
+
+    return xy_centers * distances / torch.sqrt(1 + xy_centers[:, 0:1].pow(2) + xy_centers[:, 1:2].pow(2))
 
 
-def get_depth_from_distance(outputs, xy_centers):
-
-    list_zzs = []
-    for idx, _ in enumerate(outputs):
-        dd = float(outputs[idx][0])
-        xx_1 = float(xy_centers[idx][0])
-        yy_1 = float(xy_centers[idx][1])
-        zz = dd / math.sqrt(1 + xx_1 ** 2 + yy_1 ** 2)
-        list_zzs.append(zz)
-    return list_zzs
+def pixel_to_camera_old(uv1, kk, z_met):
+    """
+    (3,) array --> (3,) array
+    Convert a point in pixel coordinate to absolute camera coordinates
+    """
+    if len(uv1) == 2:
+        uv1.append(1)
+    kk_1 = np.linalg.inv(kk)
+    xyz_met_norm = np.dot(kk_1, uv1)
+    xyz_met = xyz_met_norm * z_met
+    return xyz_met

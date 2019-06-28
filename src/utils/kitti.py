@@ -1,36 +1,6 @@
 
 import numpy as np
-import copy
 import math
-
-from utils.camera import pixel_to_camera, get_keypoints
-from eval.geom_baseline import compute_distance_single
-
-
-def eval_geometric(uv_kps, uv_centers, uv_shoulders, kk, average_y=0.48):
-    """
-    Evaluate geometric distance
-    """
-    xy_centers = []
-    dds_geom = []
-    for idx, _ in enumerate(uv_centers):
-        uv_center = copy.deepcopy(uv_centers[idx])
-        uv_center.append(1)
-        uv_shoulder = copy.deepcopy(uv_shoulders[idx])
-        uv_shoulder.append(1)
-        uv_kp = uv_kps[idx]
-        xy_center = pixel_to_camera(uv_center, kk, 1)
-        xy_centers.append(xy_center.tolist())
-
-        uu_2, vv_2 = get_keypoints(uv_kp[0], uv_kp[1], mode='hip')
-        uv_hip = [uu_2, vv_2, 1]
-
-        zz, _ = compute_distance_single(uv_shoulder, uv_hip, kk, average_y)
-        xyz_center = np.array([xy_center[0], xy_center[1], zz])
-        dd_geom = float(np.linalg.norm(xyz_center))
-        dds_geom.append(dd_geom)
-
-    return dds_geom, xy_centers
 
 
 def get_calibration(path_txt):
@@ -71,17 +41,17 @@ def get_calibration(path_txt):
 
 
 def get_translation(pp):
-    """Separate intrinsic matrix from translation"""
+    """Separate intrinsic matrix from translation and convert in lists"""
 
     kk = pp[:, :-1]
     f_x = kk[0, 0]
     f_y = kk[1, 1]
     x0, y0 = kk[2, 0:2]
     aa, bb, t3 = pp[0:3, 3]
-    t1 = (aa - x0*t3) / f_x
-    t2 = (bb - y0*t3) / f_y
-    tt = np.array([t1, t2, t3]).reshape(3, 1)
-    return kk, tt
+    t1 = float((aa - x0*t3) / f_x)
+    t2 = float((bb - y0*t3) / f_y)
+    tt = [t1, t2, float(t3)]
+    return kk.tolist(), tt
 
 
 def get_simplified_calibration(path_txt):
@@ -99,12 +69,11 @@ def get_simplified_calibration(path_txt):
     raise ValueError('Matrix K_02 not found in the file')
 
 
-def check_conditions(line, mode, thresh=0.5):
-
+def check_conditions(line, mode, thresh=0.3):
     """Check conditions of our or m3d txt file"""
 
     check = False
-    assert mode == 'gt' or mode == 'm3d' or mode == '3dop' or mode == 'our', "Type not recognized"
+    assert mode in ['gt', 'gt_all', 'm3d', '3dop','our'], "Mode %r not recognized" % mode
 
     if mode == 'm3d' or mode == '3dop':
         conf = line.split()[15]
@@ -116,8 +85,13 @@ def check_conditions(line, mode, thresh=0.5):
         if line[:10] == 'Pedestrian':
             check = True
 
+    # Consider also person sitting and cyclists categories
+    elif mode == 'gt_all':
+        if line[:10] == 'Pedestrian' or line[:10] == 'Person_sit' or line[:7] == 'Cyclist':
+            check = True
+
     elif mode == 'our':
-        if line[10] >= thresh:
+        if line[4] >= thresh:
             check = True
 
     return check
@@ -126,7 +100,6 @@ def check_conditions(line, mode, thresh=0.5):
 def get_category(box, trunc, occ):
 
     hh = box[3] - box[1]
-
     if hh >= 40 and trunc <= 0.15 and occ <= 0:
         cat = 'easy'
     elif trunc <= 0.3 and occ <= 1 and hh >= 25:
@@ -135,7 +108,6 @@ def get_category(box, trunc, occ):
         cat = 'hard'
     else:
         cat = 'excluded'
-
     return cat
 
 
@@ -158,7 +130,7 @@ def split_training(names_gt, path_train, path_val):
     return set_train, set_val
 
 
-def parse_ground_truth(path_gt):
+def parse_ground_truth(path_gt, mode='gt'):
     """Parse KITTI ground truth files"""
     boxes_gt = []
     dds_gt = []
@@ -168,7 +140,7 @@ def parse_ground_truth(path_gt):
 
     with open(path_gt, "r") as f_gt:
         for line_gt in f_gt:
-            if check_conditions(line_gt, mode='gt'):
+            if check_conditions(line_gt, mode=mode):
                 truncs_gt.append(float(line_gt.split()[1]))
                 occs_gt.append(int(line_gt.split()[2]))
                 boxes_gt.append([float(x) for x in line_gt.split()[4:8]])
@@ -177,4 +149,4 @@ def parse_ground_truth(path_gt):
                 boxes_3d.append(loc_gt + wlh)
                 dds_gt.append(math.sqrt(loc_gt[0] ** 2 + loc_gt[1] ** 2 + loc_gt[2] ** 2))
 
-    return (boxes_gt, boxes_3d, dds_gt, truncs_gt, occs_gt)
+    return boxes_gt, boxes_3d, dds_gt, truncs_gt, occs_gt

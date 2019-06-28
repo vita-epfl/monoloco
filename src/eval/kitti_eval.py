@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict
 import datetime
 
-from utils.misc import get_iou_matches
+from utils.misc import get_iou_matches, get_task_error
 from utils.kitti import check_conditions, get_category, split_training, parse_ground_truth
 from visuals.results import print_results
 
@@ -117,6 +117,11 @@ class KittiEval:
             print("\n Number of matched annotations: {:.1f} %".format(self.errors[key]['matched']))
             print("-"*100)
 
+        print("\n Annotations inside the confidence interval: {:.1f} %"
+              .format(100 * self.dic_stats['test']['our']['all']['interval']))
+        print("precision 1: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_1']))
+        print("precision 2: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_2']))
+
     def printer(self, show):
         print_results(self.dic_stats, show)
 
@@ -171,15 +176,13 @@ class KittiEval:
                     file_lines = ff.readlines()
                 for line_our in file_lines[:-1]:
                     line_list = [float(x) for x in line_our.split()]
+
                     if check_conditions(line_list, thresh=self.dic_thresh_conf[method], mode=method):
                         boxes.append(line_list[:4])
-                        # xyzs.append(line_list[4:7])
-                        dds.append(line_list[7])
-                        stds_ale.append(line_list[8])
-                        stds_epi.append(line_list[9])
+                        dds.append(line_list[8])
+                        stds_ale.append(line_list[9])
+                        stds_epi.append(line_list[10])
                         dds_geom.append(line_list[11])
-                        # xy_kps.append(line_list[12:])
-
                         self.dic_cnt[method] += 1
 
                 # kk_list = [float(x) for x in file_lines[-1].split()]
@@ -238,7 +241,6 @@ class KittiEval:
                 self.dic_cnt['merged'] += 1
 
     def update_errors(self, dd, dd_gt, cat, errors):
-
         """Compute and save errors between a single box and the gt box which match"""
 
         diff = abs(dd - dd_gt)
@@ -274,25 +276,48 @@ class KittiEval:
         self.dic_stds[cat]['epi'].append(std_epi)
 
         # Number of annotations inside the confidence interval
-        if dd_gt <= dd:  # Particularly dangerous instances
+        std = std_epi if std_epi > 0 else std_ale  # consider aleatoric uncertainty if epistemic is not calculated
+        if abs(dd - dd_gt) <= std:
+            self.dic_stds['all']['interval'].append(1)
+            self.dic_stds[clst]['interval'].append(1)
+            self.dic_stds[cat]['interval'].append(1)
+        else:
+            self.dic_stds['all']['interval'].append(0)
+            self.dic_stds[clst]['interval'].append(0)
+            self.dic_stds[cat]['interval'].append(0)
+
+        # Annotations at risk inside the confidence interval
+        if dd_gt <= dd:
             self.dic_stds['all']['at_risk'].append(1)
             self.dic_stds[clst]['at_risk'].append(1)
             self.dic_stds[cat]['at_risk'].append(1)
 
             if abs(dd - dd_gt) <= std_epi:
-                self.dic_stds['all']['interval'].append(1)
-                self.dic_stds[clst]['interval'].append(1)
-                self.dic_stds[cat]['interval'].append(1)
-
+                self.dic_stds['all']['at_risk-interval'].append(1)
+                self.dic_stds[clst]['at_risk-interval'].append(1)
+                self.dic_stds[cat]['at_risk-interval'].append(1)
             else:
-                self.dic_stds['all']['interval'].append(0)
-                self.dic_stds[clst]['interval'].append(0)
-                self.dic_stds[cat]['interval'].append(0)
+                self.dic_stds['all']['at_risk-interval'].append(0)
+                self.dic_stds[clst]['at_risk-interval'].append(0)
+                self.dic_stds[cat]['at_risk-interval'].append(0)
 
         else:
             self.dic_stds['all']['at_risk'].append(0)
             self.dic_stds[clst]['at_risk'].append(0)
             self.dic_stds[cat]['at_risk'].append(0)
+
+        # Precision of uncertainty
+        eps = 1e-4
+        task_error = get_task_error(dd)
+        prec_1 = abs(dd - dd_gt) / (std_epi + eps)
+
+        prec_2 = abs(std_epi - task_error)
+        self.dic_stds['all']['prec_1'].append(prec_1)
+        self.dic_stds[clst]['prec_1'].append(prec_1)
+        self.dic_stds[cat]['prec_1'].append(prec_1)
+        self.dic_stds['all']['prec_2'].append(prec_2)
+        self.dic_stds[clst]['prec_2'].append(prec_2)
+        self.dic_stds[cat]['prec_2'].append(prec_2)
 
 
 def get_statistics(dic_stats, errors, dic_stds, key):
@@ -307,6 +332,8 @@ def get_statistics(dic_stats, errors, dic_stds, key):
         dic_stats['std_epi'] = sum(dic_stds['epi']) / float(len(dic_stds['epi']))
         dic_stats['interval'] = sum(dic_stds['interval']) / float(len(dic_stds['interval']))
         dic_stats['at_risk'] = sum(dic_stds['at_risk']) / float(len(dic_stds['at_risk']))
+        dic_stats['prec_1'] = sum(dic_stds['prec_1']) / float(len(dic_stds['prec_1']))
+        dic_stats['prec_2'] = sum(dic_stds['prec_2']) / float(len(dic_stds['prec_2']))
 
 
 def add_true_negatives(err, cnt_gt):
