@@ -79,7 +79,6 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_
             if args.n_dropout > 0:
                 epistemic = True
 
-
             if dic_out['boxes']:  # Only print in case of detections
                 printer = Printer(images_outputs[1], output_path, kk, output_types=args.output_types,
                                   show=args.show, z_max=args.z_max, epistemic=epistemic)
