@@ -172,7 +172,7 @@ class Printer:
                         axes[0].text(uv[0]+self.radius, uv[1] * self.y_scale - self.radius, str(num),
                                      fontsize=self.FONTSIZE, color=self.TEXTCOLOR, weight='bold')
                         num += 1
-
+        if any(xx in self.output_types for xx in ['bird', 'combined']):
             for idx, _ in enumerate(self.xx_gt):
                 if self.zz_gt[idx] > 0:
                     target = get_task_error(self.dds_real[idx])
