@@ -66,7 +66,7 @@ class Printer:
     def factory_axes(self):
         axes = []
         figures = []
-
+        self.mpl_im0 = None
         #  Resize image for aesthetic proportions in combined visualization
         if 'combined' in self.output_types:
             self.y_scale = self.ww / (self.hh * 1.8)  # Defined proportion
@@ -155,12 +155,12 @@ class Printer:
             axes.append(ax1)
         return figures, axes
 
-    def draw(self, figures, axes, dic_ann):
+    def draw(self, figures, axes, dic_ann, image):
 
         self._process_input(dic_ann)
         num = 0
         if any(xx in self.output_types for xx in ['front', 'combined']):
-
+            self.mpl_im0.set_data(image)
             for idx, uv in enumerate(self.uv_shoulders):
 
                 if min(self.zz_pred[idx], self.zz_gt[idx]) > 0:
