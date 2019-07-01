@@ -98,7 +98,7 @@ class Printer:
         elif 'front' in self.output_types:
             width = self.fig_width
             height = self.fig_width * self.hh / self.ww
-
+            self.ext = ".front.png"
             plt.figure(0)
             fig0, ax0 = plt.subplots(1, 1, figsize=(width, height))
             fig0.set_tight_layout(True)
@@ -131,6 +131,7 @@ class Printer:
             axes.append(None)
 
         if 'bird' in self.output_types:
+            self.ext = ".bird.png"  #TODO multiple savings external
             plt.figure(1)
             fig1, ax1 = plt.subplots(1, 1)
             fig1.set_tight_layout(True)
@@ -155,7 +156,7 @@ class Printer:
             axes.append(ax1)
         return figures, axes
 
-    def draw(self, figures, axes, dic_ann, image):
+    def draw(self, figures, axes, dic_ann, image, save=False):
 
         self._process_input(dic_ann)
         num = 0
@@ -211,8 +212,8 @@ class Printer:
         for fig in figures:
             fig.canvas.draw()
 
-        plt.savefig(self.path_out + self.ext, bbox_inches='tight')
-
+        if save:
+            plt.savefig(self.path_out + self.ext, bbox_inches='tight')
 
 def get_confidence(xx, zz, std):
     """Obtain the points to plot the confidence of each annotation"""
