@@ -39,6 +39,7 @@ class Printer:
         self.z_max = z_max  # To include ellipses in the image
         self.fig_width = fig_width
 
+
         # Define the output dir
         self.path_out = output_path
 
