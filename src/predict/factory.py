@@ -15,7 +15,7 @@ def factory_for_gt(im_size, name=None, path_gt=None):
         with open(path_gt, 'r') as f:
             dic_names = json.load(f)
         print('-' * 120 + "\nMonoloco: Ground-truth file opened")
-    except FileNotFoundError:
+    except (FileNotFoundError, TypeError):
         print('-' * 120 + "\nMonoloco: ground-truth file not found\n")
         dic_names = {}
 
