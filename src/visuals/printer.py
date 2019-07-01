@@ -25,7 +25,7 @@ class Printer:
     TEXTCOLOR = 'darkorange'
     COLOR_KPS = 'yellow'
 
-    def __init__(self, image, output_path, dic_ann, kk, output_types, show=False,
+    def __init__(self, image, output_path, kk, output_types, show=False,
                  text=True, legend=True, epistemic=False, z_max=30, fig_width=10):
 
         self.im = image
@@ -37,11 +37,12 @@ class Printer:
         self.legend = legend
         self.z_max = z_max  # To include ellipses in the image
         self.y_scale = 1
+        self.ww = self.im.size[0]
+        self.hh = self.im.size[1]
         self.fig_width = fig_width
 
         # Define the output dir
         self.path_out = output_path
-        self._process_input(dic_ann)
         self.cmap = cm.get_cmap('jet')
 
     def _process_input(self, dic_ann):
@@ -55,15 +56,13 @@ class Printer:
         self.zz_pred = [xx[2] if xx[2] < self.z_max - self.stds_ale_epi[idx] else 0
                         for idx, xx in enumerate(dic_ann['xyz_pred'])]
         self.dds_real = dic_ann['dds_real']
-
         self.uv_centers = dic_ann['uv_centers']
         self.uv_shoulders = dic_ann['uv_shoulders']
         self.uv_kps = dic_ann['uv_kps']
 
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
-        self.ww = self.im.size[0]
-        self.hh = self.im.size[1]
         self.radius = 14 / 1600 * self.ww
+        self.ext = ".png"
 
     def factory_axes(self):
         axes = []
@@ -84,7 +83,7 @@ class Printer:
             else:
                 fig_ar_1 = 1.3
             width_ratio = 1.9
-            ext = '.combined.png'
+            self.ext = '.combined.png'
 
             fig, (ax1, ax0) = plt.subplots(1, 2, sharey=False, gridspec_kw={'width_ratios': [1, width_ratio]},
                                            figsize=(fig_width, fig_height))
@@ -116,19 +115,6 @@ class Printer:
             self.mpl_im0 = ax0.imshow(self.im)
             z_min = 0
             bar_ticks = self.z_max // 5 + 1
-
-            num = 0
-            for idx, uv in enumerate(self.uv_shoulders):
-                if min(self.zz_pred[idx], self.zz_gt[idx]) > 0:
-                    color = self.cmap((self.zz_pred[idx] % self.z_max) / self.z_max)
-                    circle = Circle((uv[0], uv[1] * self.y_scale), radius=self.radius, color=color, fill=True)
-                    ax0.add_patch(circle)
-
-                    if self.text:
-                        ax0.text(uv[0]+self.radius, uv[1] * self.y_scale - self.radius, str(num),
-                                 fontsize=self.FONTSIZE, color=self.TEXTCOLOR, weight='bold')
-                        num += 1
-
             ax0.get_xaxis().set_visible(False)
             ax0.get_yaxis().set_visible(False)
 
@@ -170,9 +156,9 @@ class Printer:
             axes.append(ax1)
         return figures, axes
 
-    def draw(self, axes, figures, dict_ann):
+    def draw(self, figures, axes, dic_ann):
 
-        self._process_input(dict_ann)
+        self._process_input(dic_ann)
         num = 0
         if any(xx in self.output_types for xx in ['front', 'combined']):
 
@@ -218,14 +204,15 @@ class Printer:
                     axes[1].plot(self.xx_pred[idx], self.zz_pred[idx], 'ro', label="Predicted", markersize=3)
 
                     # Plot the number
-                    if not self.draw_kps:
-                        (_, x_pos), (_, z_pos) = get_confidence(self.xx_pred[idx], self.zz_pred[idx], self.stds_ale_epi[idx])
+                    (_, x_pos), (_, z_pos) = get_confidence(self.xx_pred[idx], self.zz_pred[idx], self.stds_ale_epi[idx])
 
-                        if self.text:
-                            axes[1].text(x_pos, z_pos, str(num), fontsize=self.FONTSIZE_BV, color='darkorange')
-                            num += 1
+                    if self.text:
+                        axes[1].text(x_pos, z_pos, str(num), fontsize=self.FONTSIZE_BV, color='darkorange')
+                        num += 1
         for fig in figures:
             fig.canvas.draw()
+
+        plt.savefig(self.path_out + self.ext, bbox_inches='tight')
 
 
 def get_confidence(xx, zz, std):
