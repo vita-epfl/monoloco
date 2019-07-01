@@ -101,7 +101,7 @@ def monoloco_post_process(monoloco_outputs, iou_min=0.25):
         boxes_gt, dds_gt = dic_gt['boxes'], dic_gt['dds']
         matches = get_iou_matches(boxes, boxes_gt, thresh=iou_min)
     else:
-        matches = [(idx, idx_gt) for idx, idx_gt in range(len(boxes))]  # Replicate boxes
+        matches = [(idx, idx) for idx, _ in enumerate(boxes)]  # Replicate boxes
 
     matches = reorder_matches(matches, boxes, mode='left_right')
     uv_shoulders = get_keypoints(keypoints, mode='shoulder')

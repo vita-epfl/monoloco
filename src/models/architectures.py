@@ -41,6 +41,7 @@ class TriLinear(nn.Module):
 
             return y
 
+
 def weight_init(m):
     """TO initialize weights using kaiming initialization"""
     if isinstance(m, nn.Linear):
