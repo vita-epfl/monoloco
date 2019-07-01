@@ -1,16 +1,15 @@
 
 import math
+from collections import OrderedDict
 import numpy as np
-import torch
 import cv2
 
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-import matplotlib
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Ellipse, Circle
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from collections import OrderedDict
 from utils.camera import pixel_to_camera
 from utils.misc import get_task_error
 
