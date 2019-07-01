@@ -180,7 +180,7 @@ def xyz_from_distance(distances, xy_centers):
     if type(distances) == float:
         distances = torch.tensor(distances).unsqueeze(0)
     if len(distances.size()) == 1:
-        distances = torch.tensor(distances).unsqueeze(1)
+        distances = distances.unsqueeze(1)
     if len(xy_centers.size()) == 1:
         xy_centers = xy_centers.unsqueeze(0)
 

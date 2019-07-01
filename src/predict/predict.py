@@ -158,7 +158,7 @@ def predict(args):
                 kk = None
 
             factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_outputs=monoloco_outputs, kk=kk)
-            sys.stdout.write('\r' + 'Saving image {}'.format(cnt) + '\t')
+            print('Image {}\n'.format(cnt) + '-' * 120)
             cnt += 1
     return keypoints_whole
 

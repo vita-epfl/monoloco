@@ -14,15 +14,15 @@ def factory_for_gt(im_size, name=None, path_gt=None):
     try:
         with open(path_gt, 'r') as f:
             dic_names = json.load(f)
-        print('-' * 120 + "\nMonoloco: Ground-truth file opened")
+        print('-' * 120 + "\nGround-truth file opened")
     except (FileNotFoundError, TypeError):
-        print('-' * 120 + "\nMonoloco: ground-truth file not found\n")
+        print('-' * 120 + "\nGround-truth file not found")
         dic_names = {}
 
     try:
         kk = dic_names[name]['K']
         dic_gt = dic_names[name]
-        print("Monoloco: matched ground-truth file!\n" + '-' * 120)
+        print("Matched ground-truth file!")
     except KeyError:
         dic_gt = None
         x_factor = im_size[0] / 1600
@@ -35,8 +35,7 @@ def factory_for_gt(im_size, name=None, path_gt=None):
                   [0, 1266.4 * pixel_factor, 491.5 * y_factor],
                   [0., 0., 1.]]  # nuScenes calibration
 
-        print("Ground-truth annotations for the image not found\n" 
-              "Using a standard calibration matrix...\n" + '-' * 120)
+        print("Using a standard calibration matrix...")
 
     return kk, dic_gt
 
@@ -74,18 +73,16 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_
                 skeleton_painter.keypoints(ax, keypoint_sets, scores=scores)
 
     if 'monoloco' in args.networks:
-
         dic_out = monoloco_post_process(monoloco_outputs)
-
         if any((xx in args.output_types for xx in ['front', 'bird', 'combined'])):
-
             epistemic = False
             if args.n_dropout > 0:
                 epistemic = True
 
-            printer = Printer(images_outputs[1], output_path, dic_out, kk, output_types=args.output_types,
-                              show=args.show, z_max=args.z_max, epistemic=epistemic)
-            printer.print()
+            if dic_out['boxes']:  # Only print in case of detections
+                printer = Printer(images_outputs[1], output_path, dic_out, kk, output_types=args.output_types,
+                                  show=args.show, z_max=args.z_max, epistemic=epistemic)
+                printer.print()
 
         if 'json' in args.output_types:
             with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:
@@ -95,8 +92,11 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_
 def monoloco_post_process(monoloco_outputs, iou_min=0.25):
     """Post process monoloco to output final dictionary with all information for visualizations"""
 
-    dic_out = defaultdict(list)
     outputs, varss, boxes, keypoints, kk, dic_gt = monoloco_outputs[:]
+    dic_out = defaultdict(list)
+    if outputs is None:
+        return dic_out
+
     if dic_gt:
         boxes_gt, dds_gt = dic_gt['boxes'], dic_gt['dds']
         matches = get_iou_matches(boxes, boxes_gt, thresh=iou_min)
