@@ -39,7 +39,7 @@ class MonoLoco:
     def forward(self, keypoints, kk):
         """forward pass of monoloco network"""
         if not keypoints:
-            return None
+            return None, None
 
         with torch.no_grad():
             inputs = get_network_inputs(torch.tensor(keypoints).to(self.device), torch.tensor(kk).to(self.device))
