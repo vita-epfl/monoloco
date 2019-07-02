@@ -1,7 +1,6 @@
 
 import glob
 import os
-import sys
 
 import numpy as np
 import torchvision
@@ -151,14 +150,13 @@ def predict(args):
                 # Preprocess pifpaf outputs and run monoloco
                 boxes, keypoints = preprocess_pif(pifpaf_out, im_size)
                 outputs, varss = monoloco.forward(keypoints, kk)
-                monoloco_outputs = [outputs, varss, boxes, keypoints, kk, dic_gt]
+                dic_out = monoloco.post_process(outputs, varss, boxes, keypoints, kk, dic_gt)
 
             else:
-                monoloco_outputs = None
+                dic_out = None
                 kk = None
 
-            factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_outputs=monoloco_outputs, kk=kk)
+            factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_outputs=dic_out, kk=kk)
             print('Image {}\n'.format(cnt) + '-' * 120)
             cnt += 1
     return keypoints_whole
-

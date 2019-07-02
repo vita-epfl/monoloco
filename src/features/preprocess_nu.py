@@ -8,14 +8,17 @@ import json
 import logging
 from collections import defaultdict
 import datetime
+
 import numpy as np
 
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
-from utils.misc import get_iou_matches, append_cluster
+from utils.iou import get_iou_matches
+from utils.misc import append_cluster
 from utils.nuscenes import select_categories
 from utils.camera import project_3d
-from utils.pifpaf import preprocess_pif, get_network_inputs
+from utils.pifpaf import preprocess_pif
+from utils.monoloco import get_monoloco_inputs
 
 
 class PreprocessNuscenes:
@@ -71,7 +74,8 @@ class PreprocessNuscenes:
             else:
                 time_left = str((end_scene-start_scene)/60 * (len(self.scenes) - ii))[:4]
 
-            sys.stdout.write('\r' + 'Elaborating scene {}, remaining time {} minutes'.format(cnt_scenes, time_left) + '\t\n')
+            sys.stdout.write('\r' + 'Elaborating scene {}, remaining time {} minutes'
+                             .format(cnt_scenes, time_left) + '\t\n')
             start_scene = time.time()
             if scene['name'] in self.split_train:
                 phase = 'train'
@@ -124,7 +128,7 @@ class PreprocessNuscenes:
                         boxes, keypoints = preprocess_pif(annotations, im_size=(1600, 900))
 
                         if keypoints:
-                            inputs = get_network_inputs(keypoints, kk).tolist()
+                            inputs = get_monoloco_inputs(keypoints, kk).tolist()
 
                             matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
                             for (idx, idx_gt) in matches:

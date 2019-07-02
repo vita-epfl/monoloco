@@ -8,7 +8,6 @@ import sys
 import time
 
 import matplotlib.pyplot as plt
-
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -16,8 +15,9 @@ from torch.optim import lr_scheduler
 
 from models.datasets import NuScenesDataset
 from models.architectures import LinearModel
-from utils.misc import set_logger
 from models.losses import LaplacianLoss
+from utils.logs import set_logger
+from utils.monoloco import epistemic_variance, laplace_sampling, unnormalize_bi
 
 
 class Trainer:
@@ -60,12 +60,6 @@ class Trainer:
         self.n_samples = n_samples
         self.r_seed = r_seed
 
-        from utils.normalize import unnormalize_bi
-        self.unnormalize_bi = unnormalize_bi
-        from utils.misc import epistemic_variance, laplace_sampling
-        self.epistemic_variance = epistemic_variance
-        self.laplace_sampling = laplace_sampling
-
         # Loss functions and output names
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
@@ -86,9 +80,8 @@ class Trainer:
             self.logger.info("Training arguments: \nepochs: {} \nbatch_size: {} \ndropout: {}"
                              "\nbaseline: {} \nlearning rate: {} \nscheduler step: {} \nscheduler gamma: {}  "
                              "\ninput_size: {} \nhidden_size: {} \nn_stages: {} \nr_seed: {}"
-                             "\ninput_file: {}"
-                             .format(epochs, bs, dropout, baseline, lr, sched_step, sched_gamma, input_size,
-                                     hidden_size, n_stage, r_seed, self.joints))
+                             "\ninput_file: {}", epochs, bs, dropout, baseline, lr, sched_step, sched_gamma, input_size,
+                             hidden_size, n_stage, r_seed, self.joints)
         else:
             logging.basicConfig(level=logging.INFO)
             self.logger = logging.getLogger(__name__)
@@ -111,7 +104,7 @@ class Trainer:
                               for phase in ['train', 'val', 'test']}
 
         # Define the model
-        self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
+        self.logger.info('Sizes of the dataset: {}',self.dataset_sizes)
         print(">>> creating model")
         self.model = LinearModel(input_size=input_size, output_size=self.output_size, linear_size=hidden_size,
                                  p_dropout=dropout, num_stage=self.n_stage)
@@ -259,8 +252,8 @@ class Trainer:
                 if self.n_dropout > 0:
                     for ii in range(self.n_dropout):
                         outputs = self.model(inputs)
-                        outputs = self.unnormalize_bi(outputs)
-                        samples = self.laplace_sampling(outputs, self.n_samples)
+                        outputs = unnormalize_bi(outputs)
+                        samples = laplace_sampling(outputs, self.n_samples)
                         total_outputs = torch.cat((total_outputs, samples), 0)
                     varss = total_outputs.std(0)
                 else:
@@ -273,7 +266,7 @@ class Trainer:
                 outputs = self.model(inputs)
 
                 if not self.baseline:
-                    outputs = self.unnormalize_bi(outputs)
+                    outputs = unnormalize_bi(outputs)
 
                 avg_distance = float(self.criterion_eval(outputs[:, 0:1], labels).item())
 
@@ -300,7 +293,7 @@ class Trainer:
                 # Forward pass on each cluster
                 outputs = self.model(inputs)
                 if not self.baseline:
-                    outputs = self.unnormalize_bi(outputs)
+                    outputs = unnormalize_bi(outputs)
 
                     dic_err[phase][clst] = self.compute_stats(outputs, labels, [0], dic_err[phase][clst], size_eval)
 
@@ -313,7 +306,7 @@ class Trainer:
         if self.save and not load:
             torch.save(self.model.state_dict(), self.path_model)
             print('-'*120)
-            self.logger.info("model saved: {} \n".format(self.path_model))
+            self.logger.info("model saved: {} \n", self.path_model)
         else:
             self.logger.info("model not saved\n")
 

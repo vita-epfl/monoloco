@@ -7,11 +7,12 @@ import logging
 from collections import defaultdict
 import json
 import datetime
-import torch
 
 from utils.kitti import get_calibration, split_training, parse_ground_truth
-from utils.pifpaf import get_network_inputs, preprocess_pif
-from utils.misc import get_iou_matches, append_cluster
+from utils.monoloco import get_monoloco_inputs
+from utils.pifpaf import preprocess_pif
+from utils.iou import get_iou_matches
+from utils.misc import append_cluster
 
 
 class PreprocessKitti:
@@ -20,11 +21,11 @@ class PreprocessKitti:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[],  boxes_3d=[], K=[],
+    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
                             clst=defaultdict(lambda: defaultdict(list))),
-              'val': dict(X=[], Y=[], names=[], kps=[],  boxes_3d=[], K=[],
+              'val': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
                           clst=defaultdict(lambda: defaultdict(list))),
-              'test': dict(X=[], Y=[], names=[], kps=[],  boxes_3d=[], K=[],
+              'test': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
                            clst=defaultdict(lambda: defaultdict(list)))}
     dic_names = defaultdict(lambda: defaultdict(list))
 
@@ -89,7 +90,7 @@ class PreprocessKitti:
                 with open(os.path.join(self.dir_ann, basename + '.png.pifpaf.json'), 'r') as f:
                     annotations = json.load(f)
                 boxes, keypoints = preprocess_pif(annotations, im_size=(1238, 374))
-                inputs = get_network_inputs(keypoints, kk).tolist()
+                inputs = get_monoloco_inputs(keypoints, kk).tolist()
 
             except FileNotFoundError:
                 boxes = []
@@ -130,4 +131,3 @@ class PreprocessKitti:
         else:
             flag = True
         return phase, flag
-

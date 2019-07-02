@@ -99,12 +99,3 @@ def update_with_box(dict_gt, box):
         flag_child = True
 
     return dict_gt, flag_child
-
-# def merge_gt_pif(dic_gt, im_path):
-#
-#     # Extract ground truth boxes
-#     boxes_2d, _ = self.project_3d(dic_gt, mode='box_center')  # Project the 3D gt into the image plane
-#     boxes_gt = [np.array([box[0][0], box[0][1], box[1][0], box[1][1]]) for box in boxes_2d]
-#     # Match each annotation and save them in the json file
-#     self.merge_gt_pif_single(dic_gt, boxes_gt, boxes_pif, keypoints, basename,
-#                              iou_thresh=self.iou_thresh)

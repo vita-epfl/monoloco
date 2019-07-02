@@ -4,13 +4,14 @@ Monoloco predictor. It receives pifpaf joints and outputs distances
 """
 
 import logging
+from collections import defaultdict
 
 import torch
 
+from utils.iou import get_iou_matches, reorder_matches
+from utils.camera import get_keypoints, pixel_to_camera, xyz_from_distance
+from utils.monoloco import get_monoloco_inputs, unnormalize_bi, laplace_sampling
 from models.architectures import LinearModel
-from utils.misc import laplace_sampling
-from utils.normalize import unnormalize_bi
-from utils.pifpaf import get_network_inputs
 
 
 class MonoLoco:
@@ -26,7 +27,7 @@ class MonoLoco:
 
         self.device = device
         self.n_dropout = n_dropout
-        self.epistemic = True if self.n_dropout > 0 else False
+        self.epistemic = bool(self.n_dropout > 0)
 
         # load the model parameters
         self.model = LinearModel(p_dropout=p_dropout,
@@ -42,7 +43,7 @@ class MonoLoco:
             return None, None
 
         with torch.no_grad():
-            inputs = get_network_inputs(torch.tensor(keypoints).to(self.device), torch.tensor(kk).to(self.device))
+            inputs = get_monoloco_inputs(torch.tensor(keypoints).to(self.device), torch.tensor(kk).to(self.device))
             if self.n_dropout > 0:
                 self.model.dropout.training = True  # Manually reactivate dropout in eval
                 total_outputs = torch.empty((0, inputs.size()[0])).to(self.device)
@@ -61,3 +62,50 @@ class MonoLoco:
             outputs = self.model(inputs)
             outputs = unnormalize_bi(outputs)
         return outputs, varss
+
+    @staticmethod
+    def post_process(outputs, varss, boxes, keypoints, kk, dic_gt, iou_min=0.25):
+        """Post process monoloco to output final dictionary with all information for visualizations"""
+
+        dic_out = defaultdict(list)
+        if outputs is None:
+            return dic_out
+
+        if dic_gt:
+            boxes_gt, dds_gt = dic_gt['boxes'], dic_gt['dds']
+            matches = get_iou_matches(boxes, boxes_gt, thresh=iou_min)
+        else:
+            matches = [(idx, idx) for idx, _ in enumerate(boxes)]  # Replicate boxes
+
+        matches = reorder_matches(matches, boxes, mode='left_right')
+        uv_shoulders = get_keypoints(keypoints, mode='shoulder')
+        uv_centers = get_keypoints(keypoints, mode='center')
+        xy_centers = pixel_to_camera(uv_centers, kk, 1)
+
+        # Match with ground truth if available
+        for idx, idx_gt in matches:
+            dd_pred = float(outputs[idx][0])
+            ale = float(outputs[idx][1])
+            var_y = float(varss[idx])
+            dd_real = dds_gt[idx_gt] if dic_gt else dd_pred
+
+            kps = keypoints[idx]
+            box = boxes[idx]
+            uu_s, vv_s = uv_shoulders.tolist()[idx][0:2]
+            uu_c, vv_c = uv_centers.tolist()[idx][0:2]
+            uv_shoulder = [round(uu_s), round(vv_s)]
+            uv_center = [round(uu_c), round(vv_c)]
+            xyz_real = xyz_from_distance(dd_real, xy_centers[idx])
+            xyz_pred = xyz_from_distance(dd_pred, xy_centers[idx])
+            dic_out['boxes'].append(box)
+            dic_out['dds_real'].append(dd_real)
+            dic_out['dds_pred'].append(dd_pred)
+            dic_out['stds_ale'].append(ale)
+            dic_out['stds_epi'].append(var_y)
+            dic_out['xyz_real'].append(xyz_real.squeeze().tolist())
+            dic_out['xyz_pred'].append(xyz_pred.squeeze().tolist())
+            dic_out['uv_kps'].append(kps)
+            dic_out['uv_centers'].append(uv_center)
+            dic_out['uv_shoulders'].append(uv_shoulder)
+
+        return dic_out

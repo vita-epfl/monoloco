@@ -1,6 +1,6 @@
 
 
-from utils.misc import get_iou_matrix
+from utils.iou import get_iou_matrix
 
 
 def test_iou():

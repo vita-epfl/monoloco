@@ -6,7 +6,8 @@ import logging
 from collections import defaultdict
 import datetime
 
-from utils.misc import get_iou_matches, get_task_error
+from utils.iou import get_iou_matches
+from utils.misc import get_task_error
 from utils.kitti import check_conditions, get_category, split_training, parse_ground_truth
 from visuals.results import print_results
 

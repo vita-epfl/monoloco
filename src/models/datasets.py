@@ -2,8 +2,6 @@
 import json
 import numpy as np
 import torch
-import os
-from collections import defaultdict
 
 from torch.utils.data import Dataset
 
