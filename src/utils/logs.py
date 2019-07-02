@@ -12,6 +12,7 @@ def set_logger(log_path):
     """
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
+    logger.propagate = False
 
     # Logging to a file
     file_handler = logging.FileHandler(log_path)

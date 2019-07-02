@@ -89,7 +89,7 @@ class Trainer:
 
         # Select the device and load the data
         use_cuda = torch.cuda.is_available()
-        self.device = torch.device("cuda:1" if use_cuda else "cpu")
+        self.device = torch.device("cuda" if use_cuda else "cpu")
         print('Device: ', self.device)
 
         # Set the seed for random initialization
@@ -195,9 +195,10 @@ class Trainer:
                     best_model_wts = copy.deepcopy(self.model.state_dict())
 
         time_elapsed = time.time() - since
-        self.logger.info('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-        self.logger.info('Best val Acc: {:3f}'.format(best_acc))
-        self.logger.info('Saved weights of the model at epoch: {}\n'.format(best_epoch))
+        print('\n\n' + '-'*120)
+        self.logger.info('Training:\nTraining complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+        self.logger.info('Best validation Accuracy: {:.3f}'.format(best_acc))
+        self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch))
 
         if self.print_loss:
             epoch_losses_val_scaled = [x - 4 for x in epoch_losses_val]  # to compare with L1 Loss
@@ -274,7 +275,7 @@ class Trainer:
                 dic_err[phase]['all'] = self.compute_stats(outputs, labels, varss, dic_err[phase]['all'], size_eval)
 
             print('-'*120)
-            self.logger.info("\nAverage distance on the {} set: {:.2f}"
+            self.logger.info("Evaluation:\nAverage distance on the {} set: {:.2f}"
                              .format(phase, dic_err[phase]['all']['mean']))
 
             self.logger.info("Aleatoric Uncertainty: {:.2f}, inside the interval: {:.1f}%"
