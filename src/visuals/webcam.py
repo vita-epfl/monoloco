@@ -61,8 +61,8 @@ def webcam(args):
             print("Escape hit, closing...")
             break
         pil_image = Image.fromarray(image)
-
-        kk, dict_gt = factory_for_gt(pil_image.size)
+        intrinsic_size = [xx * 1.5 for xx in pil_image.size]
+        kk, dict_gt = factory_for_gt(intrinsic_size)  # better intrinsics for mac camera
         if visualizer_monoloco is None:
                 visualizer_monoloco = VisualizerMonoloco(kk, args)(pil_image)
                 visualizer_monoloco.send(None)
@@ -100,7 +100,7 @@ class VisualizerMonoloco:
         while True:
             image, dict_ann = yield
             draw_start = time.time()
-            while (len(axes)>0 and axes[0].patches):
+            while axes and axes[0].patches:
                 del axes[0].patches[0]
                 del axes[0].texts[0]
                 if len(axes) == 2:

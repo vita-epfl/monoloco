@@ -24,7 +24,7 @@ def preprocess_pif(annotations, im_size=None):
             # Add 10% for y
             delta_h = (box[3] - box[1]) / 10
             delta_w = (box[2] - box[0]) / 10
-            assert delta_h > 0 and delta_w > 0, "Bounding box <=0"
+            assert delta_h > -5 and delta_w > -5, "Bounding box <=0"
             box[0] -= delta_w
             box[1] -= delta_h
             box[2] += delta_w
