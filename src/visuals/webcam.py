@@ -31,10 +31,10 @@ def webcam(args):
 
     # Start recording
     cam = cv2.VideoCapture(0)
+    visualizer_monoloco = None
 
     while True:
         ret, frame = cam.read()
-        visualizer_monoloco = None
         image = cv2.resize(frame, None, fx=args.scale, fy=args.scale)
         height, width, _ = image.shape
         print('resized image size: {}'.format(image.shape))
