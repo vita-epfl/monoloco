@@ -216,7 +216,6 @@ class Trainer:
 
         # To load a model instead of using the trained one
         if load:
-            # self.path_out = os.path.join(self.dir_out, 'best_model_paper.pickle')
             self.model.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
 
         # Average distance on training and test set after unnormalizing

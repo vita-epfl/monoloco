@@ -76,13 +76,20 @@ def get_keypoints(keypoints, mode):
         keypoints = keypoints.unsqueeze(0)
 
     assert len(keypoints.size()) == 3 and keypoints.size()[1] == 3, "tensor dimensions not recognized"
-    assert mode in ['center', 'head', 'shoulder', 'hip' , 'ankle']
+    assert mode in ['center', 'bottom', 'head', 'shoulder', 'hip', 'ankle']
 
     kps_in = keypoints[:, 0:2, :]  # (m, 2, 17)
     if mode == 'center':
         kps_max, _ = kps_in.max(2)  # returns value, indices
         kps_min, _ = kps_in.min(2)
         kps_out = (kps_max - kps_min) / 2 + kps_min   # (m, 2) as keepdims is False
+
+    elif mode == 'bottom':  # bottom center for kitti evaluation
+        kps_max, _ = kps_in.max(2)
+        kps_min, _ = kps_in.min(2)
+        kps_out_x = (kps_max[:, 0:1] - kps_min[:, 0:1]) / 2 + kps_min[:, 0:1]
+        kps_out_y = kps_max[:, 1:2]
+        kps_out = torch.cat((kps_out_x, kps_out_y), -1)
 
     elif mode == 'head':
         kps_out = kps_in[:, :, 0:5].mean(2)

@@ -53,6 +53,9 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
             outputs, varss = monoloco.forward(keypoints, kk)
             dds_geom = eval_geometric(keypoints, kk, average_y=0.48)
 
+        if basename == '001782':
+            aa = 5
+
         # Save the file
         all_outputs = [outputs.detach().cpu(), varss.detach().cpu(), dds_geom]
         all_inputs = [boxes, keypoints]
@@ -75,7 +78,7 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
     uv_boxes, keypoints = all_inputs[:]
     kk, tt = all_params[:]
 
-    uv_centers = get_keypoints(keypoints, mode='center')
+    uv_centers = get_keypoints(keypoints, mode='bottom')  # Kitti uses the bottom center to calculate depth
     xy_centers = pixel_to_camera(uv_centers, kk, 1)
     zzs = xyz_from_distance(outputs[:, 0:1], xy_centers)[:, 2].tolist()
 
