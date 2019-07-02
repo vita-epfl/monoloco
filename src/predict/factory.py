@@ -37,7 +37,7 @@ def factory_for_gt(im_size, name=None, path_gt=None):
     return kk, dic_gt
 
 
-def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_outputs=None, kk=None):
+def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, dic_out=None, kk=None):
     """Output json files or images according to the choice"""
 
     # Save json file
@@ -75,11 +75,12 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_
             if args.n_dropout > 0:
                 epistemic = True
 
-            if monoloco_outputs['boxes']:  # Only print in case of detections
-                printer = Printer(images_outputs[1], output_path, monoloco_outputs, kk, output_types=args.output_types,
+            if dic_out['boxes']:  # Only print in case of detections
+                printer = Printer(images_outputs[1], output_path, kk, output_types=args.output_types,
                                   show=args.show, z_max=args.z_max, epistemic=epistemic)
-                printer.print()
+                figures, axes = printer.factory_axes()
+                printer.draw(figures, axes, dic_out)
 
         if 'json' in args.output_types:
             with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:
-                json.dump(monoloco_outputs, ff)
+                json.dump(dic_out, ff)

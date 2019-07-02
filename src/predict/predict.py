@@ -156,7 +156,7 @@ def predict(args):
                 dic_out = None
                 kk = None
 
-            factory_outputs(args, images_outputs, output_path, pifpaf_outputs, monoloco_outputs=dic_out, kk=kk)
+            factory_outputs(args, images_outputs, output_path, pifpaf_outputs, dic_out=dic_out, kk=kk)
             print('Image {}\n'.format(cnt) + '-' * 120)
             cnt += 1
     return keypoints_whole
