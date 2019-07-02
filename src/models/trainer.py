@@ -13,7 +13,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
-from models.datasets import NuScenesDataset
+from models.datasets import KeypointsDataset
 from models.architectures import LinearModel
 from models.losses import LaplacianLoss
 from utils.logs import set_logger
@@ -80,8 +80,9 @@ class Trainer:
             self.logger.info("Training arguments: \nepochs: {} \nbatch_size: {} \ndropout: {}"
                              "\nbaseline: {} \nlearning rate: {} \nscheduler step: {} \nscheduler gamma: {}  "
                              "\ninput_size: {} \nhidden_size: {} \nn_stages: {} \nr_seed: {}"
-                             "\ninput_file: {}", epochs, bs, dropout, baseline, lr, sched_step, sched_gamma, input_size,
-                             hidden_size, n_stage, r_seed, self.joints)
+                             "\ninput_file: {}"
+                             .format(epochs, bs, dropout, baseline, lr, sched_step, sched_gamma, input_size,
+                                     hidden_size, n_stage, r_seed, self.joints))
         else:
             logging.basicConfig(level=logging.INFO)
             self.logger = logging.getLogger(__name__)
@@ -97,14 +98,14 @@ class Trainer:
             torch.cuda.manual_seed(r_seed)
 
         # Dataloader
-        self.dataloaders = {phase: DataLoader(NuScenesDataset(self.joints, phase=phase),
+        self.dataloaders = {phase: DataLoader(KeypointsDataset(self.joints, phase=phase),
                                               batch_size=bs, shuffle=True) for phase in ['train', 'val']}
 
-        self.dataset_sizes = {phase: len(NuScenesDataset(self.joints, phase=phase))
+        self.dataset_sizes = {phase: len(KeypointsDataset(self.joints, phase=phase))
                               for phase in ['train', 'val', 'test']}
 
         # Define the model
-        self.logger.info('Sizes of the dataset: {}',self.dataset_sizes)
+        self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
         print(">>> creating model")
         self.model = LinearModel(input_size=input_size, output_size=self.output_size, linear_size=hidden_size,
                                  p_dropout=dropout, num_stage=self.n_stage)
@@ -221,10 +222,10 @@ class Trainer:
         self.model.eval()
         dic_err = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0)))  # initialized to zero
         phase = 'val'
-        dataloader_eval = DataLoader(NuScenesDataset(self.joints, phase=phase),
+        dataloader_eval = DataLoader(KeypointsDataset(self.joints, phase=phase),
                                      batch_size=5000, shuffle=True)
 
-        size_eval = len(NuScenesDataset(self.joints, phase=phase))
+        size_eval = len(KeypointsDataset(self.joints, phase=phase))
 
         with torch.no_grad():
             for inputs, labels, _, _ in dataloader_eval:
@@ -285,7 +286,7 @@ class Trainer:
 
             # Evaluate performances on different clusters and save statistics
 
-            nuscenes = NuScenesDataset(self.joints, phase=phase)
+            nuscenes = KeypointsDataset(self.joints, phase=phase)
             for clst in self.clusters:
                 inputs, labels, size_eval = nuscenes.get_cluster_annotations(clst)
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -306,7 +307,7 @@ class Trainer:
         if self.save and not load:
             torch.save(self.model.state_dict(), self.path_model)
             print('-'*120)
-            self.logger.info("model saved: {} \n", self.path_model)
+            self.logger.info("model saved: {} \n".format(self.path_model))
         else:
             self.logger.info("model not saved\n")
 
