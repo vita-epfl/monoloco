@@ -105,7 +105,9 @@ class VisualizerMonoloco:
                 del axes[0].texts[0]
                 if len(axes) == 2:
                     del axes[1].patches[0]
+                    del axes[1].patches[0]
                     if len(axes[1].lines) > 2:
+                        del axes[1].lines[2]
                         del axes[1].lines[2]
                         del axes[1].texts[0]
             printer.draw(figures, axes, dict_ann, image)
