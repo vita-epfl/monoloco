@@ -72,7 +72,6 @@ def factory_from_args(args):
 
 
 class PifPaf:
-
     def __init__(self, args):
         """Instanciate the mdodel"""
         factory_from_args(args)

@@ -57,7 +57,7 @@ def webcam(args):
             print("Escape hit, closing...")
             break
         pil_image = Image.fromarray(image)
-        intrinsic_size = [xx * 1.5 for xx in pil_image.size]
+        intrinsic_size = [xx * 1.3 for xx in pil_image.size]
         kk, dict_gt = factory_for_gt(intrinsic_size)  # better intrinsics for mac camera
         if visualizer_monoloco is None:
             visualizer_monoloco = VisualizerMonoloco(kk, args)(pil_image)
