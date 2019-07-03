@@ -48,10 +48,11 @@ def factory_from_args(args):
     if not args.checkpoint:
         args.checkpoint = args.model_pifpaf
     # glob
-    if args.glob:
-        args.images += glob.glob(args.glob)
-    if not args.images:
-        raise Exception("no image files given")
+    if not args.webcam:
+        if args.glob:
+            args.images += glob.glob(args.glob)
+        if not args.images:
+            raise Exception("no image files given")
 
     # add args.device
     args.device = torch.device('cpu')
@@ -79,8 +80,13 @@ class PifPaf:
         model_pifpaf, _ = nets.factory_from_args(args)
         model_pifpaf = model_pifpaf.to(args.device)
         self.processor = decoder.factory_from_args(args, model_pifpaf)
-        self.scale_np = np.array([args.scale, args.scale, 1] * 17).reshape(17, 3)
         self.keypoints_whole = []
+
+        # Scale the keypoints to the original image size for printing (if not webcam)
+        if not args.webcam:
+            self.scale_np = np.array([args.scale, args.scale, 1] * 17).reshape(17, 3)
+        else:
+            self.scale_np = np.array([1, 1, 1] * 17).reshape(17, 3)
 
     def fields(self, processed_images):
         fields_batch = self.processor.fields(processed_images)

@@ -7,19 +7,16 @@ Implementation adapted from https://github.com/vita-epfl/openpifpaf/blob/master/
 
 import time
 
-import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from PIL import Image
-
-from openpifpaf.network import nets
-from openpifpaf import decoder
 from openpifpaf import transforms
 
 import cv2
 
 from visuals.printer import Printer
 from utils.pifpaf import preprocess_pif
+from predict.pifpaf import PifPaf
 from predict.monoloco import MonoLoco
 from predict.factory import factory_for_gt
 
@@ -32,9 +29,8 @@ def webcam(args):
         args.device = torch.device('cuda')
 
     # load models
-    model, _ = nets.factory_from_args(args)
-    model = model.to(args.device)
-    processor = decoder.factory_from_args(args, model)
+    args.camera = True
+    pifpaf = PifPaf(args)
     monoloco = MonoLoco(model_path=args.model, device=args.device)
 
     # Start recording
@@ -49,16 +45,8 @@ def webcam(args):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         processed_image_cpu = transforms.image_transform(image.copy())
         processed_image = processed_image_cpu.contiguous().to(args.device, non_blocking=True)
-        fields = processor.fields(torch.unsqueeze(processed_image, 0))[0]
-        processor.set_cpu_image(image, processed_image_cpu)
-        keypoint_sets, _ = processor.keypoint_sets(fields)
-
-        pifpaf_out = [
-            {'keypoints': np.around(kps, 1).reshape(-1).tolist(),
-             'bbox': [np.min(kps[kps[:, 2] > 0, 0]), np.min(kps[kps[:, 2] > 0, 1]),
-                      np.max(kps[kps[:, 2] > 0, 0]), np.max(kps[kps[:, 2] > 0, 1])]}
-            for kps in keypoint_sets
-        ]
+        fields = pifpaf.fields(torch.unsqueeze(processed_image, 0))[0]
+        _, _, pifpaf_out = pifpaf.forward(image, processed_image_cpu, fields)
 
         if not ret:
             break
