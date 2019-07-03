@@ -69,7 +69,7 @@ To check all the commands for the parser and the subparsers run:
 
 
 # Webcam
-<img src="docs/webcam_short.gif" height=250 alt="example image" />
+<img src="docs/webcam_short.gif" height=350 alt="example image" />
 
 MonoLoco can run on personal computers with no GPU and low resolution images (e.g. 256x144).
 
