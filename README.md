@@ -67,6 +67,17 @@ To check all the commands for the parser and the subparsers run:
 * `python3 src/main.py train --help`
 * `python3 src/main.py eval --help`
 
+
+# Webcam
+<img src="docs/webcam_short.gif" height=250 alt="example image" />
+
+MonoLoco can run on local notebooks with no GPU with low resolution images (e.g. 256x144).
+
+It support 3 types of visualizations: front, bird and combined
+
+The above gif has been obtained running on a Macbook the command:
+`python src/main.py predict --webcam --scale 0.2 --output_types combined --z_max 10`
+
               
 # Predict
 The predict script receives an image (or an entire folder using glob expressions), 
@@ -109,10 +120,6 @@ Below an example on a generic image from the web, created with:
 `python3 src/main.py predict --networks monoloco --glob docs/surf.jpg --output_types combined --model data/models/monoloco-190513-1437.pkl --n_dropout 100 --z_max 25`
 
 ![no calibration](docs/surf.jpg.combined.png)
-
-
-# Webcam
-<img src="docs/webcam_short.gif" height=250 alt="example image" />
 
 
 # Preprocess
