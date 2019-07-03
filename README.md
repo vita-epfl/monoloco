@@ -112,7 +112,7 @@ Below an example on a generic image from the web, created with:
 
 
 # Webcam
-<img src="docs/wewbcam_short.gif" height=250 alt="example image" />
+<img src="docs/webcam_short.gif" height=250 alt="example image" />
 
 
 # Preprocess
