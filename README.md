@@ -67,6 +67,19 @@ To check all the commands for the parser and the subparsers run:
 * `python3 src/main.py train --help`
 * `python3 src/main.py eval --help`
 
+
+# Webcam
+<img src="docs/webcam_short.gif" height=250 alt="example image" />
+
+MonoLoco can run on personal computers with no GPU and low resolution images (e.g. 256x144).
+
+It support 3 types of visualizations: `front`, `bird` and `combined`
+Multiple visualizations can be combined in different windows.
+
+The above gif has been obtained running on a Macbook the command:
+
+`python src/main.py predict --webcam --scale 0.2 --output_types combined --z_max 10`
+
               
 # Predict
 The predict script receives an image (or an entire folder using glob expressions), 

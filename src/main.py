@@ -15,6 +15,7 @@ from eval.generate_kitti import generate_kitti
 from eval.geom_baseline import geometric_baseline
 from models.hyp_tuning import HypTuning
 from eval.kitti_eval import KittiEval
+from visuals.webcam import webcam
 
 
 def cli():
@@ -57,7 +58,7 @@ def cli():
 
     # 2) Monoloco argument
     predict_parser.add_argument('--model', help='path of MonoLoco model to load',
-                                default="data/models/best_model__seed_2_.pickle")
+                                default="data/models/monoloco-190513-1437.pkl")
     predict_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
                                 default='data/arrays/names-kitti-190513-1754.json')
@@ -67,7 +68,7 @@ def cli():
     predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=22)
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
     predict_parser.add_argument('--dropout', type=float, help='dropout parameter', default=0.2)
-    predict_parser.add_argument('--combined', help='to print combined images', action='store_true')
+    predict_parser.add_argument('--webcam', help='monoloco streaming', action='store_true')
 
     # Training
     training_parser.add_argument('--joints', help='Json file with input joints',
@@ -107,7 +108,10 @@ def main():
     args = cli()
 
     if args.command == 'predict':
-       _ = predict(args)
+        if args.webcam:
+            webcam(args)
+        else:
+            predict(args)
 
     elif args.command == 'prep':
         if 'nuscenes' in args.dataset:
