@@ -73,7 +73,8 @@ class Printer:
                 "combined figure cannot be print together with front or bird ones"
 
             self.y_scale = self.width / (self.height * 1.8)  # Defined proportion
-            self.im = self.im.resize((self.width, round(self.height * self.y_scale)))
+            if self.y_scale < 0.95 or self.y_scale > 1.05:  # allows more variation without resizing
+                self.im = self.im.resize((self.width, round(self.height * self.y_scale)))
             self.width = self.im.size[0]
             self.height = self.im.size[1]
             fig_width = self.fig_width + 0.6 * self.fig_width
@@ -178,9 +179,10 @@ class Printer:
                     ellipse_real = Ellipse((self.xx_gt[idx], self.zz_gt[idx]), width=target * 2, height=1,
                                            angle=angle, color='lightgreen', fill=True, label="Task error")
                     axes[1].add_patch(ellipse_real)
-                    axes[1].plot(self.xx_gt[idx], self.zz_gt[idx], 'kx', label="Ground truth", markersize=3)
+                    if abs(self.zz_gt[idx] - self.zz_pred[idx]) > 0.001:
+                        axes[1].plot(self.xx_gt[idx], self.zz_gt[idx], 'kx', label="Ground truth", markersize=3)
 
-            # Print prediction and the real ground truth. Color of prediction depends if ground truth exists
+            # Print prediction and the real ground truth.
             num = 0
             for idx, _ in enumerate(self.xx_pred):
                 if self.zz_gt[idx] > 0:  # only the merging ones and inside the interval

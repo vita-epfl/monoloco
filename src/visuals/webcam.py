@@ -1,3 +1,10 @@
+"""
+Webcam demo application
+
+Implementation adapted from https://github.com/vita-epfl/openpifpaf/blob/master/openpifpaf/webcam.py
+
+"""
+
 
 import time
 
@@ -100,7 +107,7 @@ class VisualizerMonoloco:
         while True:
             image, dict_ann = yield
             draw_start = time.time()
-            while axes and ((axes[0] and axes[0].patches) or (axes[1] and axes[1].patches)):
+            while axes and ((axes[0] and axes[0].patches) or (axes[-1] and axes[-1].patches)):
                 if axes[0]:
                     del axes[0].patches[0]
                     del axes[0].texts[0]
@@ -108,7 +115,6 @@ class VisualizerMonoloco:
                     del axes[1].patches[0]
                     del axes[1].patches[0]  # the one became the 0
                     if len(axes[1].lines) > 2:
-                        del axes[1].lines[2]
                         del axes[1].lines[2]
                         del axes[1].texts[0]
             printer.draw(figures, axes, dict_ann, image)
