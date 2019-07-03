@@ -111,6 +111,10 @@ Below an example on a generic image from the web, created with:
 ![no calibration](docs/surf.jpg.combined.png)
 
 
+# Webcam
+<img src="docs/wewbcam_short.gif" height=250 alt="example image" />
+
+
 # Preprocess
 
 ### Datasets
