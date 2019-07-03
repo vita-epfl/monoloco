@@ -75,7 +75,6 @@ class PifPaf:
 
     def __init__(self, args):
         """Instanciate the mdodel"""
-
         factory_from_args(args)
         model_pifpaf, _ = nets.factory_from_args(args)
         model_pifpaf = model_pifpaf.to(args.device)
@@ -89,10 +88,12 @@ class PifPaf:
             self.scale_np = np.array([1, 1, 1] * 17).reshape(17, 3)
 
     def fields(self, processed_images):
+        """Encoder for pif and paf fields"""
         fields_batch = self.processor.fields(processed_images)
         return fields_batch
 
     def forward(self, image, processed_image_cpu, fields):
+        """Decoder, from pif and paf fields to keypoints"""
         self.processor.set_cpu_image(image, processed_image_cpu)
         keypoint_sets, scores = self.processor.keypoint_sets(fields)
 
