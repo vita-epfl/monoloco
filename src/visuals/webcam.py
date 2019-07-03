@@ -5,18 +5,19 @@ Implementation adapted from https://github.com/vita-epfl/openpifpaf/blob/master/
 
 """
 
-
 import time
 
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 from PIL import Image
-import cv2
 
 from openpifpaf.network import nets
 from openpifpaf import decoder
 from openpifpaf import transforms
+
+import cv2
+
 from visuals.printer import Printer
 from utils.pifpaf import preprocess_pif
 from predict.monoloco import MonoLoco
@@ -50,7 +51,7 @@ def webcam(args):
         processed_image = processed_image_cpu.contiguous().to(args.device, non_blocking=True)
         fields = processor.fields(torch.unsqueeze(processed_image, 0))[0]
         processor.set_cpu_image(image, processed_image_cpu)
-        keypoint_sets, scores = processor.keypoint_sets(fields)
+        keypoint_sets, _ = processor.keypoint_sets(fields)
 
         pifpaf_out = [
             {'keypoints': np.around(kps, 1).reshape(-1).tolist(),
@@ -61,9 +62,9 @@ def webcam(args):
 
         if not ret:
             break
-        k = cv2.waitKey(1)
+        key = cv2.waitKey(1)
 
-        if k % 256 == 27:
+        if key % 256 == 27:
             # ESC pressed
             print("Escape hit, closing...")
             break
@@ -71,12 +72,12 @@ def webcam(args):
         intrinsic_size = [xx * 1.5 for xx in pil_image.size]
         kk, dict_gt = factory_for_gt(intrinsic_size)  # better intrinsics for mac camera
         if visualizer_monoloco is None:
-                visualizer_monoloco = VisualizerMonoloco(kk, args)(pil_image)
-                visualizer_monoloco.send(None)
+            visualizer_monoloco = VisualizerMonoloco(kk, args)(pil_image)
+            visualizer_monoloco.send(None)
 
         if pifpaf_out:
             boxes, keypoints = preprocess_pif(pifpaf_out, (width, height))
-            outputs, varss = monoloco.forward(keypoints,  kk)
+            outputs, varss = monoloco.forward(keypoints, kk)
             dic_out = monoloco.post_process(outputs, varss, boxes, keypoints, kk, dict_gt)
             visualizer_monoloco.send((pil_image, dic_out))
 
