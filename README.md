@@ -52,9 +52,13 @@ mkdir arrays models kitti nuscenes logs
 
 ### Pre-trained Models
 * Download a MonoLoco pre-trained model from 
-[Google Drive](https://drive.google.com/open?id=1F7UG1HPXGlDD_qL-AN5cv2Eg-mhdQkwv) and save it in `data/models`
-* Download a Pifpaf pre-trained model from [openpifpaf](https://github.com/vita-epfl/openpifpaf) project 
-and save it into `data/models`
+[Google Drive](https://drive.google.com/open?id=1F7UG1HPXGlDD_qL-AN5cv2Eg-mhdQkwv) and save it in `data/models` 
+(default) or in any folder and call it through the command line option `--model <model path>`
+* Pifpaf pre-trained model will be automatically downloaded at the first run. 
+Three standard, pretrained models are available when using the command line option 
+`--checkpoint resnet50`, `--checkpoint resnet101` and `--checkpoint resnet152`.
+Alternatively, you can download a Pifpaf pre-trained model from [openpifpaf](https://github.com/vita-epfl/openpifpaf)
+ and call it with `--checkpoint  <pifpaf model path>`
 
 
 # Interfaces
@@ -114,14 +118,14 @@ Below an example on a generic image from the web, created with:
 # Webcam
 <img src="docs/webcam_short.gif" height=350 alt="example image" />
 
-MonoLoco can run on personal computers with no GPU and low resolution images (e.g. 256x144).
+MonoLoco can run on personal computers with only CPU and low resolution images (e.g. 256x144) at ~2fps.
 
 It support 3 types of visualizations: `front`, `bird` and `combined`
 Multiple visualizations can be combined in different windows.
 
 The above gif has been obtained running on a Macbook the command:
 
-`python src/main.py predict --webcam --scale 0.2 --output_types combined --z_max 10`
+`python src/main.py predict --webcam --scale 0.2 --output_types combined --z_max 10 --checkpoint resnet50`
 
 # Preprocess
 

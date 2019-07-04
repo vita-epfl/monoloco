@@ -47,12 +47,6 @@ def factory_from_args(args):
     # Merge the model_pifpaf argument
     if not args.checkpoint:
         args.checkpoint = 'resnet152'  # Default model Resnet 152
-    elif args.checkpoint == 'resnet50':
-        args.checkpoint = 'data/models/resnet50block5-pif-paf-edge401-190424-122009-f26a1f53.pkl'
-    elif args.checkpoint == 'resnet101':
-        args.checkpoint = 'data/models/resnet101block5-pif-paf-edge401-190412-151013-513a2d2d.pkl'
-    elif args.checkpoint == 'resnet152':
-        args.checkpoint = 'data/models/resnet152block5-pif-paf-edge401-190412-121848-8d771fcc.pkl'
     # glob
     if not args.webcam:
         if args.glob:

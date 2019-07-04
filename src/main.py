@@ -39,7 +39,7 @@ def cli():
                              default='data/nuscenes/')
 
     # Predict (2D pose and/or 3D location from images)
-    # 0) General arguments
+    # General
     predict_parser.add_argument('--networks', nargs='+', help='Run pifpaf and/or monoloco', default=['monoloco'])
     predict_parser.add_argument('images', nargs='*', help='input images')
     predict_parser.add_argument('--glob', help='glob expression for input images (for many images)')
@@ -49,13 +49,12 @@ def cli():
                                      'json bird front combined for Monoloco')
     predict_parser.add_argument('--show', help='to show images', action='store_true')
 
-    # 1)Pifpaf arguments
+    # Pifpaf
     nets.cli(predict_parser)
     decoder.cli(predict_parser, force_complete_pose=True, instance_threshold=0.1)
-    predict_parser.add_argument('--checkpoint', help='pifpaf model to load')
     predict_parser.add_argument('--scale', default=1.0, type=float, help='change the scale of the image to preprocess')
 
-    # 2) Monoloco argument
+    # Monoloco
     predict_parser.add_argument('--model', help='path of MonoLoco model to load',
                                 default="data/models/monoloco-190513-1437.pkl")
     predict_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
