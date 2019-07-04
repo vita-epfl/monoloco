@@ -52,8 +52,7 @@ def cli():
     # 1)Pifpaf arguments
     nets.cli(predict_parser)
     decoder.cli(predict_parser, force_complete_pose=True, instance_threshold=0.1)
-    predict_parser.add_argument('--model_pifpaf', help='pifpaf model to load',
-                                default="data/models/resnet152-190412.pkl")
+    predict_parser.add_argument('--checkpoint', help='pifpaf model to load')
     predict_parser.add_argument('--scale', default=1.0, type=float, help='change the scale of the image to preprocess')
 
     # 2) Monoloco argument
