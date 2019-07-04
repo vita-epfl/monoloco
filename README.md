@@ -119,8 +119,7 @@ Below an example on a generic image from the web, created with:
 <img src="docs/webcam_short.gif" height=350 alt="example image" />
 
 MonoLoco can run on personal computers with only CPU and low resolution images (e.g. 256x144) at ~2fps.
-
-It support 3 types of visualizations: `front`, `bird` and `combined`
+It support 3 types of visualizations: `front`, `bird` and `combined`.
 Multiple visualizations can be combined in different windows.
 
 The above gif has been obtained running on a Macbook the command:
@@ -164,7 +163,7 @@ by the image name to easily access ground truth files for evaluation and predict
 # Train
 Provide the json file containing the preprocess joints as argument. 
 
-As simple as `python3 src/main.py --train --joints 'data/arrays/joints.json`
+As simple as `python3 src/main.py --train --joints <json file path>`
 
 All the hyperparameters options can be checked at `python3 src/main.py train --help`.
 
