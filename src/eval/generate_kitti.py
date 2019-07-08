@@ -43,18 +43,16 @@ def generate_kitti(model, dir_ann, p_dropout=0.2, n_dropout=0):
     list_basename = factory_basename(dir_ann)
     for basename in list_basename:
         path_calib = os.path.join(dir_kk, basename + '.txt')
-        annotations, kk, tt, _ = factory_file(path_calib, dir_ann, basename)
+        annotations, kk, tt = factory_file(path_calib, dir_ann, basename)
         boxes, keypoints = preprocess_pif(annotations, im_size=(1242, 374))
 
         if not keypoints:
             cnt_no_file += 1
+            continue
         else:
             # Run the network and the geometric baseline
             outputs, varss = monoloco.forward(keypoints, kk)
             dds_geom = eval_geometric(keypoints, kk, average_y=0.48)
-
-        if basename == '001782':
-            aa = 5
 
         # Save the file
         all_outputs = [outputs.detach().cpu(), varss.detach().cpu(), dds_geom]
@@ -115,28 +113,21 @@ def factory_basename(dir_ann):
     return list_basename
 
 
-def factory_file(path_calib, dir_ann, basename, ite=0):
+def factory_file(path_calib, dir_ann, basename):
     """Choose the annotation and the calibration files. Stereo option with ite = 1"""
 
-    stereo_file = True
     p_left, p_right = get_calibration(path_calib)
 
-    if ite == 0:
-        kk, tt = p_left[:]
-        path_ann = os.path.join(dir_ann, basename + '.png.pifpaf.json')
-    else:
-        kk, tt = p_right[:]
-        path_ann = os.path.join(dir_ann + '_right', basename + '.png.pifpaf.json')
+    kk, tt = p_left[:]
+    path_ann = os.path.join(dir_ann, basename + '.png.pifpaf.json')
 
     try:
         with open(path_ann, 'r') as f:
             annotations = json.load(f)
     except FileNotFoundError:
         annotations = None
-        if ite == 1:
-            stereo_file = False
 
-    return annotations, kk, tt, stereo_file
+    return annotations, kk, tt
 
 
 def eval_geometric(keypoints, kk, average_y=0.48):

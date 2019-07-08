@@ -21,9 +21,9 @@ def preprocess_pif(annotations, im_size=None):
             kps = prepare_pif_kps(dic['keypoints'])
             conf = float(np.mean(np.array(kps[2])))
 
-            # Add 10% for y
+            # Add 10% for y and 20% for x
             delta_h = (box[3] - box[1]) / 10
-            delta_w = (box[2] - box[0]) / 10
+            delta_w = (box[2] - box[0]) / 5
             assert delta_h > -5 and delta_w > -5, "Bounding box <=0"
             box[0] -= delta_w
             box[1] -= delta_h
