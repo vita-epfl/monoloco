@@ -64,7 +64,7 @@ class MonoLoco:
         return outputs, varss
 
     @staticmethod
-    def post_process(outputs, varss, boxes, keypoints, kk, dic_gt, iou_min=0.25):
+    def post_process(outputs, varss, boxes, keypoints, kk, dic_gt, iou_min=0.3):
         """Post process monoloco to output final dictionary with all information for visualizations"""
 
         dic_out = defaultdict(list)

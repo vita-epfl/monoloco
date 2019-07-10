@@ -35,7 +35,7 @@ class PreprocessNuscenes:
               }
     dic_names = defaultdict(lambda: defaultdict(list))
 
-    def __init__(self, dir_ann, dir_nuscenes, dataset, iou_min=0.3):
+    def __init__(self, dir_ann, dir_nuscenes, dataset, iou_min):
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
@@ -107,6 +107,8 @@ class PreprocessNuscenes:
                         else:
                             general_name = 'animal'
                         if general_name in select_categories('all'):
+                            if general_name[:4] == 'vehi':
+                                aa = 5
                             box = project_3d(box_obj, kk)
                             dd = np.linalg.norm(box_obj.center)
                             boxes_gt.append(box)

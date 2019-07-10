@@ -29,7 +29,7 @@ class PreprocessKitti:
                            clst=defaultdict(lambda: defaultdict(list)))}
     dic_names = defaultdict(lambda: defaultdict(list))
 
-    def __init__(self, dir_ann, iou_min=0.25):
+    def __init__(self, dir_ann, iou_min):
 
         self.dir_ann = dir_ann
         self.iou_min = iou_min
@@ -76,7 +76,7 @@ class PreprocessKitti:
             if phase == 'train':
                 (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, mode='gt_all')  # Also cyclists
             else:
-                (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, mode='gt')  # only pedestrians
+                (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, mode='gt_all')  # only pedestrians
 
             self.dic_names[basename + '.png']['boxes'] = copy.deepcopy(boxes_gt)
             self.dic_names[basename + '.png']['dds'] = copy.deepcopy(dds_gt)
@@ -97,6 +97,8 @@ class PreprocessKitti:
 
             # Match each set of keypoint with a ground truth
             matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
+            if len(matches) < len(boxes_gt):
+                aa = 5
             for (idx, idx_gt) in matches:
                 self.dic_jo[phase]['kps'].append(keypoints[idx])
                 self.dic_jo[phase]['X'].append(inputs[idx])
@@ -117,7 +119,8 @@ class PreprocessKitti:
                   .format(dic_cnt[phase], phase))
         print("Number of GT files: {}. Files with at least one pedestrian: {}.  Files not found: {}"
               .format(cnt_files, cnt_files_ped, cnt_fnf))
-        print("Number of GT annotations: {}".format(cnt_gt))
+        print("Matched : {:.1f} % of the ground truth instances"
+              .format(100 * (dic_cnt['train'] + dic_cnt['val']) / cnt_gt))
         print("\nOutput files:\n{}\n{}\n".format(self.path_names, self.path_joints))
 
     def _factory_phase(self, name):

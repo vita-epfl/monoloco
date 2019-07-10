@@ -63,7 +63,7 @@ class Printer:
         self.boxes_gt = dic_ann['boxes_gt']
 
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
-        self.radius = 14 / 1600 * self.width
+        self.radius = 11 / 1600 * self.width
 
     def factory_axes(self):
         """Create axes for figures: front bird combined"""
@@ -176,11 +176,13 @@ class Printer:
                         hh_box_gt = (self.boxes_gt[idx][3] - self.boxes_gt[idx][1]) * self.y_scale
 
                         rectangle = Rectangle((self.boxes[idx][0], self.boxes[idx][1] * self.y_scale),
-                                              width=ww_box, height=hh_box, fill=False, color=color, linewidth=3)
+                                             width=ww_box, height=hh_box, fill=False, color=color, linewidth=3)
                         rectangle_gt = Rectangle((self.boxes_gt[idx][0], self.boxes_gt[idx][1] * self.y_scale),
-                                              width=ww_box_gt, height=hh_box_gt, fill=False, color='g', linewidth=2)
-                        axes[0].add_patch(rectangle)
+                                                 width=ww_box_gt, height=hh_box_gt, fill=False, color='g', linewidth=2)
+
                         axes[0].add_patch(rectangle_gt)
+                        axes[0].add_patch(rectangle)
+
 
                     if self.text:
                         axes[0].text(uv[0]+self.radius, uv[1] * self.y_scale - self.radius, str(num),

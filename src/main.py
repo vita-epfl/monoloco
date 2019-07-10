@@ -37,6 +37,7 @@ def cli():
                              default='nuscenes')
     prep_parser.add_argument('--dir_nuscenes', help='directory of nuscenes devkit',
                              default='data/nuscenes/')
+    prep_parser.add_argument('--iou_min', help='minimum iou to match ground truth', type=float, default=0.5)
 
     # Predict (2D pose and/or 3D location from images)
     # General
@@ -59,7 +60,7 @@ def cli():
                                 default="data/models/monoloco-190513-1437.pkl")
     predict_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
-                                default='data/arrays/names-kitti-190513-1754.json')
+                                default='data/arrays/names-kitti-190710-1206.json')
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')
     predict_parser.add_argument('--draw_kps', help='to draw kps in the images', action='store_true')
     predict_parser.add_argument('--predict', help='whether to make prediction', action='store_true')
@@ -113,10 +114,10 @@ def main():
 
     elif args.command == 'prep':
         if 'nuscenes' in args.dataset:
-            prep = PreprocessNuscenes(args.dir_ann, args.dir_nuscenes, args.dataset)
+            prep = PreprocessNuscenes(args.dir_ann, args.dir_nuscenes, args.dataset, args.iou_min)
             prep.run()
         if 'kitti' in args.dataset:
-            prep = PreprocessKitti(args.dir_ann)
+            prep = PreprocessKitti(args.dir_ann, args.iou_min)
             prep.run()
 
     elif args.command == 'train':
