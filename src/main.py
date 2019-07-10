@@ -37,7 +37,7 @@ def cli():
                              default='nuscenes')
     prep_parser.add_argument('--dir_nuscenes', help='directory of nuscenes devkit',
                              default='data/nuscenes/')
-    prep_parser.add_argument('--iou_min', help='minimum iou to match ground truth', type=float, default=0.5)
+    prep_parser.add_argument('--iou_min', help='minimum iou to match ground truth', type=float, default=0.3)
 
     # Predict (2D pose and/or 3D location from images)
     # General
