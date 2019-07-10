@@ -1,5 +1,5 @@
 """Preprocess annotations with KITTI ground-truth"""
-
+import numpy as np
 import os
 import glob
 import copy
@@ -29,7 +29,7 @@ class PreprocessKitti:
                            clst=defaultdict(lambda: defaultdict(list)))}
     dic_names = defaultdict(lambda: defaultdict(list))
 
-    def __init__(self, dir_ann, iou_min=0.3):
+    def __init__(self, dir_ann, iou_min=0.25):
 
         self.dir_ann = dir_ann
         self.iou_min = iou_min
@@ -107,6 +107,7 @@ class PreprocessKitti:
                 append_cluster(self.dic_jo, phase, inputs[idx], dds_gt[idx_gt], keypoints[idx])
                 dic_cnt[phase] += 1
 
+        xx = np.array(self.dic_jo['train']['X'])  # Todo check preprocessing
         with open(self.path_joints, 'w') as file:
             json.dump(self.dic_jo, file)
         with open(os.path.join(self.path_names), 'w') as file:

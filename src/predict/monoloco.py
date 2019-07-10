@@ -98,6 +98,7 @@ class MonoLoco:
             xyz_real = xyz_from_distance(dd_real, xy_centers[idx])
             xyz_pred = xyz_from_distance(dd_pred, xy_centers[idx])
             dic_out['boxes'].append(box)
+            dic_out['boxes_gt'].append(boxes_gt[idx_gt] if dic_gt else boxes[idx])
             dic_out['dds_real'].append(dd_real)
             dic_out['dds_pred'].append(dd_pred)
             dic_out['stds_ale'].append(ale)

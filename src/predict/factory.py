@@ -24,7 +24,7 @@ def factory_for_gt(im_size, name=None, path_gt=None):
         dic_gt = None
         x_factor = im_size[0] / 1600
         y_factor = im_size[1] / 900
-        pixel_factor = (x_factor + y_factor) / 2
+        pixel_factor = (x_factor + y_factor) / 2   # TODO remove and check it
         if im_size[0] / im_size[1] > 2.5:
             kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
         else:

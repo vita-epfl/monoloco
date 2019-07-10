@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from matplotlib.patches import Ellipse, Circle
+from matplotlib.patches import Ellipse, Circle, Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from utils.camera import pixel_to_camera
@@ -24,7 +24,7 @@ class Printer:
     COLOR_KPS = 'yellow'
 
     def __init__(self, image, output_path, kk, output_types, text=True, legend=True, epistemic=False,
-                 z_max=30, fig_width=10):
+                 z_max=30, fig_width=10, box=True):
 
         self.im = image
         self.kk = kk
@@ -37,6 +37,7 @@ class Printer:
         self.width = self.im.size[0]
         self.height = self.im.size[1]
         self.fig_width = fig_width
+        self.box = box
 
         # Define the output dir
         self.path_out = output_path
@@ -58,6 +59,8 @@ class Printer:
         self.uv_centers = dic_ann['uv_centers']
         self.uv_shoulders = dic_ann['uv_shoulders']
         self.uv_kps = dic_ann['uv_kps']
+        self.boxes = dic_ann['boxes']
+        self.boxes_gt = dic_ann['boxes_gt']
 
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
         self.radius = 14 / 1600 * self.width
@@ -165,6 +168,19 @@ class Printer:
                     color = self.cmap((self.zz_pred[idx] % self.z_max) / self.z_max)
                     circle = Circle((uv[0], uv[1] * self.y_scale), radius=self.radius, color=color, fill=True)
                     axes[0].add_patch(circle)
+
+                    if self.box:
+                        ww_box = self.boxes[idx][2] - self.boxes[idx][0]
+                        hh_box = (self.boxes[idx][3] - self.boxes[idx][1]) * self.y_scale
+                        ww_box_gt = self.boxes_gt[idx][2] - self.boxes_gt[idx][0]
+                        hh_box_gt = (self.boxes_gt[idx][3] - self.boxes_gt[idx][1]) * self.y_scale
+
+                        rectangle = Rectangle((self.boxes[idx][0], self.boxes[idx][1] * self.y_scale),
+                                              width=ww_box, height=hh_box, fill=False, color=color, linewidth=3)
+                        rectangle_gt = Rectangle((self.boxes_gt[idx][0], self.boxes_gt[idx][1] * self.y_scale),
+                                              width=ww_box_gt, height=hh_box_gt, fill=False, color='g', linewidth=2)
+                        axes[0].add_patch(rectangle)
+                        axes[0].add_patch(rectangle_gt)
 
                     if self.text:
                         axes[0].text(uv[0]+self.radius, uv[1] * self.y_scale - self.radius, str(num),
