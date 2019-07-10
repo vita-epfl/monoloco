@@ -7,6 +7,7 @@ import logging
 from collections import defaultdict
 import json
 import datetime
+import matplotlib.pylot as plt
 
 from utils.kitti import get_calibration, split_training, parse_ground_truth
 from utils.monoloco import get_monoloco_inputs
@@ -97,8 +98,6 @@ class PreprocessKitti:
 
             # Match each set of keypoint with a ground truth
             matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
-            if len(matches) < len(boxes_gt):
-                aa = 5
             for (idx, idx_gt) in matches:
                 self.dic_jo[phase]['kps'].append(keypoints[idx])
                 self.dic_jo[phase]['X'].append(inputs[idx])
@@ -110,6 +109,9 @@ class PreprocessKitti:
                 dic_cnt[phase] += 1
 
         xx = np.array(self.dic_jo['train']['X'])  # Todo check preprocessing
+        max = np.max(xx)
+        plt.hist(xx[:, 1].tolist(), bins=50)
+
         with open(self.path_joints, 'w') as file:
             json.dump(self.dic_jo, file)
         with open(os.path.join(self.path_names), 'w') as file:

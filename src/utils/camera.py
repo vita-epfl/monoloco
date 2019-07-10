@@ -193,16 +193,3 @@ def xyz_from_distance(distances, xy_centers):
     assert xy_centers.size()[-1] == 3 and distances.size()[-1] == 1, "Size of tensor not recognized"
 
     return xy_centers * distances / torch.sqrt(1 + xy_centers[:, 0:1].pow(2) + xy_centers[:, 1:2].pow(2))
-
-
-def pixel_to_camera_old(uv1, kk, z_met):
-    """
-    (3,) array --> (3,) array
-    Convert a point in pixel coordinate to absolute camera coordinates
-    """
-    if len(uv1) == 2:
-        uv1.append(1)
-    kk_1 = np.linalg.inv(kk)
-    xyz_met_norm = np.dot(kk_1, uv1)
-    xyz_met = xyz_met_norm * z_met
-    return xyz_met

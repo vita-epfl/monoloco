@@ -16,8 +16,8 @@ def get_monoloco_inputs(keypoints, kk):
         kk = torch.tensor(kk)
     # Projection in normalized image coordinates and zero-center with the center of the bounding box
     uv_center = get_keypoints(keypoints, mode='center')
-    xy1_center = pixel_to_camera(uv_center, kk, 1) * 10
-    xy1_all = pixel_to_camera(keypoints[:, 0:2, :], kk, 1) * 10
+    xy1_center = pixel_to_camera(uv_center, kk, 10)
+    xy1_all = pixel_to_camera(keypoints[:, 0:2, :], kk, 10)
     kps_norm = xy1_all - xy1_center.unsqueeze(1)  # (m, 17, 3) - (m, 1, 3)
     kps_out = kps_norm[:, :, 0:2].reshape(kps_norm.size()[0], -1)  # no contiguous for view
     return kps_out
