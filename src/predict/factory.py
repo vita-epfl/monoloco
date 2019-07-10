@@ -79,7 +79,8 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, dic_out=N
                 printer = Printer(images_outputs[1], output_path, kk, output_types=args.output_types
                                   , z_max=args.z_max, epistemic=epistemic)
                 figures, axes = printer.factory_axes()
-                printer.draw(figures, axes, dic_out, images_outputs[1], save=True, show=args.show)
+                printer.draw(figures, axes, dic_out, images_outputs[1], draw_box=args.draw_box,
+                             save=True, show=args.show)
 
         if 'json' in args.output_types:
             with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:

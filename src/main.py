@@ -62,7 +62,7 @@ def cli():
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
                                 default='data/arrays/names-kitti-190710-1206.json')
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')
-    predict_parser.add_argument('--draw_kps', help='to draw kps in the images', action='store_true')
+    predict_parser.add_argument('--draw_box', help='to draw box in the images', action='store_true')
     predict_parser.add_argument('--predict', help='whether to make prediction', action='store_true')
     predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=22)
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
