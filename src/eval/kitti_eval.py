@@ -25,12 +25,9 @@ class KittiEval:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
-    METHODS = ['m3d', 'md', 'geom', 'task_error', '3dop', 'our']
+    METHODS = ['m3d', 'geom', 'task_error', '3dop', 'our']
     HEADERS = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
-    dic_stds = defaultdict(lambda: defaultdict(list))
-    dic_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(float))))
-    dic_cnt = defaultdict(int)
-    errors = defaultdict(lambda: defaultdict(list))
+    CATEGORIES = ['cyclist']
 
     def __init__(self, thresh_iou_our=0.3, thresh_iou_m3d=0.3, thresh_conf_m3d=0.3, thresh_conf_our=0.3,
                  verbose=False):
@@ -60,52 +57,69 @@ class KittiEval:
         # Extract validation images for evaluation
         names_gt = tuple(os.listdir(self.dir_gt))
         _, self.set_val = split_training(names_gt, path_train, path_val)
+
+        # Define variables to save statistics
+        self.errors = None
+        self.dic_stds = None
+        self.dic_stats = None
+        self.dic_cnt = None
         self.cnt_gt = 0
 
     def run(self):
         """Evaluate Monoloco performances on ALP and ALE metrics"""
 
-        # Iterate over each ground truth file in the training set
-        for name in self.set_val:
-            path_gt = os.path.join(self.dir_gt, name)
-            path_m3d = os.path.join(self.dir_m3d, name)
-            path_our = os.path.join(self.dir_our, name)
-            path_3dop = os.path.join(self.dir_3dop, name)
-            path_md = os.path.join(self.dir_md, name)
+        for category in self.CATEGORIES:
 
-            # Iterate over each line of the gt file and save box location and distances
-            out_gt = parse_ground_truth(path_gt)
-            self.cnt_gt += len(out_gt[0])
+            # Initialize variables
+            self.errors = defaultdict(lambda: defaultdict(list))
+            self.dic_stds = defaultdict(lambda: defaultdict(list))
+            self.dic_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(float))))
+            self.dic_cnt = defaultdict(int)
+            self.cnt_gt = 0
 
-            # Extract annotations for the same file
-            if out_gt[0]:
-                out_m3d = self._parse_txts(path_m3d, method='m3d')
-                out_3dop = self._parse_txts(path_3dop, method='3dop')
-                out_md = self._parse_txts(path_md, method='md')
-                out_our = self._parse_txts(path_our, method='our')
+            # Iterate over each ground truth file in the training set
+            for name in self.set_val:
+                path_gt = os.path.join(self.dir_gt, name)
+                path_m3d = os.path.join(self.dir_m3d, name)
+                path_our = os.path.join(self.dir_our, name)
+                path_3dop = os.path.join(self.dir_3dop, name)
+                path_md = os.path.join(self.dir_md, name)
 
-                # Compute the error with ground truth
-                self._estimate_error(out_gt, out_m3d, method='m3d')
-                self._estimate_error(out_gt, out_3dop, method='3dop')
-                self._estimate_error(out_gt, out_md, method='md')
-                self._estimate_error(out_gt, out_our, method='our')
+                # Iterate over each line of the gt file and save box location and distances
+                out_gt = parse_ground_truth(path_gt, category)
+                self.cnt_gt += len(out_gt[0])
 
-                # Iterate over all the files together to find a pool of common annotations
-                self._compare_error(out_gt, out_m3d, out_3dop, out_md, out_our)
+                # Extract annotations for the same file
+                if out_gt[0]:
+                    out_m3d = self._parse_txts(path_m3d, category, method='m3d')
+                    out_3dop = self._parse_txts(path_3dop, category, method='3dop')
+                    # out_md = self._parse_txts(path_md, category, method='md')
+                    out_our = self._parse_txts(path_our, category, method='our')
+                    out_md = out_m3d
 
-        # Update statistics of errors and uncertainty
-        for key in self.errors:
-            add_true_negatives(self.errors[key], self.cnt_gt)
-            for clst in self.CLUSTERS[:-2]:  # M3d and pifpaf does not have annotations above 40 meters
-                get_statistics(self.dic_stats['test'][key][clst], self.errors[key][clst], self.dic_stds[clst], key)
+                    # Compute the error with ground truth
+                    self._estimate_error(out_gt, out_m3d, method='m3d')
+                    self._estimate_error(out_gt, out_3dop, method='3dop')
+                    # self._estimate_error(out_gt, out_md, method='md')
+                    self._estimate_error(out_gt, out_our, method='our')
 
-        # Show statistics
-        self.show_statistics()
+                    # Iterate over all the files together to find a pool of common annotations
+                    self._compare_error(out_gt, out_m3d, out_3dop, out_md, out_our)
+
+            # Update statistics of errors and uncertainty
+            for key in self.errors:
+                add_true_negatives(self.errors[key], self.cnt_gt)
+                for clst in self.CLUSTERS[:-2]:  # M3d and pifpaf does not have annotations above 40 meters
+                    get_statistics(self.dic_stats['test'][key][clst], self.errors[key][clst], self.dic_stds[clst], key)
+
+            # Show statistics
+            print('\n' + category.upper() + ':')
+            self.show_statistics()
 
     def printer(self, show):
         print_results(self.dic_stats, show)
 
-    def _parse_txts(self, path, method):
+    def _parse_txts(self, path, category, method):
         boxes = []
         dds = []
         stds_ale = []
@@ -119,7 +133,7 @@ class KittiEval:
             try:
                 with open(path, "r") as ff:
                     for line in ff:
-                        if check_conditions(line, thresh=self.dic_thresh_conf[method], mode=method):
+                        if check_conditions(line, category, method=method, thresh=self.dic_thresh_conf[method]):
                             boxes.append([float(x) for x in line.split()[4:8]])
                             loc = ([float(x) for x in line.split()[11:14]])
                             dds.append(math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2))
@@ -134,7 +148,7 @@ class KittiEval:
                 with open(path, "r") as ff:
                     for line in ff:
                         box = [float(x[:-1]) for x in line.split()[0:4]]
-                        delta_h = (box[3] - box[1]) / 10
+                        delta_h = (box[3] - box[1]) / 10   # TODO Add new value
                         delta_w = (box[2] - box[0]) / 10
                         assert delta_h > 0 and delta_w > 0, "Bounding box <=0"
                         box[0] -= delta_w
@@ -157,7 +171,7 @@ class KittiEval:
                 for line_our in file_lines[:-1]:
                     line_list = [float(x) for x in line_our.split()]
 
-                    if check_conditions(line_list, thresh=self.dic_thresh_conf[method], mode=method):
+                    if check_conditions(line_list, category, method=method, thresh=self.dic_thresh_conf[method]):
                         boxes.append(line_list[:4])
                         dds.append(line_list[8])
                         stds_ale.append(line_list[9])
@@ -192,7 +206,7 @@ class KittiEval:
                 self.update_errors(dds_geom[idx], dds_gt[idx_gt], cat, self.errors['geom'])
                 self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
 
-                dd_task_error = dds_gt[idx_gt] + get_task_error(dds_gt[idx_gt])
+                dd_task_error = dds_gt[idx_gt] + (get_task_error(dds_gt[idx_gt]))**2
                 self.update_errors(dd_task_error, dds_gt[idx_gt], cat, self.errors['task_error'])
 
     def _compare_error(self, out_gt, out_m3d, out_3dop, out_md, out_our):
@@ -307,9 +321,8 @@ class KittiEval:
 
     def show_statistics(self):
 
-        print('\nPEDESTRIANS:')
         print('-'*90)
-        alp = [[str(average(self.errors[key][perc]))[:4]
+        alp = [[str(100 * average(self.errors[key][perc]))[:4]
                 for perc in ['<0.5m', '<1m', '<2m']]
                for key in self.METHODS]
 
@@ -335,19 +348,19 @@ class KittiEval:
                     if key == 'our':
                         print("% of annotation inside the confidence interval: {:.1f} %, "
                               "of which {:.1f} % at higher risk"
-                              .format(100 * self.dic_stats['test'][key][clst]['interval'],
-                                      100 * self.dic_stats['test'][key][clst]['at_risk']))
+                              .format(self.dic_stats['test'][key][clst]['interval'],
+                                      self.dic_stats['test'][key][clst]['at_risk']))
 
                 for perc in ['<0.5m', '<1m', '<2m']:
                     print("{} Instances with error {}: {:.2f} %"
-                          .format(key, perc, average(self.errors[key][perc])))
+                          .format(key, perc, 100 * average(self.errors[key][perc])))
 
                 print("\n Number of matched annotations: {:.1f} %".format(self.errors[key]['matched']))
                 print(" Number of {} detected annotations : {}/{} ".format(key, self.dic_cnt[key], self.cnt_gt))
                 print("-"*100)
 
             print("\n Annotations inside the confidence interval: {:.1f} %"
-                  .format(100 * self.dic_stats['test']['our']['all']['interval']))
+                  .format(self.dic_stats['test']['our']['all']['interval']))
             print("precision 1: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_1']))
             print("precision 2: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_2']))
 
@@ -355,17 +368,22 @@ class KittiEval:
 def get_statistics(dic_stats, errors, dic_stds, key):
     """Update statistics of a cluster"""
 
-    dic_stats['mean'] = sum(errors) / float(len(errors))
-    dic_stats['max'] = max(errors)
-    dic_stats['cnt'] = len(errors)
+    try:
+        dic_stats['mean'] = average(errors)
+        dic_stats['max'] = max(errors)
+        dic_stats['cnt'] = len(errors)
+    except (ZeroDivisionError, ValueError):
+        dic_stats['mean'] = 0.
+        dic_stats['max'] = 0.
+        dic_stats['cnt'] = 0.
 
     if key == 'our':
-        dic_stats['std_ale'] = sum(dic_stds['ale']) / float(len(dic_stds['ale']))
-        dic_stats['std_epi'] = sum(dic_stds['epi']) / float(len(dic_stds['epi']))
-        dic_stats['interval'] = sum(dic_stds['interval']) / float(len(dic_stds['interval']))
-        dic_stats['at_risk'] = sum(dic_stds['at_risk']) / float(len(dic_stds['at_risk']))
-        dic_stats['prec_1'] = sum(dic_stds['prec_1']) / float(len(dic_stds['prec_1']))
-        dic_stats['prec_2'] = sum(dic_stds['prec_2']) / float(len(dic_stds['prec_2']))
+        dic_stats['std_ale'] = average(dic_stds['ale'])
+        dic_stats['std_epi'] = average(dic_stds['epi'])
+        dic_stats['interval'] = average(dic_stds['interval'])
+        dic_stats['at_risk'] = average(dic_stds['at_risk'])
+        dic_stats['prec_1'] = average(dic_stds['prec_1'])
+        dic_stats['prec_2'] = average(dic_stds['prec_2'])
 
 
 def add_true_negatives(err, cnt_gt):
@@ -414,4 +432,4 @@ def extract_indices(idx_to_check, *args):
 
 def average(my_list):
     """calculate mean of a list"""
-    return 100 * sum(my_list) / len(my_list)
+    return sum(my_list) / len(my_list)

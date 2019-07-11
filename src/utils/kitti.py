@@ -69,28 +69,23 @@ def get_simplified_calibration(path_txt):
     raise ValueError('Matrix K_02 not found in the file')
 
 
-def check_conditions(line, mode, thresh=0.3):
+def check_conditions(line, category, method, thresh=0.3):
     """Check conditions of our or m3d txt file"""
 
     check = False
-    assert mode in ['gt', 'gt_all', 'm3d', '3dop','our'], "Mode %r not recognized" % mode
+    assert method in ['gt', 'm3d', '3dop', 'our'], "Method %r not recognized" % method
 
-    if mode == 'm3d' or mode == '3dop':
+    if method == 'm3d' or method == '3dop':
         conf = line.split()[15]
-        if line[:10] == 'pedestrian' and float(conf) >= thresh:
+        if line[:len(category)] == category and float(conf) >= thresh:
             check = True
 
-    elif mode == 'gt':
-        # if line[:10] == 'Pedestrian' or line[:10] == 'Person_sit':
-        if line[:10] == 'Pedestrian':
+    elif method == 'gt':
+        category_gt = category.upper()[0] + category[1:]  # Upper case names
+        if line[:len(category)] == category_gt:
             check = True
 
-    # Consider also person sitting and cyclists categories
-    elif mode == 'gt_all':
-        if line[:10] == 'Pedestrian' or line[:10] == 'Person_sit' or line[:7] == 'Cyclist':
-            check = True
-
-    elif mode == 'our':
+    elif method == 'our':
         if line[4] >= thresh:
             check = True
 
@@ -130,7 +125,7 @@ def split_training(names_gt, path_train, path_val):
     return set_train, set_val
 
 
-def parse_ground_truth(path_gt, mode='gt'):
+def parse_ground_truth(path_gt, category):
     """Parse KITTI ground truth files"""
     boxes_gt = []
     dds_gt = []
@@ -140,7 +135,7 @@ def parse_ground_truth(path_gt, mode='gt'):
 
     with open(path_gt, "r") as f_gt:
         for line_gt in f_gt:
-            if check_conditions(line_gt, mode=mode):
+            if check_conditions(line_gt, category, method='gt'):
                 truncs_gt.append(float(line_gt.split()[1]))
                 occs_gt.append(int(line_gt.split()[2]))
                 boxes_gt.append([float(x) for x in line_gt.split()[4:8]])
