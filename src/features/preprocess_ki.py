@@ -7,7 +7,7 @@ import logging
 from collections import defaultdict
 import json
 import datetime
-import matplotlib.pylot as plt
+import matplotlib.pyplot as plt
 
 from utils.kitti import get_calibration, split_training, parse_ground_truth
 from utils.monoloco import get_monoloco_inputs
@@ -110,7 +110,30 @@ class PreprocessKitti:
 
         xx = np.array(self.dic_jo['train']['X'])  # Todo check preprocessing
         max = np.max(xx)
+
+        # Nose
+        plt.hist(xx[:, 0].tolist(), bins=50)
+        plt.show()
+        plt.close()
         plt.hist(xx[:, 1].tolist(), bins=50)
+        plt.show()
+        plt.close()
+
+        # left shoulder
+        plt.hist(xx[:, 10].tolist(), bins=50)
+        plt.show()
+        plt.close()
+        plt.hist(xx.tolist(), bins=50)
+        plt.show()
+        plt.close()
+
+        # Hip
+        plt.hist(xx[:, 22].tolist(), bins=50)
+        plt.show()
+        plt.close()
+        plt.hist(xx[:, 23].tolist(), bins=50)
+        plt.show()
+        plt.close()
 
         with open(self.path_joints, 'w') as file:
             json.dump(self.dic_jo, file)
