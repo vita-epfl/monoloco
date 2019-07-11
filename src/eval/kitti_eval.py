@@ -32,7 +32,9 @@ class KittiEval:
     dic_cnt = defaultdict(int)
     errors = defaultdict(lambda: defaultdict(list))
 
-    def __init__(self, thresh_iou_our=0.3, thresh_iou_m3d=0.3, thresh_conf_m3d=0.3, thresh_conf_our=0.3):
+    def __init__(self, thresh_iou_our=0.3, thresh_iou_m3d=0.3, thresh_conf_m3d=0.3, thresh_conf_our=0.3,
+                 verbose=False):
+
         self.dir_gt = os.path.join('data', 'kitti', 'gt')
         self.dir_m3d = os.path.join('data', 'kitti', 'm3d')
         self.dir_3dop = os.path.join('data', 'kitti', '3dop')
@@ -46,6 +48,7 @@ class KittiEval:
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
         self.path_results = os.path.join(dir_logs, 'eval-' + now_time + '.json')
+        self.verbose = verbose
 
         assert os.path.exists(self.dir_m3d) and os.path.exists(self.dir_our) \
                and os.path.exists(self.dir_3dop)
@@ -302,7 +305,7 @@ class KittiEval:
         self.dic_stds[clst]['prec_2'].append(prec_2)
         self.dic_stds[cat]['prec_2'].append(prec_2)
 
-    def show_statistics(self, verbose=True):
+    def show_statistics(self):
 
         print('\nPEDESTRIANS:')
         print('-'*90)
@@ -319,7 +322,7 @@ class KittiEval:
         print(tabulate(results, headers=self.HEADERS))
         print('-'*90 + '\n')
 
-        if verbose:
+        if self.verbose:
             methods_all = list(chain.from_iterable((method, method + '_merged') for method in self.METHODS))
             for key in methods_all:
                 for clst in self.CLUSTERS[:4]:

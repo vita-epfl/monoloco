@@ -97,7 +97,8 @@ def cli():
     eval_parser.add_argument('--dropout', type=float, help='dropout. Default no dropout', default=0.2)
     eval_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
     eval_parser.add_argument('--n_stage', type=int, help='Number of stages in the model', default=3)
-    eval_parser.add_argument('--show', help='whether to show eval statistics', action='store_true')
+    eval_parser.add_argument('--show', help='whether to show statistic graphs', action='store_true')
+    eval_parser.add_argument('--verbose', help='verbosity of statistics', action='store_true')
 
     args = parser.parse_args()
     return args
@@ -143,7 +144,7 @@ def main():
             generate_kitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout)
 
         if args.dataset == 'kitti':
-            kitti_eval = KittiEval()
+            kitti_eval = KittiEval(verbose=args.verbose)
             kitti_eval.run()
             kitti_eval.printer(show=args.show)
 

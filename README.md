@@ -31,7 +31,7 @@ All details for Pifpaf pose detector at [openpifpaf](https://github.com/vita-epf
 
 
 ```
-pip install nuscenes-devkit openpifpaf
+pip install openpifpaf nuscenes-devkit tabulate
 ```
 ### Data structure
 
