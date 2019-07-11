@@ -1,4 +1,6 @@
 
+import numpy as np
+
 
 COCO_KEYPOINTS = [
     'nose',            # 1
@@ -22,6 +24,7 @@ COCO_KEYPOINTS = [
 
 
 HFLIP = {
+    'nose': 'nose',
     'left_eye': 'right_eye',
     'right_eye': 'left_eye',
     'left_ear': 'right_ear',
@@ -39,3 +42,13 @@ HFLIP = {
     'left_ankle': 'right_ankle',
     'right_ankle': 'left_ankle',
 }
+
+
+def transform_keypoints(keypoints, mode):
+
+    assert mode == 'flip', "mode not recognized"
+    kps = np.array(keypoints)
+    dic_kps = {key: kps[:, :, idx] for idx, key in enumerate(COCO_KEYPOINTS)}
+    kps_hflip = np.array([dic_kps[value] for key, value in HFLIP.items()])
+    kps_hflip = np.transpose(kps_hflip, (1, 2, 0))
+    return kps_hflip.tolist()

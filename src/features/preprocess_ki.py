@@ -1,5 +1,5 @@
 """Preprocess annotations with KITTI ground-truth"""
-import numpy as np
+
 import os
 import glob
 import copy
@@ -7,8 +7,8 @@ import logging
 from collections import defaultdict
 import json
 import datetime
-import matplotlib.pyplot as plt
 
+from features.transforms import transform_keypoints
 from utils.kitti import get_calibration, split_training, parse_ground_truth
 from utils.monoloco import get_monoloco_inputs
 from utils.pifpaf import preprocess_pif
@@ -91,7 +91,11 @@ class PreprocessKitti:
                 with open(os.path.join(self.dir_ann, basename + '.png.pifpaf.json'), 'r') as f:
                     annotations = json.load(f)
                 boxes, keypoints = preprocess_pif(annotations, im_size=(1238, 374))
+                keypoints_hflip = transform_keypoints(keypoints, mode='flip')
                 inputs = get_monoloco_inputs(keypoints, kk).tolist()
+                inputs_hflip = get_monoloco_inputs(keypoints, kk).tolist()
+                all_keypoints = [keypoints, keypoints_hflip]
+                all_inputs = [inputs, inputs_hflip]
 
             except FileNotFoundError:
                 boxes = []
@@ -99,13 +103,15 @@ class PreprocessKitti:
             # Match each set of keypoint with a ground truth
             matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
             for (idx, idx_gt) in matches:
-                self.dic_jo[phase]['kps'].append(keypoints[idx])
-                self.dic_jo[phase]['X'].append(inputs[idx])
-                self.dic_jo[phase]['Y'].append([dds_gt[idx_gt]])  # Trick to make it (nn,1)
-                self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
-                self.dic_jo[phase]['K'].append(kk)
-                self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
-                append_cluster(self.dic_jo, phase, inputs[idx], dds_gt[idx_gt], keypoints[idx])
+                for nn, keypoints in enumerate(all_keypoints):
+                    inputs = all_inputs[nn]
+                    self.dic_jo[phase]['kps'].append(keypoints[idx])
+                    self.dic_jo[phase]['X'].append(inputs[idx])
+                    self.dic_jo[phase]['Y'].append([dds_gt[idx_gt]])  # Trick to make it (nn,1)
+                    self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
+                    self.dic_jo[phase]['K'].append(kk)
+                    self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
+                    append_cluster(self.dic_jo, phase, inputs[idx], dds_gt[idx_gt], keypoints[idx])
                 dic_cnt[phase] += 1
 
         with open(self.path_joints, 'w') as file:
