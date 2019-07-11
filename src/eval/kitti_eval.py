@@ -6,6 +6,8 @@ import logging
 from collections import defaultdict
 import datetime
 
+from tabulate import tabulate
+
 from utils.iou import get_iou_matches
 from utils.misc import get_task_error
 from utils.kitti import check_conditions, get_category, split_training, parse_ground_truth
@@ -92,36 +94,43 @@ class KittiEval:
                 get_statistics(self.dic_stats['test'][key][clst], self.errors[key][clst], self.dic_stds[clst], key)
 
         # Show statistics
-        print(" Number of GT annotations: {} ".format(cnt_gt))
-        for key in self.errors:
-            if key in ['our', 'm3d', '3dop']:
-                print(" Number of {} annotations with confidence >= {} : {} "
-                      .format(key, self.dic_thresh_conf[key], self.dic_cnt[key]))
+        methods = ['our', '3dop', 'm3d', 'geom', 'md']
+        headers = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
+        results = [[key] +
+                   [str(100 * sum(self.errors[key][perc]) / len(self.errors[key][perc]))[:4]
+                    for perc in ['<0.5m', '<1m', '<2m']] +
+                   [str(self.dic_stats['test'][key][clst]['mean'])[:5]
+                    for clst in self.CLUSTERS[:4]]
+                   for key in methods]
 
-            for clst in self.CLUSTERS[:-9]:
-                print(" {} Average error in cluster {}: {:.2f} with a max error of {:.1f}, "
-                      "for {} annotations"
-                      .format(key, clst, self.dic_stats['test'][key][clst]['mean'],
-                              self.dic_stats['test'][key][clst]['max'],
-                              self.dic_stats['test'][key][clst]['cnt']))
-
-                if key == 'our':
-                    print("% of annotation inside the confidence interval: {:.1f} %, "
-                          "of which {:.1f} % at higher risk"
-                          .format(100 * self.dic_stats['test'][key][clst]['interval'],
-                                  100 * self.dic_stats['test'][key][clst]['at_risk']))
-
-            for perc in ['<0.5m', '<1m', '<2m']:
-                print("{} Instances with error {}: {:.2f} %"
-                      .format(key, perc, 100 * sum(self.errors[key][perc])/len(self.errors[key][perc])))
-
-            print("\n Number of matched annotations: {:.1f} %".format(self.errors[key]['matched']))
-            print("-"*100)
-
-        print("\n Annotations inside the confidence interval: {:.1f} %"
-              .format(100 * self.dic_stats['test']['our']['all']['interval']))
-        print("precision 1: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_1']))
-        print("precision 2: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_2']))
+        print(tabulate(results, headers=headers))
+        aa = 5
+        # for key in ['our', '3dop', 'm3d', 'geom', 'md']:
+        #     for clst in self.CLUSTERS[:3]:
+        #         print(" {} Average error in cluster {}: {:.2f} with a max error of {:.1f}, "
+        #               "for {} annotations"
+        #               .format(key, clst, self.dic_stats['test'][key][clst]['mean'],
+        #                       self.dic_stats['test'][key][clst]['max'],
+        #                       self.dic_stats['test'][key][clst]['cnt']))
+        #
+        #         if key == 'our':
+        #             print("% of annotation inside the confidence interval: {:.1f} %, "
+        #                   "of which {:.1f} % at higher risk"
+        #                   .format(100 * self.dic_stats['test'][key][clst]['interval'],
+        #                           100 * self.dic_stats['test'][key][clst]['at_risk']))
+        #
+        #     for perc in ['<0.5m', '<1m', '<2m']:
+        #         print("{} Instances with error {}: {:.2f} %"
+        #               .format(key, perc, 100 * sum(self.errors[key][perc])/len(self.errors[key][perc])))
+        #
+        #     print("\n Number of matched annotations: {:.1f} %".format(self.errors[key]['matched']))
+        #     print(" Number of {} detected annotations : {}/{} ".format(key, self.dic_cnt[key], cnt_gt))
+        #     print("-"*100)
+        #
+        # print("\n Annotations inside the confidence interval: {:.1f} %"
+        #       .format(100 * self.dic_stats['test']['our']['all']['interval']))
+        # print("precision 1: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_1']))
+        # print("precision 2: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_2']))
 
     def printer(self, show):
         print_results(self.dic_stats, show)
@@ -185,6 +194,7 @@ class KittiEval:
                         stds_epi.append(line_list[10])
                         dds_geom.append(line_list[11])
                         self.dic_cnt[method] += 1
+                        self.dic_cnt['geom'] += 1
 
                 # kk_list = [float(x) for x in file_lines[-1].split()]
 

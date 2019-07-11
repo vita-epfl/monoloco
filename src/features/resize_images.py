@@ -12,7 +12,6 @@ def resize(input_glob, output_dir, factor=2):
     """
     list_im = glob.glob(input_glob)
 
-
     for idx, path_in in enumerate(list_im):
 
         basename, _ = os.path.splitext(os.path.basename(path_in))
