@@ -212,6 +212,9 @@ class KittiEval:
                 self.update_errors(dds_geom[idx], dds_gt[idx_gt], cat, self.errors['geom'])
                 self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
 
+                dd_task_error = dds_gt[idx_gt] + get_task_error(dds_gt[idx_gt])
+                self.update_errors(dd_task_error, dds_gt[idx_gt], cat, self.errors['task_error'])
+
     def _compare_error(self, out_gt, out_m3d, out_3dop, out_md, out_our):
         """Compare the error for a pool of instances commonly matched by all methods"""
 
@@ -236,6 +239,7 @@ class KittiEval:
                 dd_gt = dds_gt[idx_gt]
                 self.update_errors(dds_our[idx], dd_gt, cat, self.errors['our_merged'])
                 self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
+                self.update_errors(dd_gt + get_task_error(dd_gt), dd_gt, cat, self.errors['task_error_merged'])
                 self.update_errors(dds_m3d[indices[0]], dd_gt, cat, self.errors['m3d_merged'])
                 self.update_errors(dds_3dop[indices[1]], dd_gt, cat, self.errors['3dop_merged'])
                 self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['md_merged'])
