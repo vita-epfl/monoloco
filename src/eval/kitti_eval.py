@@ -3,8 +3,9 @@
 import os
 import math
 import logging
-from collections import defaultdict
 import datetime
+from collections import defaultdict
+from itertools import chain
 
 from tabulate import tabulate
 
@@ -24,6 +25,8 @@ class KittiEval:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
+    METHODS = ['m3d', 'md', 'geom', 'task_error', '3dop', 'our']
+    HEADERS = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
     dic_stds = defaultdict(lambda: defaultdict(list))
     dic_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(float))))
     dic_cnt = defaultdict(int)
@@ -54,12 +57,12 @@ class KittiEval:
         # Extract validation images for evaluation
         names_gt = tuple(os.listdir(self.dir_gt))
         _, self.set_val = split_training(names_gt, path_train, path_val)
+        self.cnt_gt = 0
 
     def run(self):
         """Evaluate Monoloco performances on ALP and ALE metrics"""
 
         # Iterate over each ground truth file in the training set
-        cnt_gt = 0
         for name in self.set_val:
             path_gt = os.path.join(self.dir_gt, name)
             path_m3d = os.path.join(self.dir_m3d, name)
@@ -69,7 +72,7 @@ class KittiEval:
 
             # Iterate over each line of the gt file and save box location and distances
             out_gt = parse_ground_truth(path_gt)
-            cnt_gt += len(out_gt[0])
+            self.cnt_gt += len(out_gt[0])
 
             # Extract annotations for the same file
             if out_gt[0]:
@@ -89,48 +92,12 @@ class KittiEval:
 
         # Update statistics of errors and uncertainty
         for key in self.errors:
-            add_true_negatives(self.errors[key], cnt_gt)
+            add_true_negatives(self.errors[key], self.cnt_gt)
             for clst in self.CLUSTERS[:-2]:  # M3d and pifpaf does not have annotations above 40 meters
                 get_statistics(self.dic_stats['test'][key][clst], self.errors[key][clst], self.dic_stds[clst], key)
 
         # Show statistics
-        methods = ['our', '3dop', 'm3d', 'geom', 'md']
-        headers = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
-        results = [[key] +
-                   [str(100 * sum(self.errors[key][perc]) / len(self.errors[key][perc]))[:4]
-                    for perc in ['<0.5m', '<1m', '<2m']] +
-                   [str(self.dic_stats['test'][key][clst]['mean'])[:5]
-                    for clst in self.CLUSTERS[:4]]
-                   for key in methods]
-
-        print(tabulate(results, headers=headers))
-        aa = 5
-        # for key in ['our', '3dop', 'm3d', 'geom', 'md']:
-        #     for clst in self.CLUSTERS[:3]:
-        #         print(" {} Average error in cluster {}: {:.2f} with a max error of {:.1f}, "
-        #               "for {} annotations"
-        #               .format(key, clst, self.dic_stats['test'][key][clst]['mean'],
-        #                       self.dic_stats['test'][key][clst]['max'],
-        #                       self.dic_stats['test'][key][clst]['cnt']))
-        #
-        #         if key == 'our':
-        #             print("% of annotation inside the confidence interval: {:.1f} %, "
-        #                   "of which {:.1f} % at higher risk"
-        #                   .format(100 * self.dic_stats['test'][key][clst]['interval'],
-        #                           100 * self.dic_stats['test'][key][clst]['at_risk']))
-        #
-        #     for perc in ['<0.5m', '<1m', '<2m']:
-        #         print("{} Instances with error {}: {:.2f} %"
-        #               .format(key, perc, 100 * sum(self.errors[key][perc])/len(self.errors[key][perc])))
-        #
-        #     print("\n Number of matched annotations: {:.1f} %".format(self.errors[key]['matched']))
-        #     print(" Number of {} detected annotations : {}/{} ".format(key, self.dic_cnt[key], cnt_gt))
-        #     print("-"*100)
-        #
-        # print("\n Annotations inside the confidence interval: {:.1f} %"
-        #       .format(100 * self.dic_stats['test']['our']['all']['interval']))
-        # print("precision 1: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_1']))
-        # print("precision 2: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_2']))
+        self.show_statistics()
 
     def printer(self, show):
         print_results(self.dic_stats, show)
@@ -253,7 +220,8 @@ class KittiEval:
                 self.update_errors(dds_m3d[indices[0]], dd_gt, cat, self.errors['m3d_merged'])
                 self.update_errors(dds_3dop[indices[1]], dd_gt, cat, self.errors['3dop_merged'])
                 self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['md_merged'])
-                self.dic_cnt['merged'] += 1
+                for key in self.METHODS:
+                    self.dic_cnt[key + '_merged'] += 1
 
     def update_errors(self, dd, dd_gt, cat, errors):
         """Compute and save errors between a single box and the gt box which match"""
@@ -334,6 +302,52 @@ class KittiEval:
         self.dic_stds[clst]['prec_2'].append(prec_2)
         self.dic_stds[cat]['prec_2'].append(prec_2)
 
+    def show_statistics(self, verbose=True):
+
+        print('\nPEDESTRIANS:')
+        print('-'*90)
+        alp = [[str(average(self.errors[key][perc]))[:4]
+                for perc in ['<0.5m', '<1m', '<2m']]
+               for key in self.METHODS]
+
+        ale = [[str(self.dic_stats['test'][key + '_merged'][clst]['mean'])[:4] + ' (' +
+                str(self.dic_stats['test'][key][clst]['mean'])[:4] + ')'
+                for clst in self.CLUSTERS[:4]]
+               for key in self.METHODS]
+
+        results = [[key] + alp[idx] + ale[idx] for idx, key in enumerate(self.METHODS)]
+        print(tabulate(results, headers=self.HEADERS))
+        print('-'*90 + '\n')
+
+        if verbose:
+            methods_all = list(chain.from_iterable((method, method + '_merged') for method in self.METHODS))
+            for key in methods_all:
+                for clst in self.CLUSTERS[:4]:
+                    print(" {} Average error in cluster {}: {:.2f} with a max error of {:.1f}, "
+                          "for {} annotations"
+                          .format(key, clst, self.dic_stats['test'][key][clst]['mean'],
+                                  self.dic_stats['test'][key][clst]['max'],
+                                  self.dic_stats['test'][key][clst]['cnt']))
+
+                    if key == 'our':
+                        print("% of annotation inside the confidence interval: {:.1f} %, "
+                              "of which {:.1f} % at higher risk"
+                              .format(100 * self.dic_stats['test'][key][clst]['interval'],
+                                      100 * self.dic_stats['test'][key][clst]['at_risk']))
+
+                for perc in ['<0.5m', '<1m', '<2m']:
+                    print("{} Instances with error {}: {:.2f} %"
+                          .format(key, perc, average(self.errors[key][perc])))
+
+                print("\n Number of matched annotations: {:.1f} %".format(self.errors[key]['matched']))
+                print(" Number of {} detected annotations : {}/{} ".format(key, self.dic_cnt[key], self.cnt_gt))
+                print("-"*100)
+
+            print("\n Annotations inside the confidence interval: {:.1f} %"
+                  .format(100 * self.dic_stats['test']['our']['all']['interval']))
+            print("precision 1: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_1']))
+            print("precision 2: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_2']))
+
 
 def get_statistics(dic_stats, errors, dic_stds, key):
     """Update statistics of a cluster"""
@@ -393,3 +407,8 @@ def extract_indices(idx_to_check, *args):
                 checks[idx_method] = True
                 indices.append(idx_pred)
     return all(checks), indices
+
+
+def average(my_list):
+    """calculate mean of a list"""
+    return 100 * sum(my_list) / len(my_list)
