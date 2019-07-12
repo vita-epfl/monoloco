@@ -107,8 +107,6 @@ class PreprocessNuscenes:
                         else:
                             general_name = 'animal'
                         if general_name in select_categories('all'):
-                            if general_name[:4] == 'vehi':
-                                aa = 5
                             box = project_3d(box_obj, kk)
                             dd = np.linalg.norm(box_obj.center)
                             boxes_gt.append(box)
@@ -164,17 +162,14 @@ def factory(dataset, dir_nuscenes):
 
     if dataset == 'nuscenes':
         nusc = NuScenes(version='v1.0-trainval', dataroot=dir_nuscenes, verbose=True)
-        scenes = nusc.scene
-        split_scenes = splits.create_splits_scenes()
-        split_train, split_val = split_scenes['train'], split_scenes['val']
-
     elif dataset == 'nuscenes_mini':
         nusc = NuScenes(version='v1.0-mini', dataroot=dir_nuscenes, verbose=True)
-        scenes = nusc.scene
-        split_scenes = splits.create_splits_scenes()
-        split_train, split_val = split_scenes['train'], split_scenes['val']
 
-    else:
+    scenes = nusc.scene
+    split_scenes = splits.create_splits_scenes()
+    split_train, split_val = split_scenes['train'], split_scenes['val']
+
+    if dataset == 'nuscenes_teaser':
         nusc = NuScenes(version='v1.0-trainval', dataroot=dir_nuscenes, verbose=True)
         with open("splits/nuscenes_teaser_scenes.txt", "r") as file:
             teaser_scenes = file.read().splitlines()

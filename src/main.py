@@ -11,7 +11,7 @@ from features.preprocess_nu import PreprocessNuscenes
 from features.preprocess_ki import PreprocessKitti
 from predict.predict import predict
 from models.trainer import Trainer
-from eval.generate_kitti import generate_kitti
+from eval.generate_kitti import GenerateKitti
 from eval.generate_stereo import generate_stereo
 from eval.geom_baseline import geometric_baseline
 from models.hyp_tuning import HypTuning
@@ -143,10 +143,10 @@ def main():
             geometric_baseline(args.joints)
 
         if args.generate:
-            generate_kitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout)
+            kitti_txt = GenerateKitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout)
+            kitti_txt.run_mono()
             if args.stereo:
-                generate_stereo(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout)
-
+                kitti_txt.run_stereo()
 
         if args.dataset == 'kitti':
             kitti_eval = KittiEval(verbose=args.verbose)
