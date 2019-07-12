@@ -159,25 +159,24 @@ def factory(dataset, dir_nuscenes):
     """Define dataset type and split training and validation"""
 
     assert dataset in ['nuscenes', 'nuscenes_mini', 'nuscenes_teaser']
+    if dataset == 'nuscenes_mini':
+        version = 'v1.0-mini'
+    else:
+        version = 'v1.0-trainval'
 
-    if dataset == 'nuscenes':
-        nusc = NuScenes(version='v1.0-trainval', dataroot=dir_nuscenes, verbose=True)
-    elif dataset == 'nuscenes_mini':
-        nusc = NuScenes(version='v1.0-mini', dataroot=dir_nuscenes, verbose=True)
-
+    nusc = NuScenes(version=version, dataroot=dir_nuscenes, verbose=True)
     scenes = nusc.scene
-    split_scenes = splits.create_splits_scenes()
-    split_train, split_val = split_scenes['train'], split_scenes['val']
 
     if dataset == 'nuscenes_teaser':
-        nusc = NuScenes(version='v1.0-trainval', dataroot=dir_nuscenes, verbose=True)
         with open("splits/nuscenes_teaser_scenes.txt", "r") as file:
             teaser_scenes = file.read().splitlines()
-        scenes = nusc.scene
         scenes = [scene for scene in scenes if scene['token'] in teaser_scenes]
         with open("splits/split_nuscenes_teaser.json", "r") as file:
             dic_split = json.load(file)
         split_train = [scene['name'] for scene in scenes if scene['token'] in dic_split['train']]
         split_val = [scene['name'] for scene in scenes if scene['token'] in dic_split['val']]
+    else:
+        split_scenes = splits.create_splits_scenes()
+        split_train, split_val = split_scenes['train'], split_scenes['val']
 
     return nusc, scenes, split_train, split_val
