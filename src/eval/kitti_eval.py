@@ -25,7 +25,7 @@ class KittiEval:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
-    METHODS = ['m3d', 'geom', 'task_error', '3dop', 'our']
+    METHODS = ['m3d', 'geom', 'task_error', '3dop', 'our', 'our_stereo']
     HEADERS = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
     CATEGORIES = ['pedestrian', 'cyclist']
 
@@ -37,6 +37,7 @@ class KittiEval:
         self.dir_3dop = os.path.join('data', 'kitti', '3dop')
         self.dir_md = os.path.join('data', 'kitti', 'monodepth')
         self.dir_our = os.path.join('data', 'kitti', 'monoloco')
+        self.dir_our_stereo = os.path.join('data', 'kitti', 'monoloco_stereo')
         path_train = os.path.join('splits', 'kitti_train.txt')
         path_val = os.path.join('splits', 'kitti_val.txt')
         dir_logs = os.path.join('data', 'logs')
@@ -51,8 +52,9 @@ class KittiEval:
                and os.path.exists(self.dir_3dop)
 
         self.dic_thresh_iou = {'m3d': thresh_iou_m3d, '3dop': thresh_iou_m3d,
-                               'md': thresh_iou_our, 'our': thresh_iou_our}
-        self.dic_thresh_conf = {'m3d': thresh_conf_m3d, '3dop': thresh_conf_m3d, 'our': thresh_conf_our}
+                               'md': thresh_iou_our, 'our': thresh_iou_our, 'our_stereo': thresh_iou_our}
+        self.dic_thresh_conf = {'m3d': thresh_conf_m3d, '3dop': thresh_conf_m3d,
+                                'our': thresh_conf_our, 'our_stereo': thresh_conf_our}
 
         # Extract validation images for evaluation
         names_gt = tuple(os.listdir(self.dir_gt))
@@ -82,6 +84,7 @@ class KittiEval:
                 path_gt = os.path.join(self.dir_gt, name)
                 path_m3d = os.path.join(self.dir_m3d, name)
                 path_our = os.path.join(self.dir_our, name)
+                path_our_stereo = os.path.join(self.dir_our_stereo, name)
                 path_3dop = os.path.join(self.dir_3dop, name)
                 path_md = os.path.join(self.dir_md, name)
 
@@ -94,17 +97,19 @@ class KittiEval:
                     out_m3d = self._parse_txts(path_m3d, category, method='m3d')
                     out_3dop = self._parse_txts(path_3dop, category, method='3dop')
                     # out_md = self._parse_txts(path_md, category, method='md')
-                    out_our = self._parse_txts(path_our, category, method='our')
                     out_md = out_m3d
+                    out_our = self._parse_txts(path_our, category, method='our')
+                    out_our_stereo = self._parse_txts(path_our_stereo, category, method='our')
 
                     # Compute the error with ground truth
                     self._estimate_error(out_gt, out_m3d, method='m3d')
                     self._estimate_error(out_gt, out_3dop, method='3dop')
                     # self._estimate_error(out_gt, out_md, method='md')
                     self._estimate_error(out_gt, out_our, method='our')
+                    self._estimate_error(out_gt, out_our_stereo, method='our_stereo')
 
                     # Iterate over all the files together to find a pool of common annotations
-                    self._compare_error(out_gt, out_m3d, out_3dop, out_md, out_our)
+                    self._compare_error(out_gt, out_m3d, out_3dop, out_md, out_our, out_our_stereo)
 
             # Update statistics of errors and uncertainty
             for key in self.errors:
@@ -125,8 +130,6 @@ class KittiEval:
         stds_ale = []
         stds_epi = []
         dds_geom = []
-        # xyzs = []
-        # xy_kps = []
 
         # Iterate over each line of the txt file
         if method in ['3dop', 'm3d']:
@@ -191,7 +194,7 @@ class KittiEval:
         """Estimate localization error"""
 
         boxes_gt, _, dds_gt, truncs_gt, occs_gt = out_gt
-        if method == 'our':
+        if method[:3] == 'our':
             boxes, dds, stds_ale, stds_epi, dds_geom = out
         else:
             boxes, dds = out
@@ -209,7 +212,7 @@ class KittiEval:
                 dd_task_error = dds_gt[idx_gt] + (get_task_error(dds_gt[idx_gt], mode='mad'))**2
                 self.update_errors(dd_task_error, dds_gt[idx_gt], cat, self.errors['task_error'])
 
-    def _compare_error(self, out_gt, out_m3d, out_3dop, out_md, out_our):
+    def _compare_error(self, out_gt, out_m3d, out_3dop, out_md, out_our, out_our_stereo):
         """Compare the error for a pool of instances commonly matched by all methods"""
 
         # Extract outputs of each method
@@ -218,6 +221,7 @@ class KittiEval:
         boxes_3dop, dds_3dop = out_3dop
         boxes_md, dds_md = out_md
         boxes_our, dds_our, _, _, dds_geom = out_our
+        boxes_our_stereo, dds_our_stereo, _, _, dds_geom_stereo = out_our_stereo
 
         # Find IoU matches
         matches_our = get_iou_matches(boxes_our, boxes_gt, self.dic_thresh_iou['our'])
@@ -232,6 +236,7 @@ class KittiEval:
                 cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
                 dd_gt = dds_gt[idx_gt]
                 self.update_errors(dds_our[idx], dd_gt, cat, self.errors['our_merged'])
+                self.update_errors(dds_our_stereo[idx], dd_gt, cat, self.errors['our_stereo_merged'])
                 self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
                 self.update_errors(dd_gt + get_task_error(dd_gt, mode='mad'),
                                    dd_gt, cat, self.errors['task_error_merged'])
