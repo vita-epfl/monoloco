@@ -49,7 +49,7 @@ class HypTuning:
         random.shuffle(self.sched_step)
         self.bs_list = [64, 128, 256, 512, 1024, 2048] * multiplier
         random.shuffle(self.bs_list)
-        self.hidden_list = [128, 256, 512, 128, 256, 512] * multiplier
+        self.hidden_list = [256, 256, 256, 256, 256, 256] * multiplier
         random.shuffle(self.hidden_list)
         self.n_stage_list = [3, 3, 3, 3, 3, 3] * multiplier
         random.shuffle(self.n_stage_list)

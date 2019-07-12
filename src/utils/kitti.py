@@ -74,15 +74,19 @@ def check_conditions(line, category, method, thresh=0.3):
 
     check = False
     assert method in ['gt', 'm3d', '3dop', 'our'], "Method %r not recognized" % method
+    assert category in ['pedestrian', 'cyclist', 'all']
 
     if method == 'm3d' or method == '3dop':
         conf = line.split()[15]
-        if line[:len(category)] == category and float(conf) >= thresh:
+        if line.split()[0] == category and float(conf) >= thresh:
             check = True
 
     elif method == 'gt':
-        category_gt = category.upper()[0] + category[1:]  # Upper case names
-        if line[:len(category)] == category_gt:
+        if category == 'all':
+            categories_gt = ['Pedestrian', 'Cyclist']
+        else:
+            categories_gt = [category.upper()[0] + category[1:]]  # Upper case names
+        if line.split()[0] in categories_gt:
             check = True
 
     elif method == 'our':
