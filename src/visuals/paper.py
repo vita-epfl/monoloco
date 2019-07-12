@@ -1,15 +1,14 @@
 
 import numpy as np
 import os
+import math
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from visuals.printer import get_angle
-from visuals.printer import get_confidence
 
 
 def paper():
     """Print paper figures"""
-    dir_out = os.path.join('data', 'all_images', 'paper')
 
     method = True
     task_error = True
@@ -75,7 +74,7 @@ def paper():
         plt.yticks([])
         plt.xlabel('X [m]')
         plt.ylabel('Z [m]')
-        plt.savefig(os.path.join(dir_out, fig_name))
+        # plt.savefig(os.path.join('docs', fig_name))
         plt.show()
         plt.close()
 
@@ -107,7 +106,7 @@ def paper():
         plt.xlabel("Distance from the camera [m]")
         plt.ylabel("Localization error due to human height variation [m]")
         plt.legend(loc=(0.01, 0.55))  # Location from 0 to 1 from lower left
-        plt.savefig(os.path.join(dir_out, fig_name))
+        # plt.savefig(os.path.join(dir_out, fig_name))
         plt.show()
         plt.close()
 
@@ -121,11 +120,21 @@ def gmm():
     std_men = 7
     mu_women = 165
     std_women = 7
-    N_men = np.random.normal(mu_men, std_men, 100000)
-    N_women = np.random.normal(mu_women, std_women, 100000)
-    N_gmm = np.concatenate((N_men, N_women))
-    mu_gmm = np.mean(N_gmm)
-    std_gmm = np.std(N_gmm)
+    N_men_1 = np.random.normal(mu_men, std_men, 1000000)
+    N_men_2 = np.random.normal(mu_men, std_men, 1000000)
+    N_women_1 = np.random.normal(mu_women, std_women, 1000000)
+    N_women_2 = np.random.normal(mu_women, std_women, 1000000)
+    N_gmm_1 = np.concatenate((N_men_1, N_women_1))
+    N_gmm_2 = np.concatenate((N_men_2, N_women_2))
+    mu_gmm_1 = np.mean(N_gmm_1)
+    mu_gmm_2 = np.mean(N_gmm_2)
+    std_gmm = np.std(N_gmm_1)
+    mm_gender = std_gmm / mu_gmm_1
+    var_gmm = np.var(N_gmm_1)
+    abs_diff_1 = np.abs(mu_gmm_1 - N_gmm_1)
+    abs_diff_2 = np.mean(np.abs(N_gmm_1 - N_gmm_2))
+    mean_deviation_1 = np.mean(abs_diff_1)
+    mean_deviation_2 = np.mean(abs_diff_2)
     # sns.distplot(N_men, hist=False, rug=False, label="Men")
     # sns.distplot(N_women, hist=False, rug=False, label="Women")
     # sns.distplot(N_gmm, hist=False, rug=False, label="GMM")
@@ -133,7 +142,21 @@ def gmm():
     # plt.ylabel("Height distributions of men and women")
     # plt.legend()
     # plt.show()
-    print("Variace of GMM distribution: {:.2f}".format(std_gmm))
-    mm_gender = std_gmm / mu_gmm
+    print("Mean of GMM distribution: {:.2f}".format(mu_gmm_1))
+    print("Standard deviation: {:.2f}".format(std_gmm))
+    print("Relative error (standard deviation) {:.3f} %".format(mm_gender * 100))
+    print("Variance: {:.2f}".format(var_gmm))
+    print("Mean deviation: {:.2f}".format(mean_deviation_1))
+    print("Mean deviation 2: {:.2f}".format(mean_deviation_2))
+    print("Relative error (mean absolute deviation): {:.3f} %".format((mean_deviation_1 / mu_gmm_1) * 100))
 
     return mm_gender
+
+
+def get_confidence(xx, zz, std):
+
+    theta = math.atan2(zz, xx)
+
+    delta_x = std * math.cos(theta)
+    delta_z = std * math.sin(theta)
+    return (xx - delta_x, xx + delta_x), (zz - delta_z, zz + delta_z)

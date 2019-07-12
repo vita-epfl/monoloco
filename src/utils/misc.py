@@ -24,9 +24,13 @@ def append_cluster(dic_jo, phase, xx, dd, kps):
         dic_jo[phase]['clst']['>30']['Y'].append([dd])
 
 
-def get_task_error(dd):
+def get_task_error(dd, mode='std'):
     """Get target error not knowing the gender"""
-    mm_gender = 0.0556
+    assert mode == 'std' or mode == 'mad'
+    if mode == 'std':
+        mm_gender = 0.0557
+    elif mode == 'mad':  # mean absolute deviation
+        mm_gender = 0.0457
     return mm_gender * dd
 
 

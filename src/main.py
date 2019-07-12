@@ -16,6 +16,7 @@ from eval.geom_baseline import geometric_baseline
 from models.hyp_tuning import HypTuning
 from eval.kitti_eval import KittiEval
 from visuals.webcam import webcam
+from visuals.paper import paper
 
 
 def cli():
@@ -99,6 +100,7 @@ def cli():
     eval_parser.add_argument('--n_stage', type=int, help='Number of stages in the model', default=3)
     eval_parser.add_argument('--show', help='whether to show statistic graphs', action='store_true')
     eval_parser.add_argument('--verbose', help='verbosity of statistics', action='store_true')
+    eval_parser.add_argument('--paper', help='verbosity of statistics', action='store_true')  #TODO remove
 
     args = parser.parse_args()
     return args
@@ -151,6 +153,10 @@ def main():
         if 'nuscenes' in args.dataset:
             training = Trainer(joints=args.joints)
             _ = training.evaluate(load=True, model=args.model, debug=False)
+
+        if args.paper:
+            paper()
+
 
     else:
         raise ValueError("Main subparser not recognized or not provided")
