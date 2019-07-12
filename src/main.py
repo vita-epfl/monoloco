@@ -12,7 +12,6 @@ from features.preprocess_ki import PreprocessKitti
 from predict.predict import predict
 from models.trainer import Trainer
 from eval.generate_kitti import GenerateKitti
-from eval.generate_stereo import generate_stereo
 from eval.geom_baseline import geometric_baseline
 from models.hyp_tuning import HypTuning
 from eval.kitti_eval import KittiEval
@@ -149,7 +148,7 @@ def main():
                 kitti_txt.run_stereo()
 
         if args.dataset == 'kitti':
-            kitti_eval = KittiEval(verbose=args.verbose)
+            kitti_eval = KittiEval(verbose=args.verbose, stereo=args.stereo)
             kitti_eval.run()
             kitti_eval.printer(show=args.show)
 

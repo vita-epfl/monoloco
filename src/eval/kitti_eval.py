@@ -25,19 +25,22 @@ class KittiEval:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
-    METHODS = ['m3d', 'geom', 'task_error', '3dop', 'our', 'our_stereo']
+    METHODS = ['m3d', 'geom', 'task_error', '3dop', 'our']
     HEADERS = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
     CATEGORIES = ['pedestrian', 'cyclist']
 
     def __init__(self, thresh_iou_our=0.3, thresh_iou_m3d=0.3, thresh_conf_m3d=0.3, thresh_conf_our=0.3,
-                 verbose=False):
+                 verbose=False, stereo=False):
 
         self.dir_gt = os.path.join('data', 'kitti', 'gt')
         self.dir_m3d = os.path.join('data', 'kitti', 'm3d')
         self.dir_3dop = os.path.join('data', 'kitti', '3dop')
         self.dir_md = os.path.join('data', 'kitti', 'monodepth')
         self.dir_our = os.path.join('data', 'kitti', 'monoloco')
-        self.dir_our_stereo = os.path.join('data', 'kitti', 'monoloco_stereo')
+        self.stereo = stereo
+        if self.stereo:
+            self.dir_our_stereo = os.path.join('data', 'kitti', 'monoloco_stereo')
+            self.METHODS.append('our_stereo')
         path_train = os.path.join('splits', 'kitti_train.txt')
         path_val = os.path.join('splits', 'kitti_val.txt')
         dir_logs = os.path.join('data', 'logs')
@@ -84,7 +87,8 @@ class KittiEval:
                 path_gt = os.path.join(self.dir_gt, name)
                 path_m3d = os.path.join(self.dir_m3d, name)
                 path_our = os.path.join(self.dir_our, name)
-                path_our_stereo = os.path.join(self.dir_our_stereo, name)
+                if self.stereo:
+                    path_our_stereo = os.path.join(self.dir_our_stereo, name)
                 path_3dop = os.path.join(self.dir_3dop, name)
                 path_md = os.path.join(self.dir_md, name)
 
@@ -99,14 +103,15 @@ class KittiEval:
                     # out_md = self._parse_txts(path_md, category, method='md')
                     out_md = out_m3d
                     out_our = self._parse_txts(path_our, category, method='our')
-                    out_our_stereo = self._parse_txts(path_our_stereo, category, method='our')
+                    out_our_stereo = self._parse_txts(path_our_stereo, category, method='our') if self.stereo else []
 
                     # Compute the error with ground truth
                     self._estimate_error(out_gt, out_m3d, method='m3d')
                     self._estimate_error(out_gt, out_3dop, method='3dop')
                     # self._estimate_error(out_gt, out_md, method='md')
                     self._estimate_error(out_gt, out_our, method='our')
-                    self._estimate_error(out_gt, out_our_stereo, method='our_stereo')
+                    if self.stereo:
+                        self._estimate_error(out_gt, out_our_stereo, method='our_stereo')
 
                     # Iterate over all the files together to find a pool of common annotations
                     self._compare_error(out_gt, out_m3d, out_3dop, out_md, out_our, out_our_stereo)
@@ -221,7 +226,8 @@ class KittiEval:
         boxes_3dop, dds_3dop = out_3dop
         boxes_md, dds_md = out_md
         boxes_our, dds_our, _, _, dds_geom = out_our
-        boxes_our_stereo, dds_our_stereo, _, _, dds_geom_stereo = out_our_stereo
+        if self.stereo:
+            boxes_our_stereo, dds_our_stereo, _, _, dds_geom_stereo = out_our_stereo
 
         # Find IoU matches
         matches_our = get_iou_matches(boxes_our, boxes_gt, self.dic_thresh_iou['our'])
@@ -236,13 +242,15 @@ class KittiEval:
                 cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
                 dd_gt = dds_gt[idx_gt]
                 self.update_errors(dds_our[idx], dd_gt, cat, self.errors['our_merged'])
-                self.update_errors(dds_our_stereo[idx], dd_gt, cat, self.errors['our_stereo_merged'])
                 self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
                 self.update_errors(dd_gt + get_task_error(dd_gt, mode='mad'),
                                    dd_gt, cat, self.errors['task_error_merged'])
                 self.update_errors(dds_m3d[indices[0]], dd_gt, cat, self.errors['m3d_merged'])
                 self.update_errors(dds_3dop[indices[1]], dd_gt, cat, self.errors['3dop_merged'])
                 self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['md_merged'])
+                if self.stereo:
+                    self.update_errors(dds_our_stereo[idx], dd_gt, cat, self.errors['our_stereo_merged'])
+
                 for key in self.METHODS:
                     self.dic_cnt[key + '_merged'] += 1
 
