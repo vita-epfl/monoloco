@@ -34,6 +34,7 @@ class GenerateKitti:
 
         # List of images
         self.list_basename = factory_basename(dir_ann)
+        # self.list_basename = ['001167']  # TODO
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
 
     def run_mono(self):
@@ -50,7 +51,6 @@ class GenerateKitti:
         print("Created empty output directory for txt files")
 
         # Run monoloco over the list of images
-
         for basename in self.list_basename:
             path_calib = os.path.join(self.dir_kk, basename + '.txt')
             annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)

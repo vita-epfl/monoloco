@@ -74,6 +74,7 @@ class KittiEval:
         """Evaluate Monoloco performances on ALP and ALE metrics"""
 
         for category in self.CATEGORIES:
+            self.category = category  #TODO
 
             # Initialize variables
             self.errors = defaultdict(lambda: defaultdict(list))
@@ -84,6 +85,7 @@ class KittiEval:
 
             # Iterate over each ground truth file in the training set
             for name in self.set_val:
+                self.name = name  #TODO
                 path_gt = os.path.join(self.dir_gt, name)
                 path_m3d = os.path.join(self.dir_m3d, name)
                 path_our = os.path.join(self.dir_our, name)
@@ -206,6 +208,9 @@ class KittiEval:
 
         matches = get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou[method])
 
+        if self.name == '005391.txt' and self.category == 'pedestrian' and method == 'our':  # TODO
+            aa = 5
+
         for (idx, idx_gt) in matches:
             # Update error if match is found
             cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
@@ -241,6 +246,10 @@ class KittiEval:
             if check:
                 cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
                 dd_gt = dds_gt[idx_gt]
+                # error = abs(dds_our[idx] - dd_gt)  # TODO
+                # error_stereo = abs(dds_our_stereo[idx] - dd_gt)
+                # if error_stereo > dd_gt / 7 and error_stereo > error:
+                #     aa = 5
                 self.update_errors(dds_our[idx], dd_gt, cat, self.errors['our_merged'])
                 self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
                 self.update_errors(dd_gt + get_task_error(dd_gt, mode='mad'),
