@@ -83,7 +83,7 @@ def check_conditions(line, category, method, thresh=0.3):
 
     elif method == 'gt':
         if category == 'all':
-            categories_gt = ['Pedestrian', 'Cyclist']
+            categories_gt = ['Pedestrian', 'Person_sitting', 'Cyclist']
         else:
             categories_gt = [category.upper()[0] + category[1:]]  # Upper case names
         if line.split()[0] in categories_gt:

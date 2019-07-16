@@ -74,10 +74,7 @@ class PreprocessKitti:
             kk = p_left[0]
 
             # Iterate over each line of the gt file and save box location and distances
-            if phase == 'train':
-                (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, category='pedestrian')
-            else:
-                (boxes_gt, boxes_3d, dds_gt, _, _) = parse_ground_truth(path_gt, category='pedestrian')
+            boxes_gt, boxes_3d, dds_gt = parse_ground_truth(path_gt, category='all')[:3]
 
             self.dic_names[basename + '.png']['boxes'] = copy.deepcopy(boxes_gt)
             self.dic_names[basename + '.png']['dds'] = copy.deepcopy(dds_gt)

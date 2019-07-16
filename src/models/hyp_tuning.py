@@ -103,7 +103,7 @@ class HypTuning:
                 best_acc_val = acc_val
                 model_best = model
 
-        # Save model and log  
+        # Save model and log
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
         torch.save(model_best.state_dict(), self.path_model + now_time + '.pkl')
