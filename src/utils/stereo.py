@@ -64,11 +64,16 @@ def filter_disparities(kps, kps_right_list, idx, expected_disps):
 
 def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
 
-    spread = float(np.nanstd(disparity_x) / np.nanmean(disparity_x))
+    COV_MIN = 0.15
+    y_max_difference = (50 / zz_mono)
+    z_max_difference = 0.5 * zz_mono
+
+    cov = float(np.nanstd(disparity_x) / np.abs(np.nanmean(disparity_x)))  # Coefficient of variation
     avg_disparity_y = np.nanmedian(disparity_y)
 
-    if abs(zz_stereo - zz_mono) <= (0.5 * zz_mono) and \
-            avg_disparity_y < (50 / zz_mono):
+    if abs(zz_stereo - zz_mono) < z_max_difference and \
+            avg_disparity_y < y_max_difference and \
+            cov < COV_MIN:
         return True
     return False
 
