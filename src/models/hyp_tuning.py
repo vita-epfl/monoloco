@@ -30,12 +30,10 @@ class HypTuning:
         if not os.path.exists(dir_logs):
             os.makedirs(dir_logs)
 
-        now = datetime.datetime.now()
-        now_time = now.strftime("%Y%m%d-%H%M")[2:]
         name_out = 'hyp-baseline-' if baseline else 'hyp-monoloco-'
 
-        self.path_log = os.path.join(dir_logs, name_out + now_time)
-        self.path_model = os.path.join(dir_out, name_out + now_time + '.pkl')
+        self.path_log = os.path.join(dir_logs, name_out)
+        self.path_model = os.path.join(dir_out, name_out)
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
@@ -104,11 +102,13 @@ class HypTuning:
                 dic_err_best = dic_err
                 best_acc_val = acc_val
                 model_best = model
-                torch.save(model_best.state_dict(), self.path_model)
 
-                with open(self.path_log, 'w') as f:
-                    json.dump(dic_best, f)
-
+        # Save model and log  
+        now = datetime.datetime.now()
+        now_time = now.strftime("%Y%m%d-%H%M")[2:]
+        torch.save(model_best.state_dict(), self.path_model + now_time + '.pkl')
+        with open(self.path_log + now_time, 'w') as f:
+            json.dump(dic_best, f)
         end = time.time()
         print('\n\n\n')
         self.logger.info(" Tried {} combinations".format(cnt))
