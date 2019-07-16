@@ -10,7 +10,7 @@ from itertools import chain
 from tabulate import tabulate
 
 from utils.iou import get_iou_matches
-from utils.misc import get_task_error
+from utils.misc import get_task_error, get_pixel_error
 from utils.kitti import check_conditions, get_category, split_training, parse_ground_truth
 from visuals.results import print_results
 
@@ -40,7 +40,7 @@ class KittiEval:
         self.stereo = stereo
         if self.stereo:
             self.dir_our_stereo = os.path.join('data', 'kitti', 'monoloco_stereo')
-            self.METHODS.append('our_stereo')
+            self.METHODS.extend(['our_stereo', 'pixel_error'])
         path_train = os.path.join('splits', 'kitti_train.txt')
         path_val = os.path.join('splits', 'kitti_val.txt')
         dir_logs = os.path.join('data', 'logs')
@@ -68,6 +68,7 @@ class KittiEval:
         self.dic_stds = None
         self.dic_stats = None
         self.dic_cnt = None
+        self.cnt_stereo_error = None
         self.cnt_gt = 0
 
     def run(self):
@@ -82,6 +83,7 @@ class KittiEval:
             self.dic_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(float))))
             self.dic_cnt = defaultdict(int)
             self.cnt_gt = 0
+            self.cnt_stereo_error = 0
 
             # Iterate over each ground truth file in the training set
             for name in self.set_val:
@@ -200,7 +202,7 @@ class KittiEval:
     def _estimate_error(self, out_gt, out, method):
         """Estimate localization error"""
 
-        boxes_gt, _, dds_gt, truncs_gt, occs_gt = out_gt
+        boxes_gt, _, dds_gt, zzs_gt, truncs_gt, occs_gt = out_gt
         if method[:3] == 'our':
             boxes, dds, stds_ale, stds_epi, dds_geom = out
         else:
@@ -215,18 +217,22 @@ class KittiEval:
             # Update error if match is found
             cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
             self.update_errors(dds[idx], dds_gt[idx_gt], cat, self.errors[method])
+
             if method == 'our':
                 self.update_errors(dds_geom[idx], dds_gt[idx_gt], cat, self.errors['geom'])
                 self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
-
                 dd_task_error = dds_gt[idx_gt] + (get_task_error(dds_gt[idx_gt], mode='mad'))**2
                 self.update_errors(dd_task_error, dds_gt[idx_gt], cat, self.errors['task_error'])
+
+            elif method == 'our_stereo':
+                dd_pixel_error = get_pixel_error(dds_gt[idx_gt], zzs_gt[idx_gt])
+                self.update_errors(dd_pixel_error, dds_gt[idx_gt], cat, self.errors['pixel_error'])
 
     def _compare_error(self, out_gt, out_m3d, out_3dop, out_md, out_our, out_our_stereo):
         """Compare the error for a pool of instances commonly matched by all methods"""
 
         # Extract outputs of each method
-        boxes_gt, _, dds_gt, truncs_gt, occs_gt = out_gt
+        boxes_gt, _, dds_gt, zzs_gt, truncs_gt, occs_gt = out_gt
         boxes_m3d, dds_m3d = out_m3d
         boxes_3dop, dds_3dop = out_3dop
         boxes_md, dds_md = out_md
@@ -246,10 +252,7 @@ class KittiEval:
             if check:
                 cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
                 dd_gt = dds_gt[idx_gt]
-                error = abs(dds_our[idx] - dd_gt)  # TODO
-                error_stereo = abs(dds_our_stereo[idx] - dd_gt)
-                if error_stereo > dd_gt / 7 and error_stereo > error:
-                    aa = 5
+
                 self.update_errors(dds_our[idx], dd_gt, cat, self.errors['our_merged'])
                 self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
                 self.update_errors(dd_gt + get_task_error(dd_gt, mode='mad'),
@@ -259,6 +262,12 @@ class KittiEval:
                 self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['md_merged'])
                 if self.stereo:
                     self.update_errors(dds_our_stereo[idx], dd_gt, cat, self.errors['our_stereo_merged'])
+                    dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
+                    self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
+                    error = abs(dds_our[idx] - dd_gt)
+                    error_stereo = abs(dds_our_stereo[idx] - dd_gt)
+                    if error_stereo > error:
+                        self.cnt_stereo_error += 1
 
                 for key in self.METHODS:
                     self.dic_cnt[key + '_merged'] += 1
@@ -378,14 +387,17 @@ class KittiEval:
                     print("{} Instances with error {}: {:.2f} %"
                           .format(key, perc, 100 * average(self.errors[key][perc])))
 
-                print("\n Number of matched annotations: {:.1f} %".format(self.errors[key]['matched']))
-                print(" Number of {} detected annotations : {}/{} ".format(key, self.dic_cnt[key], self.cnt_gt))
-                print("-"*100)
+                print("\nMatched annotations: {:.1f} %".format(self.errors[key]['matched']))
+                print(" Detected annotations : {}/{} ".format(self.dic_cnt[key], self.cnt_gt))
+                print("-" * 100)
 
             print("\n Annotations inside the confidence interval: {:.1f} %"
                   .format(self.dic_stats['test']['our']['all']['interval']))
             print("precision 1: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_1']))
             print("precision 2: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_2']))
+            if self.stereo:
+                print("Stereo error greater than mono: {:.1f} %"
+                      .format(100 * self.cnt_stereo_error / self.dic_cnt['our_merged']))
 
 
 def get_statistics(dic_stats, errors, dic_stds, key):

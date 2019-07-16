@@ -133,6 +133,7 @@ def parse_ground_truth(path_gt, category):
     """Parse KITTI ground truth files"""
     boxes_gt = []
     dds_gt = []
+    zzs_gt = []
     truncs_gt = []  # Float from 0 to 1
     occs_gt = []  # Either 0,1,2,3 fully visible, partly occluded, largely occluded, unknown
     boxes_3d = []
@@ -146,6 +147,7 @@ def parse_ground_truth(path_gt, category):
                 loc_gt = [float(x) for x in line_gt.split()[11:14]]
                 wlh = [float(x) for x in line_gt.split()[8:11]]
                 boxes_3d.append(loc_gt + wlh)
+                zzs_gt.append(loc_gt[2])
                 dds_gt.append(math.sqrt(loc_gt[0] ** 2 + loc_gt[1] ** 2 + loc_gt[2] ** 2))
 
-    return boxes_gt, boxes_3d, dds_gt, truncs_gt, occs_gt
+    return boxes_gt, boxes_3d, dds_gt, zzs_gt, truncs_gt, occs_gt
