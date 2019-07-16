@@ -45,7 +45,7 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, dic_out=N
         keypoint_sets, scores, pifpaf_out = pifpaf_outputs[:]
 
         # Visualizer
-        keypoint_painter = show.KeypointPainter(show_box=True)
+        keypoint_painter = show.KeypointPainter(show_box=False)
         skeleton_painter = show.KeypointPainter(show_box=False, color_connections=True,
                                                 markersize=1, linewidth=4)
 

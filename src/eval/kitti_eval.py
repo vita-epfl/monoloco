@@ -210,7 +210,10 @@ class KittiEval:
 
         matches = get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou[method])
 
+        # TODO
         if self.name == '005391.txt' and self.category == 'pedestrian' and method == 'our_stereo':  # TODO
+            aa = 5
+        if len(boxes_gt) > len(matches) + 1 and method == 'our':
             aa = 5
 
         for (idx, idx_gt) in matches:
