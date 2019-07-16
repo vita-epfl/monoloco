@@ -246,10 +246,10 @@ class KittiEval:
             if check:
                 cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
                 dd_gt = dds_gt[idx_gt]
-                # error = abs(dds_our[idx] - dd_gt)  # TODO
-                # error_stereo = abs(dds_our_stereo[idx] - dd_gt)
-                # if error_stereo > dd_gt / 7 and error_stereo > error:
-                #     aa = 5
+                error = abs(dds_our[idx] - dd_gt)  # TODO
+                error_stereo = abs(dds_our_stereo[idx] - dd_gt)
+                if error_stereo > dd_gt / 7 and error_stereo > error:
+                    aa = 5
                 self.update_errors(dds_our[idx], dd_gt, cat, self.errors['our_merged'])
                 self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
                 self.update_errors(dd_gt + get_task_error(dd_gt, mode='mad'),

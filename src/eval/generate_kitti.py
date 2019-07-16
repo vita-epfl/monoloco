@@ -34,7 +34,7 @@ class GenerateKitti:
 
         # List of images
         self.list_basename = factory_basename(dir_ann)
-        # self.list_basename = ['005391']  # TODO
+        # self.list_basename = ['007280']  # TODO
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
 
     def run_mono(self):
