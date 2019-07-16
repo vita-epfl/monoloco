@@ -32,6 +32,7 @@ def depth_from_disparity(zzs, kps, kps_right):
 
 
 def filter_disparities(kps, kps_right_list, idx, expected_disps):
+    """filter joints based on confidence and interquartile range of the distribution"""
 
     CONF_MIN = 0.3
     kps_right = np.array(kps_right_list)

@@ -27,7 +27,7 @@ class KittiEval:
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
     METHODS = ['m3d', 'geom', 'task_error', '3dop', 'our']
     HEADERS = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
-    CATEGORIES = ['pedestrian', 'cyclist']
+    CATEGORIES = ['pedestrian']
 
     def __init__(self, thresh_iou_our=0.3, thresh_iou_m3d=0.3, thresh_conf_m3d=0.3, thresh_conf_our=0.3,
                  verbose=False, stereo=False):

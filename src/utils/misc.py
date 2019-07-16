@@ -43,7 +43,3 @@ def get_pixel_error(dd_gt, zz_gt):
     sign = random.choice((-1, 1))
     delta_z = zz_gt - 0.54 * 721 / (disp + sign)
     return dd_gt + delta_z
-
-
-
-

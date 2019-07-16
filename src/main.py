@@ -143,7 +143,7 @@ def main():
 
         if args.generate:
             kitti_txt = GenerateKitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout)
-            # kitti_txt.run_mono()
+            kitti_txt.run_mono()
             if args.stereo:
                 kitti_txt.run_stereo()
 

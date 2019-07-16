@@ -43,12 +43,12 @@ class GenerateKitti:
         cnt_ann = 0
         cnt_file = 0
         cnt_no_file = 0
-        dir_out = os.path.join('data', 'kitti', 'monoloco_stereo')
+        dir_out = os.path.join('data', 'kitti', 'monoloco')
         # Remove the output directory if alreaady exists (avoid residual txt files)
         if os.path.exists(dir_out):
             shutil.rmtree(dir_out)
         os.makedirs(dir_out)
-        print("Created empty output directory for txt files")
+        print("\nCreated empty output directory for txt files")
 
         # Run monoloco over the list of images
         for basename in self.list_basename:
