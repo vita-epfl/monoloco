@@ -34,7 +34,7 @@ class GenerateKitti:
 
         # List of images
         self.list_basename = factory_basename(dir_ann)
-        # self.list_basename = ['001167']  # TODO
+        # self.list_basename = ['005391']  # TODO
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
 
     def run_mono(self):
@@ -127,6 +127,8 @@ class GenerateKitti:
                     boxes_l = boxes
                     xy_centers_l = xy_centers
                     dds_geom_l = dds_geom
+                    kk_l = kk
+                    tt_l = tt
 
                 else:
                     kps_r = copy.deepcopy(keypoints)
@@ -140,7 +142,7 @@ class GenerateKitti:
             # Save the file
             all_outputs = [outputs_l, varss_l, dds_geom_l, zzs]
             all_inputs = [boxes_l, xy_centers_l]
-            all_params = [kk, tt]
+            all_params = [kk_l, tt_l]
             path_txt = os.path.join(dir_out, basename + '.txt')
             save_txts(path_txt, all_inputs, all_outputs, all_params)
 
