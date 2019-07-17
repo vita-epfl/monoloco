@@ -106,7 +106,8 @@ class HypTuning:
         # Save model and log
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
-        torch.save(model_best.state_dict(), self.path_model + now_time + '.pkl')
+        self.path_model = self.path_model + now_time + '.pkl'
+        torch.save(model_best.state_dict(), self.path_model)
         with open(self.path_log + now_time, 'w') as f:
             json.dump(dic_best, f)
         end = time.time()
