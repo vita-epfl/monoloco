@@ -213,7 +213,7 @@ class KittiEval:
         # TODO
         if self.name == '005391.txt' and self.category == 'pedestrian' and method == 'our_stereo':  # TODO
             aa = 5
-        if self.name == '007260.txt':
+        if self.name == '003683.txt':
             aa = 5
 
         for (idx, idx_gt) in matches:

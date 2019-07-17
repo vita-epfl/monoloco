@@ -74,6 +74,7 @@ class MonoLoco:
         if dic_gt:
             boxes_gt, dds_gt = dic_gt['boxes'], dic_gt['dds']
             matches = get_iou_matches(boxes, boxes_gt, thresh=iou_min)
+            print("found {} matches with ground-truth".format(len(matches)))
         else:
             matches = [(idx, idx) for idx, _ in enumerate(boxes)]  # Replicate boxes
 
