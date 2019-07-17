@@ -55,19 +55,16 @@ def select_categories(cat):
     """
     Choose the categories to extract annotations from
     """
-    assert cat == 'person' or cat == 'all' or cat == 'car'
+    assert cat in ['person', 'all', 'car', 'cyclist']
 
     if cat == 'person':
         categories = ['human.pedestrian']
-
     elif cat == 'all':
-        categories = ['human.pedestrian',
-                      'vehicle.bicycle', 'vehicle.motorcycle']
+        categories = ['human.pedestrian', 'vehicle.bicycle', 'vehicle.motorcycle']
     elif cat == 'cyclist':
         categories = ['vehicle.bicycle']
     elif cat == 'car':
         categories = ['vehicle']
-
     return categories
 
 
