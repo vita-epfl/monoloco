@@ -63,7 +63,8 @@ def select_categories(cat):
     elif cat == 'all':
         categories = ['human.pedestrian',
                       'vehicle.bicycle', 'vehicle.motorcycle']
-
+    elif cat == 'cyclist':
+        categories = ['vehicle.bicycle']
     elif cat == 'car':
         categories = ['vehicle']
 
