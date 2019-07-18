@@ -52,8 +52,6 @@ class CustomL1Loss(torch.nn.Module):
         weights = torch.from_numpy(weights_np).float().to(self.device)  # To make weights in the same cuda device
         losses = torch.abs(output - target) * weights
         loss = losses.mean()  # Mean over the batch
-        # self.print_loss()
-
         return loss
 
 
@@ -66,7 +64,7 @@ class LaplacianLoss(torch.nn.Module):
         self.reduce = reduce
         self.evaluate = evaluate
 
-    def laplacian_1d(self, mu_si,  xx):
+    def laplacian_1d(self, mu_si, xx):
         """
         1D Gaussian Loss. f(x | mu, sigma). The network outputs mu and sigma. X is the ground truth distance.
         This supports backward().
@@ -84,8 +82,7 @@ class LaplacianLoss(torch.nn.Module):
 
         if self.evaluate:
             return norm_bi
-        else:
-            return term_a + term_b
+        return term_a + term_b
 
     def forward(self, outputs, targets):
 
@@ -109,13 +106,12 @@ class GaussianLoss(torch.nn.Module):
         self.evaluate = evaluate
         self.device = device
 
-    def gaussian_1d(self, mu_si,  xx):
+    def gaussian_1d(self, mu_si, xx):
         """
         1D Gaussian Loss. f(x | mu, sigma). The network outputs mu and sigma. X is the ground truth distance.
         This supports backward().
         Inspired by
         https://github.com/naba89/RNN-Handwriting-Generation-Pytorch/blob/master/loss_functions.py
-
         """
         mu, si = mu_si[:, 0:1], mu_si[:, 1:2]
 
@@ -129,8 +125,8 @@ class GaussianLoss(torch.nn.Module):
 
         if self.evaluate:
             return norm_si
-        else:
-            return term_a + term_b
+
+        return term_a + term_b
 
     def forward(self, outputs, targets):
 

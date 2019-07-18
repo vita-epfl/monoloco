@@ -28,7 +28,7 @@ def append_cluster(dic_jo, phase, xx, dd, kps):
 
 def get_task_error(dd, mode='std'):
     """Get target error not knowing the gender"""
-    assert mode == 'std' or mode == 'mad'
+    assert mode in ('std', 'mad')
     if mode == 'std':
         mm_gender = 0.0557
     elif mode == 'mad':  # mean absolute deviation

@@ -100,7 +100,7 @@ def compute_distance(xyz_norm_1, xyz_norm_2, average_y, mode='average', dy_met=0
     1. knowing specific height of the annotation (head-ankle) dy_met
     2. using mean height of people (average_y)
     """
-    assert mode == 'average' or mode == 'real'
+    assert mode in ('average', 'real')
 
     x1 = float(xyz_norm_1[0])
     y1 = float(xyz_norm_1[1])
@@ -115,13 +115,13 @@ def compute_distance(xyz_norm_1, xyz_norm_2, average_y, mode='average', dy_met=0
         cc = -dy_met
 
     # Solving the linear system Ax = b
-    Aa = np.array([[y1, 0, -xx],
-                  [0, -y1, 1],
-                  [y2, 0, -xx],
-                  [0, -y2, 1]])
+    matrix = np.array([[y1, 0, -xx],
+                       [0, -y1, 1],
+                       [y2, 0, -xx],
+                       [0, -y2, 1]])
 
     bb = np.array([cc * xx, -cc, 0, 0]).reshape(4, 1)
-    xx = np.linalg.lstsq(Aa, bb, rcond=None)
+    xx = np.linalg.lstsq(matrix, bb, rcond=None)
     z_met = abs(np.float(xx[0][1]))  # Abs take into account specularity behind the observer
 
     return z_met
@@ -160,7 +160,7 @@ def calculate_heights(heights, mode):
      Compute statistics of heights based on the distance
      """
 
-    assert mode == 'mean' or mode == 'std' or mode == 'max'
+    assert mode in ('mean', 'std', 'max')
     heights_fin = {}
 
     head_shoulder = np.array(heights['shoulder']) - np.array(heights['head'])
@@ -193,4 +193,3 @@ def calculate_error(dic_errors):
     for clst in dic_errors:
         errors[clst] = np.float(np.mean(np.array(dic_errors[clst])))
     return errors
-

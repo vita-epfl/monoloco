@@ -74,7 +74,6 @@ class EvalKitti:
         """Evaluate Monoloco performances on ALP and ALE metrics"""
 
         for category in self.CATEGORIES:
-            self.category = category  #TODO
 
             # Initialize variables
             self.errors = defaultdict(lambda: defaultdict(list))
@@ -86,7 +85,6 @@ class EvalKitti:
 
             # Iterate over each ground truth file in the training set
             for name in self.set_val:
-                self.name = name  #TODO
                 path_gt = os.path.join(self.dir_gt, name)
                 path_m3d = os.path.join(self.dir_m3d, name)
                 path_our = os.path.join(self.dir_our, name)
@@ -470,7 +468,3 @@ def extract_indices(idx_to_check, *args):
 def average(my_list):
     """calculate mean of a list"""
     return sum(my_list) / len(my_list)
-
-
-if __name__ == '__main__':
-    main()

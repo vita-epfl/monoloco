@@ -23,7 +23,7 @@ def get_unique_tokens(list_fin):
     return list_token_scene
 
 
-def split_scenes(list_token_scene, tr, val, dir_main, save=False, load=True):
+def split_scenes(list_token_scene, train, val, dir_main, save=False, load=True):
     """
     Split the list according tr, val percentages (test percentage is a consequence) after shuffling the order
     """
@@ -34,7 +34,7 @@ def split_scenes(list_token_scene, tr, val, dir_main, save=False, load=True):
         random.seed(1)
         random.shuffle(list_token_scene)  # it shuffles in place
         n_scenes = len(list_token_scene)
-        n_train = round(n_scenes * tr / 100)
+        n_train = round(n_scenes * train / 100)
         n_val = round(n_scenes * val / 100)
         list_train = list_token_scene[0: n_train]
         list_val = list_token_scene[n_train: n_train + n_val]

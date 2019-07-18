@@ -195,7 +195,8 @@ class Trainer:
 
         time_elapsed = time.time() - since
         print('\n\n' + '-'*120)
-        self.logger.info('Training:\nTraining complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+        self.logger.info('Training:\nTraining complete in {:.0f}m {:.0f}s'
+                         .format(time_elapsed // 60, time_elapsed % 60))
         self.logger.info('Best validation Accuracy: {:.3f}'.format(best_acc))
         self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch))
 
@@ -250,7 +251,7 @@ class Trainer:
                 total_outputs = torch.empty((0, len(labels))).to(self.device)
 
                 if self.n_dropout > 0:
-                    for ii in range(self.n_dropout):
+                    for _ in range(self.n_dropout):
                         outputs = self.model(inputs)
                         outputs = unnormalize_bi(outputs)
                         samples = laplace_sampling(outputs, self.n_samples)
@@ -267,8 +268,6 @@ class Trainer:
 
                 if not self.baseline:
                     outputs = unnormalize_bi(outputs)
-
-                avg_distance = float(self.criterion_eval(outputs[:, 0:1], labels).item())
 
                 dic_err[phase]['all'] = self.compute_stats(outputs, labels, varss, dic_err[phase]['all'], size_eval)
 
@@ -322,26 +321,25 @@ class Trainer:
         if self.baseline:
             return (mean_mu, max_mu), (0, 0, 0)
 
-        else:
-            mean_bi = torch.mean(outputs[:, 1]).item()
+        mean_bi = torch.mean(outputs[:, 1]).item()
 
-            low_bound_bi = labels >= (outputs[:, 0] - outputs[:, 1])
-            up_bound_bi = labels <= (outputs[:, 0] + outputs[:, 1])
-            bools_bi = low_bound_bi & up_bound_bi
-            conf_bi = float(torch.sum(bools_bi)) / float(bools_bi.shape[0])
+        low_bound_bi = labels >= (outputs[:, 0] - outputs[:, 1])
+        up_bound_bi = labels <= (outputs[:, 0] + outputs[:, 1])
+        bools_bi = low_bound_bi & up_bound_bi
+        conf_bi = float(torch.sum(bools_bi)) / float(bools_bi.shape[0])
 
-            # if varss[0] >= 0:
-            #     mean_var = torch.mean(varss).item()
-            #     max_var = torch.max(varss).item()
-            #
-            #     low_bound_var = labels >= (outputs[:, 0] - varss)
-            #     up_bound_var = labels <= (outputs[:, 0] + varss)
-            #     bools_var = low_bound_var & up_bound_var
-            #     conf_var = float(torch.sum(bools_var)) / float(bools_var.shape[0])
+        # if varss[0] >= 0:
+        #     mean_var = torch.mean(varss).item()
+        #     max_var = torch.max(varss).item()
+        #
+        #     low_bound_var = labels >= (outputs[:, 0] - varss)
+        #     up_bound_var = labels <= (outputs[:, 0] + varss)
+        #     bools_var = low_bound_var & up_bound_var
+        #     conf_var = float(torch.sum(bools_var)) / float(bools_var.shape[0])
 
-            dic_err['mean'] += mean_mu * (outputs.size(0) / size_eval)
-            dic_err['bi'] += mean_bi * (outputs.size(0) / size_eval)
-            dic_err['count'] += (outputs.size(0) / size_eval)
-            dic_err['conf_bi'] += conf_bi * (outputs.size(0) / size_eval)
+        dic_err['mean'] += mean_mu * (outputs.size(0) / size_eval)
+        dic_err['bi'] += mean_bi * (outputs.size(0) / size_eval)
+        dic_err['count'] += (outputs.size(0) / size_eval)
+        dic_err['conf_bi'] += conf_bi * (outputs.size(0) / size_eval)
 
-            return dic_err
+        return dic_err

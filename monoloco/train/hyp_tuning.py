@@ -1,12 +1,15 @@
+
 import math
 import os
 import json
 import time
 import logging
-import torch
 import random
 import datetime
+
+import torch
 import numpy as np
+
 from .trainer import Trainer
 
 

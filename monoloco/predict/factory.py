@@ -2,7 +2,7 @@
 import json
 import os
 from openpifpaf import show
-from visuals.printer import Printer
+from ..visuals.printer import Printer
 
 
 def factory_for_gt(im_size, name=None, path_gt=None):

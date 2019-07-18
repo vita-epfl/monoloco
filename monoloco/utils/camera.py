@@ -10,9 +10,9 @@ def pixel_to_camera(uv_tensor, kk, z_met):
     It accepts lists or tensors of (m, 2) or (m, x, 2) or (m, 2, x)
     where x is the number of keypoints
     """
-    if type(uv_tensor) == list:
+    if isinstance(uv_tensor, list):
         uv_tensor = torch.tensor(uv_tensor)
-    if type(kk) == list:
+    if isinstance(kk, list):
         kk = torch.tensor(kk)
     if uv_tensor.size()[-1] != 2:
         uv_tensor = uv_tensor.permute(0, 2, 1)  # permute to have 2 as last dim to be padded
@@ -42,7 +42,7 @@ def project_3d(box_obj, kk):
     box_2d = []
     # Obtain the 3d points of the box
     xc, yc, zc = box_obj.center
-    ww, ll, hh, = box_obj.wlh
+    ww, _, hh, = box_obj.wlh
 
     # Points corresponding to a box at the z of the center
     x1 = xc - ww/2
@@ -70,7 +70,7 @@ def get_keypoints(keypoints, mode):
     Input --> list or torch.tensor [(m, 3, 17) or (3, 17)]
     Output --> torch.tensor [(m, 2)]
     """
-    if type(keypoints) == list:
+    if isinstance(keypoints, list):
         keypoints = torch.tensor(keypoints)
     if len(keypoints.size()) == 2:  # add batch dim
         keypoints = keypoints.unsqueeze(0)
@@ -109,17 +109,15 @@ def get_keypoints(keypoints, mode):
 def transform_kp(kps, tr_mode):
     """Apply different transformations to the keypoints based on the tr_mode"""
 
-    assert tr_mode == "None" or tr_mode == "singularity" or tr_mode == "upper" or tr_mode == "lower" \
-           or tr_mode == "horizontal" or tr_mode == "vertical" or tr_mode == "lateral" \
-           or tr_mode == 'shoulder' or tr_mode == 'knee' or tr_mode == 'upside' or tr_mode == 'falling' \
-           or tr_mode == 'random'
+    assert tr_mode in ("None", "singularity", "upper", "lower", "horizontal", "vertical", "lateral",
+                       'shoulder', 'knee', 'upside', 'falling', 'random')
 
     uu_c, vv_c = get_keypoints(kps, mode='center')
 
     if tr_mode == "None":
         return kps
 
-    elif tr_mode == "singularity":
+    if tr_mode == "singularity":
         uus = [uu_c for uu in kps[0]]
         vvs = [vv_c for vv in kps[1]]
 
@@ -183,7 +181,7 @@ def xyz_from_distance(distances, xy_centers):
     xy_centers --> tensor(m,3) or (3)
     """
 
-    if type(distances) == float:
+    if isinstance(distances, float):
         distances = torch.tensor(distances).unsqueeze(0)
     if len(distances.size()) == 1:
         distances = distances.unsqueeze(1)

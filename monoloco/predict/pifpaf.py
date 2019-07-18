@@ -107,4 +107,3 @@ class PifPaf:
             for kps in keypoint_sets
         ]
         return keypoint_sets, scores, pifpaf_out
-

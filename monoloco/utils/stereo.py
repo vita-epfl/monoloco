@@ -79,9 +79,9 @@ def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
     return False
 
 
-def get_iqr_mask(ys):
-    quartile_1, quartile_3 = np.nanpercentile(ys, [25, 75], axis=1)
+def get_iqr_mask(distribution):
+    quartile_1, quartile_3 = np.nanpercentile(distribution, [25, 75], axis=1)
     iqr = quartile_3 - quartile_1
     lower_bound = quartile_1 - (iqr * 1.5)
     upper_bound = quartile_3 + (iqr * 1.5)
-    return (ys < upper_bound.reshape(-1, 1)) & (ys > lower_bound.reshape(-1, 1))
+    return (distribution < upper_bound.reshape(-1, 1)) & (distribution > lower_bound.reshape(-1, 1))

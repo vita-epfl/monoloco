@@ -1,6 +1,7 @@
 
-import numpy as np
 import math
+
+import numpy as np
 
 
 def get_calibration(path_txt):
@@ -76,7 +77,7 @@ def check_conditions(line, category, method, thresh=0.3):
     assert method in ['gt', 'm3d', '3dop', 'our'], "Method %r not recognized" % method
     assert category in ['pedestrian', 'cyclist', 'all']
 
-    if method == 'm3d' or method == '3dop':
+    if method in ('m3d', '3dop'):
         conf = line.split()[15]
         if line.split()[0] == category and float(conf) >= thresh:
             check = True

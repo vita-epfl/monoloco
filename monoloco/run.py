@@ -85,7 +85,7 @@ def cli():
 
     # Evaluation
     eval_parser.add_argument('--dataset', help='datasets to evaluate, kitti or nuscenes', default='kitti')
-    eval_parser.add_argument('--geometric',  help='to evaluate geometric distance', action='store_true')
+    eval_parser.add_argument('--geometric', help='to evaluate geometric distance', action='store_true')
     eval_parser.add_argument('--generate', help='create txt files for KITTI evaluation', action='store_true')
     eval_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints (for KITTI evaluation')
     eval_parser.add_argument('--model', help='path of MonoLoco model to load', required=True)

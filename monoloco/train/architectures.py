@@ -3,47 +3,47 @@ import torch.nn as nn
 
 
 class TriLinear(nn.Module):
-        """
-        As Bilinear but without skip connection
-        """
-        def __init__(self, input_size, output_size, p_dropout, linear_size=1024):
-            super(TriLinear, self).__init__()
+    """
+    As Bilinear but without skip connection
+    """
+    def __init__(self, input_size, output_size, p_dropout, linear_size=1024):
+        super(TriLinear, self).__init__()
 
-            self.input_size = input_size
-            self.output_size = output_size
-            self.l_size = linear_size
+        self.input_size = input_size
+        self.output_size = output_size
+        self.l_size = linear_size
 
-            self.relu = nn.ReLU(inplace=True)
-            self.dropout = nn.Dropout(p_dropout)
+        self.relu = nn.ReLU(inplace=True)
+        self.dropout = nn.Dropout(p_dropout)
 
-            self.w1 = nn.Linear(self.input_size, self.l_size)
-            self.batch_norm1 = nn.BatchNorm1d(self.l_size)
+        self.w1 = nn.Linear(self.input_size, self.l_size)
+        self.batch_norm1 = nn.BatchNorm1d(self.l_size)
 
-            self.w2 = nn.Linear(self.l_size, self.l_size)
-            self.batch_norm2 = nn.BatchNorm1d(self.l_size)
+        self.w2 = nn.Linear(self.l_size, self.l_size)
+        self.batch_norm2 = nn.BatchNorm1d(self.l_size)
 
-            self.w3 = nn.Linear(self.l_size, self.output_size)
+        self.w3 = nn.Linear(self.l_size, self.output_size)
 
-        def forward(self, x):
-            y = self.w1(x)
-            y = self.batch_norm1(y)
-            y = self.relu(y)
-            y = self.dropout(y)
+    def forward(self, x):
+        y = self.w1(x)
+        y = self.batch_norm1(y)
+        y = self.relu(y)
+        y = self.dropout(y)
 
-            y = self.w2(y)
-            y = self.batch_norm2(y)
-            y = self.relu(y)
-            y = self.dropout(y)
+        y = self.w2(y)
+        y = self.batch_norm2(y)
+        y = self.relu(y)
+        y = self.dropout(y)
 
-            y = self.w3(y)
+        y = self.w3(y)
 
-            return y
+        return y
 
 
-def weight_init(m):
+def weight_init(batch):
     """TO initialize weights using kaiming initialization"""
-    if isinstance(m, nn.Linear):
-        nn.init.kaiming_normal_(m.weight)
+    if isinstance(batch, nn.Linear):
+        nn.init.kaiming_normal_(batch.weight)
 
 
 class Linear(nn.Module):
@@ -93,7 +93,7 @@ class LinearModel(nn.Module):
         self.batch_norm1 = nn.BatchNorm1d(self.linear_size)
 
         self.linear_stages = []
-        for l in range(num_stage):
+        for _ in range(num_stage):
             self.linear_stages.append(Linear(self.linear_size, self.p_dropout))
         self.linear_stages = nn.ModuleList(self.linear_stages)
 
@@ -109,11 +109,8 @@ class LinearModel(nn.Module):
         y = self.batch_norm1(y)
         y = self.relu(y)
         y = self.dropout(y)
-
         # linear layers
         for i in range(self.num_stage):
             y = self.linear_stages[i](y)
-
         y = self.w2(y)
-
         return y
