@@ -6,7 +6,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from utils.camera import pixel_to_camera, get_keypoints
+from ..utils.camera import pixel_to_camera, get_keypoints
 
 AVERAGE_Y = 0.48
 CLUSTERS = ['10', '20', '30', 'all']
