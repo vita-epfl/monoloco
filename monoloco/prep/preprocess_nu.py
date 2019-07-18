@@ -19,7 +19,7 @@ from ..utils.misc import append_cluster
 from ..utils.nuscenes import select_categories
 from ..utils.camera import project_3d
 from ..utils.pifpaf import preprocess_pif
-from ..utils.monoloco import get_monoloco_inputs
+from ..utils.network import get_monoloco_inputs
 
 
 class PreprocessNuscenes:

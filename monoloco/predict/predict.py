@@ -5,7 +5,7 @@ from PIL import Image
 import torch
 
 from ..predict.pifpaf import PifPaf, ImageList
-from ..predict.monoloco import MonoLoco
+from ..predict.network import MonoLoco
 from ..predict.factory import factory_for_gt, factory_outputs
 from ..utils.pifpaf import preprocess_pif
 

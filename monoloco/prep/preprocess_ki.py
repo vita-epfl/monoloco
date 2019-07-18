@@ -10,7 +10,7 @@ import datetime
 
 from ..prep.transforms import transform_keypoints
 from ..utils.kitti import get_calibration, split_training, parse_ground_truth
-from ..utils.monoloco import get_monoloco_inputs
+from ..utils.network import get_monoloco_inputs
 from ..utils.pifpaf import preprocess_pif
 from ..utils.iou import get_iou_matches
 from ..utils.misc import append_cluster

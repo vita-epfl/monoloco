@@ -13,7 +13,7 @@ import copy
 import numpy as np
 import torch
 
-from ..predict.monoloco import MonoLoco
+from ..predict.network import MonoLoco
 from ..eval.geom_baseline import compute_distance
 from ..utils.kitti import get_calibration
 from ..utils.pifpaf import preprocess_pif

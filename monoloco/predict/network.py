@@ -10,7 +10,7 @@ import torch
 
 from ..utils.iou import get_iou_matches, reorder_matches
 from ..utils.camera import get_keypoints, pixel_to_camera, xyz_from_distance
-from ..utils.monoloco import get_monoloco_inputs, unnormalize_bi, laplace_sampling
+from ..utils.network import get_monoloco_inputs, unnormalize_bi, laplace_sampling
 from ..train.architectures import LinearModel
 
 

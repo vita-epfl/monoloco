@@ -14,11 +14,11 @@ from openpifpaf import transforms
 
 import cv2
 
-from visuals.printer import Printer
-from utils.pifpaf import preprocess_pif
-from predict.pifpaf import PifPaf
-from predict.monoloco import MonoLoco
-from predict.factory import factory_for_gt
+from ..visuals.printer import Printer
+from ..utils.pifpaf import preprocess_pif
+from ..predict.pifpaf import PifPaf
+from ..predict.network import MonoLoco
+from ..predict.factory import factory_for_gt
 
 
 def webcam(args):
