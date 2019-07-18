@@ -186,7 +186,7 @@ and stereo Baselines:
 [Mono3D](https://www.cs.toronto.edu/~urtasun/publications/chen_etal_cvpr16.pdf), 
 [3DOP](https://xiaozhichen.github.io/papers/nips15chen.pdf), 
 [MonoDepth](https://arxiv.org/abs/1609.03677) and our 
-[Geometrical Baseline](src/eval/geom_baseline.py).
+[Geometrical Baseline](monoloco/eval/geom_baseline.py).
 
 * **Mono3D**: download validation files from [here](http://3dimage.ee.tsinghua.edu.cn/cxz/mono3d) 
 and save them into `data/kitti/m3d`

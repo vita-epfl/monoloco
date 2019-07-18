@@ -8,59 +8,15 @@ import os
 import math
 import logging
 import datetime
-import argparse
 from collections import defaultdict
 from itertools import chain
 
 from tabulate import tabulate
 
-from .utils.iou import get_iou_matches
-from .utils.misc import get_task_error, get_pixel_error
-from .utils.kitti import check_conditions, get_category, split_training, parse_ground_truth
-from .visuals.results import print_results
-from .eval.generate_kitti import GenerateKitti
-from .eval.geom_baseline import geometric_baseline
-from .trainer import Trainer
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    parser.add_argument('--dataset', help='datasets to evaluate, kitti or nuscenes', default='kitti')
-    parser.add_argument('--geometric',  help='to evaluate geometric distance', action='store_true')
-    parser.add_argument('--generate', help='create txt files for KITTI evaluation', action='store_true')
-    parser.add_argument('--dir_ann', help='directory of annotations of 2d joints (for KITTI evaluation')
-    parser.add_argument('--model', help='path of MonoLoco model to load', required=True)
-    parser.add_argument('--joints', help='Json file with input joints to evaluate (for nuScenes evaluation)')
-    parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
-    parser.add_argument('--dropout', type=float, help='dropout. Default no dropout', default=0.2)
-    parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
-    parser.add_argument('--n_stage', type=int, help='Number of stages in the model', default=3)
-    parser.add_argument('--show', help='whether to show statistic graphs', action='store_true')
-    parser.add_argument('--verbose', help='verbosity of statistics', action='store_true')
-    parser.add_argument('--stereo', help='include stereo baseline results', action='store_true')
-    args = parser.parse_args()
-
-    if args.geometric:
-        geometric_baseline(args.joints)
-
-    if args.generate:
-        kitti_txt = GenerateKitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout)
-        kitti_txt.run_mono()
-        if args.stereo:
-            kitti_txt.run_stereo()
-
-    if args.dataset == 'kitti':
-        kitti_eval = EvalKitti(verbose=args.verbose, stereo=args.stereo)
-        kitti_eval.run()
-        kitti_eval.printer(show=args.show)
-
-    if 'nuscenes' in args.dataset:
-        training = Trainer(joints=args.joints)
-        _ = training.evaluate(load=True, model=args.model, debug=False)
+from ..utils.iou import get_iou_matches
+from ..utils.misc import get_task_error, get_pixel_error
+from ..utils.kitti import check_conditions, get_category, split_training, parse_ground_truth
+from ..visuals.results import print_results
 
 
 class EvalKitti:

@@ -13,9 +13,9 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
-from .models.datasets import KeypointsDataset
-from .models.architectures import LinearModel
-from .models.losses import LaplacianLoss
+from .train.datasets import KeypointsDataset
+from .train.architectures import LinearModel
+from .train.losses import LaplacianLoss
 from .utils.logs import set_logger
 from .utils.monoloco import epistemic_variance, laplace_sampling, unnormalize_bi
 

@@ -1,21 +1,18 @@
 
 import argparse
-import os
-import sys
 
-sys.path.insert(0, os.path.join('.', 'features'))
-sys.path.insert(0, os.path.join('.', 'models'))
 from openpifpaf.network import nets
 from openpifpaf import decoder
-from features.preprocess_nu import PreprocessNuscenes
-from features.preprocess_ki import PreprocessKitti
-from predict.predict import predict
-from models.trainer import Trainer
-from eval.generate_kitti import GenerateKitti
-from eval.geom_baseline import geometric_baseline
-from models.hyp_tuning import HypTuning
-from eval.kitti_eval import KittiEval
-from visuals.webcam import webcam
+
+from .features.preprocess_nu import PreprocessNuscenes
+from .features.preprocess_ki import PreprocessKitti
+from .predict.predict import predict
+from .train.trainer import Trainer
+from .eval.generate_kitti import GenerateKitti
+from .eval.geom_baseline import geometric_baseline
+from .train.hyp_tuning import HypTuning
+from .eval.eval_kitti import EvalKitti
+from .visuals.webcam import webcam
 
 
 def cli():
@@ -148,7 +145,7 @@ def main():
                 kitti_txt.run_stereo()
 
         if args.dataset == 'kitti':
-            kitti_eval = KittiEval(verbose=args.verbose, stereo=args.stereo)
+            kitti_eval = EvalKitti(verbose=args.verbose, stereo=args.stereo)
             kitti_eval.run()
             kitti_eval.printer(show=args.show)
 

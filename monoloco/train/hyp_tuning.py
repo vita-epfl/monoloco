@@ -7,7 +7,7 @@ import torch
 import random
 import datetime
 import numpy as np
-from models.trainer import Trainer
+from train.trainer import Trainer
 
 
 class HypTuning:
