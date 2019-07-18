@@ -1,6 +1,7 @@
 
 import random
 
+
 def append_cluster(dic_jo, phase, xx, dd, kps):
     """Append the annotation based on its distance"""
 

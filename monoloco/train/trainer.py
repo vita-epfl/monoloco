@@ -1,3 +1,7 @@
+"""
+Training and evaluation of a neural network which predicts 3D localization and confidence intervals
+given 2d joints
+"""
 
 import copy
 import os
@@ -13,19 +17,14 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
-from .train.datasets import KeypointsDataset
-from .train.architectures import LinearModel
-from .train.losses import LaplacianLoss
-from .utils.logs import set_logger
-from .utils.monoloco import epistemic_variance, laplace_sampling, unnormalize_bi
+from .datasets import KeypointsDataset
+from .architectures import LinearModel
+from .losses import LaplacianLoss
+from ..utils.logs import set_logger
+from ..utils.network import laplace_sampling, unnormalize_bi
 
 
 class Trainer:
-    """
-    Training and evaluation of a neural network which predicts 3D localization and confidence intervals
-    given 2d joints
-    """
-
     def __init__(self, joints, epochs=100, bs=256, dropout=0.2, lr=0.002,
                  sched_step=20, sched_gamma=1, hidden_size=256, n_stage=3, r_seed=1, n_dropout=0, n_samples=100,
                  baseline=False, save=False, print_loss=False):

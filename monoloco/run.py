@@ -4,8 +4,8 @@ import argparse
 from openpifpaf.network import nets
 from openpifpaf import decoder
 
-from .features.preprocess_nu import PreprocessNuscenes
-from .features.preprocess_ki import PreprocessKitti
+from .prep.preprocess_nu import PreprocessNuscenes
+from .prep.preprocess_ki import PreprocessKitti
 from .predict.predict import predict
 from .train.trainer import Trainer
 from .eval.generate_kitti import GenerateKitti

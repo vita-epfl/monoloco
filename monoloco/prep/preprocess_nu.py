@@ -13,12 +13,13 @@ import numpy as np
 
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
-from utils.iou import get_iou_matches
-from utils.misc import append_cluster
-from utils.nuscenes import select_categories
-from utils.camera import project_3d
-from utils.pifpaf import preprocess_pif
-from utils.monoloco import get_monoloco_inputs
+
+from ..utils.iou import get_iou_matches
+from ..utils.misc import append_cluster
+from ..utils.nuscenes import select_categories
+from ..utils.camera import project_3d
+from ..utils.pifpaf import preprocess_pif
+from ..utils.monoloco import get_monoloco_inputs
 
 
 class PreprocessNuscenes:
