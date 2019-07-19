@@ -1,4 +1,5 @@
 
+# pylint: skip-file
 import argparse
 
 from openpifpaf.network import nets

@@ -53,10 +53,7 @@ class PreprocessKitti:
     def run(self):
         """Save json files"""
 
-        cnt_gt = 0
-        cnt_files = 0
-        cnt_files_ped = 0
-        cnt_fnf = 0
+        cnt_gt = cnt_files = cnt_files_ped = cnt_fnf = 0
         dic_cnt = {'train': 0, 'val': 0, 'test': 0}
 
         for name in self.names_gt:

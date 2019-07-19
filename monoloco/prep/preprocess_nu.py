@@ -59,21 +59,13 @@ class PreprocessNuscenes:
         """
         Prepare arrays for training
         """
-        cnt_scenes = 0
-        cnt_samples = 0
-        cnt_sd = 0
-        cnt_ann = 0
-
+        cnt_scenes = cnt_samples = cnt_sd = cnt_ann = 0
         start = time.time()
-
         for ii, scene in enumerate(self.scenes):
             end_scene = time.time()
             current_token = scene['first_sample_token']
             cnt_scenes += 1
-            if ii == 0:
-                time_left = "Nan"
-            else:
-                time_left = str((end_scene-start_scene)/60 * (len(self.scenes) - ii))[:4]
+            time_left = str((end_scene - start_scene) / 60 * (len(self.scenes) - ii))[:4] if ii != 0 else "NaN"
 
             sys.stdout.write('\r' + 'Elaborating scene {}, remaining time {} minutes'
                              .format(cnt_scenes, time_left) + '\t\n')
@@ -94,29 +86,9 @@ class PreprocessNuscenes:
                 for cam in self.CAMERAS:
                     sd_token = sample_dic['data'][cam]
                     cnt_sd += 1
-                    path_im, boxes_obj, kk = self.nusc.get_sample_data(sd_token, box_vis_level=1)  # At least one corner
-                    kk = kk.tolist()
 
                     # Extract all the annotations of the person
-                    boxes_gt = []
-                    dds = []
-                    boxes_3d = []
-                    name = os.path.basename(path_im)
-                    for box_obj in boxes_obj:
-                        if box_obj.name[:6] != 'animal':
-                            general_name = box_obj.name.split('.')[0] + '.' + box_obj.name.split('.')[1]
-                        else:
-                            general_name = 'animal'
-                        if general_name in select_categories('all'):
-                            box = project_3d(box_obj, kk)
-                            dd = np.linalg.norm(box_obj.center)
-                            boxes_gt.append(box)
-                            dds.append(dd)
-                            box_3d = box_obj.center.tolist() + box_obj.wlh.tolist()
-                            boxes_3d.append(box_3d)
-                            self.dic_names[name]['boxes'].append(box)
-                            self.dic_names[name]['dds'].append(dd)
-                            self.dic_names[name]['K'] = kk
+                    name, boxes_gt, boxes_3d, dds, kk = self.extract_from_token(sd_token)
 
                     # Run IoU with pifpaf detections and save
                     path_pif = os.path.join(self.dir_ann, name + '.pifpaf.json')
@@ -125,23 +97,24 @@ class PreprocessNuscenes:
                     if exists:
                         with open(path_pif, 'r') as file:
                             annotations = json.load(file)
+                            boxes, keypoints = preprocess_pif(annotations, im_size=(1600, 900))
+                    else:
+                        continue
 
-                        boxes, keypoints = preprocess_pif(annotations, im_size=(1600, 900))
+                    if keypoints:
+                        inputs = get_monoloco_inputs(keypoints, kk).tolist()
 
-                        if keypoints:
-                            inputs = get_monoloco_inputs(keypoints, kk).tolist()
-
-                            matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
-                            for (idx, idx_gt) in matches:
-                                self.dic_jo[phase]['kps'].append(keypoints[idx])
-                                self.dic_jo[phase]['X'].append(inputs[idx])
-                                self.dic_jo[phase]['Y'].append([dds[idx_gt]])  # Trick to make it (nn,1)
-                                self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
-                                self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
-                                self.dic_jo[phase]['K'].append(kk)
-                                append_cluster(self.dic_jo, phase, inputs[idx], dds[idx_gt], keypoints[idx])
-                                cnt_ann += 1
-                                sys.stdout.write('\r' + 'Saved annotations {}'.format(cnt_ann) + '\t')
+                        matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
+                        for (idx, idx_gt) in matches:
+                            self.dic_jo[phase]['kps'].append(keypoints[idx])
+                            self.dic_jo[phase]['X'].append(inputs[idx])
+                            self.dic_jo[phase]['Y'].append([dds[idx_gt]])  # Trick to make it (nn,1)
+                            self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
+                            self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
+                            self.dic_jo[phase]['K'].append(kk)
+                            append_cluster(self.dic_jo, phase, inputs[idx], dds[idx_gt], keypoints[idx])
+                            cnt_ann += 1
+                            sys.stdout.write('\r' + 'Saved annotations {}'.format(cnt_ann) + '\t')
 
                 current_token = sample_dic['next']
 
@@ -154,6 +127,32 @@ class PreprocessNuscenes:
         print("\nSaved {} annotations for {} samples in {} scenes. Total time: {:.1f} minutes"
               .format(cnt_ann, cnt_samples, cnt_scenes, (end-start)/60))
         print("\nOutput files:\n{}\n{}\n".format(self.path_names, self.path_joints))
+
+    def extract_from_token(self, sd_token):
+
+        boxes_gt = []
+        dds = []
+        boxes_3d = []
+        path_im, boxes_obj, kk = self.nusc.get_sample_data(sd_token, box_vis_level=1)  # At least one corner
+        kk = kk.tolist()
+        name = os.path.basename(path_im)
+        for box_obj in boxes_obj:
+            if box_obj.name[:6] != 'animal':
+                general_name = box_obj.name.split('.')[0] + '.' + box_obj.name.split('.')[1]
+            else:
+                general_name = 'animal'
+            if general_name in select_categories('all'):
+                box = project_3d(box_obj, kk)
+                dd = np.linalg.norm(box_obj.center)
+                boxes_gt.append(box)
+                dds.append(dd)
+                box_3d = box_obj.center.tolist() + box_obj.wlh.tolist()
+                boxes_3d.append(box_3d)
+                self.dic_names[name]['boxes'].append(box)
+                self.dic_names[name]['dds'].append(dd)
+                self.dic_names[name]['K'] = kk
+
+        return name, boxes_gt, boxes_3d, dds, kk
 
 
 def factory(dataset, dir_nuscenes):
