@@ -38,7 +38,11 @@ class Printer:
         self.path_out = output_path
         self.cmap = cm.get_cmap('jet')
         self.extensions = []
-        self.mpl_im0 = None
+
+        # Define variables of the class to change for every image
+        self.mpl_im0 = self.stds_ale = self.stds_epi = self.xx_gt = self.zz_gt = self.xx_pred = self.zz_pred =\
+            self.dds_real = self.uv_centers = self.uv_shoulders = self.uv_kps = self.boxes = self.boxes_gt = \
+            self.uv_camera = self.radius = None
 
     def _process_results(self, dic_ann):
         # Include the vectors inside the interval given by z_max
@@ -79,10 +83,7 @@ class Printer:
             fig_height = self.fig_width * self.height / self.width
 
             # Distinguish between KITTI images and general images
-            if self.y_scale > 1.7:
-                fig_ar_1 = 1.7
-            else:
-                fig_ar_1 = 1.3
+            fig_ar_1 = 1.7 if self.y_scale > 1.7 else 1.3
             width_ratio = 1.9
             self.extensions.append('.combined.png')
 
@@ -108,23 +109,16 @@ class Printer:
 
         # Create front figure axis
         if any(xx in self.output_types for xx in ['front', 'combined']):
-            ax0.set_axis_off()
-            ax0.set_xlim(0, self.width)
-            ax0.set_ylim(self.height, 0)
-            self.mpl_im0 = ax0.imshow(self.im)
-            z_min = 0
-            bar_ticks = self.z_max // 5 + 1
-            ax0.get_xaxis().set_visible(False)
-            ax0.get_yaxis().set_visible(False)
+            ax0 = self.set_axes(ax0, axis=0)
 
             divider = make_axes_locatable(ax0)
             cax = divider.append_axes('right', size='3%', pad=0.05)
-
-            norm = matplotlib.colors.Normalize(vmin=z_min, vmax=self.z_max)
+            bar_ticks = self.z_max // 5 + 1
+            norm = matplotlib.colors.Normalize(vmin=0, vmax=self.z_max)
             scalar_mappable = plt.cm.ScalarMappable(cmap=self.cmap, norm=norm)
             scalar_mappable.set_array([])
-            plt.colorbar(scalar_mappable, ticks=np.linspace(z_min, self.z_max, bar_ticks),
-                         boundaries=np.arange(z_min - 0.05, self.z_max + 0.1, .1), cax=cax, label='Z [m]')
+            plt.colorbar(scalar_mappable, ticks=np.linspace(0, self.z_max, bar_ticks),
+                         boundaries=np.arange(- 0.05, self.z_max + 0.1, .1), cax=cax, label='Z [m]')
 
             axes.append(ax0)
         if not axes:
@@ -137,16 +131,7 @@ class Printer:
             fig1.set_tight_layout(True)
             figures.append(fig1)
         if any(xx in self.output_types for xx in ['bird', 'combined']):
-            uv_max = [0., float(self.height)]
-            xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
-            x_max = abs(xyz_max[0])  # shortcut to avoid oval circles in case of different kk
-
-            # Adding field of view
-            ax1.plot([0, x_max], [0, self.z_max], 'k--')
-            ax1.plot([0, -x_max], [0, self.z_max], 'k--')
-            ax1.set_ylim(0, self.z_max+1)
-            ax1.set_xlabel("X [m]")
-            ax1.set_ylabel("Z [m]")
+            ax1 = self.set_axes(ax1, axis=1)  # Adding field of view
             axes.append(ax1)
         return figures, axes
 
@@ -176,21 +161,20 @@ class Printer:
 
         # Draw the bird figure
         num = 0
-        if any(xx in self.output_types for xx in ['bird', 'combined']):
-            for idx, _ in enumerate(self.xx_pred):
-                if self.zz_gt[idx] > 0:  # only the merging ones and inside the interval
+        for idx, _ in enumerate(self.xx_pred):
+            if any(xx in self.output_types for xx in ['bird', 'combined']) and self.zz_gt[idx] > 0:
 
-                    # Draw ground truth and predicted ellipses
-                    self.draw_ellipses(axes, idx)
+                # Draw ground truth and predicted ellipses
+                self.draw_ellipses(axes, idx)
 
-                    # Draw bird eye view text
-                    if draw_text:
-                        self.draw_text_bird(axes, idx, num)
-                        num += 1
+                # Draw bird eye view text
+                if draw_text:
+                    self.draw_text_bird(axes, idx, num)
+                    num += 1
 
-            # Add the legend
-            if legend:
-                draw_legend(axes)
+        # Add the legend
+        if legend:
+            draw_legend(axes)
 
         # Draw, save or/and show the figures
         for idx, fig in enumerate(figures):
@@ -257,6 +241,29 @@ class Printer:
 
         circle = Circle((uv[0], uv[1] * self.y_scale), radius=self.radius, color=color, fill=True)
         axes[0].add_patch(circle)
+
+    def set_axes(self, ax, axis):
+        assert axis in (0, 1)
+
+        if axis == 0:
+            ax.set_axis_off()
+            ax.set_xlim(0, self.width)
+            ax.set_ylim(self.height, 0)
+            self.mpl_im0 = ax.imshow(self.im)
+            ax.get_xaxis().set_visible(False)
+            ax.get_yaxis().set_visible(False)
+
+        else:
+            uv_max = [0., float(self.height)]
+            xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
+            x_max = abs(xyz_max[0])  # shortcut to avoid oval circles in case of different kk
+            ax.plot([0, x_max], [0, self.z_max], 'k--')
+            ax.plot([0, -x_max], [0, self.z_max], 'k--')
+            ax.set_ylim(0, self.z_max+1)
+            ax.set_xlabel("X [m]")
+            ax.set_ylabel("Z [m]")
+
+        return ax
 
 
 def draw_legend(axes):

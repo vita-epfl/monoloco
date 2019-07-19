@@ -1,3 +1,4 @@
+# pylint: disable=W0212
 """
 Webcam demo application
 
@@ -107,7 +108,7 @@ class VisualizerMonoloco:
                     del axes[1].patches[0]  # the one became the 0
                     if len(axes[1].lines) > 2:
                         del axes[1].lines[2]
-                        if len(axes[1].texts) > 0:  # in case of no text
+                        if axes[1].texts:  # in case of no text
                             del axes[1].texts[0]
             printer.draw(figures, axes, dict_ann, image)
             mypause(0.01)

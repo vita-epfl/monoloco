@@ -1,3 +1,4 @@
+# pylint: disable=R0915
 
 import os
 import numpy as np
@@ -5,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
 
-def print_results(dic_stats, show=False, save=False):
+def print_results(dic_stats, show=False):
 
     """
     Visualize error as function of the distance on the test set and compare it with target errors based on human
@@ -67,7 +68,7 @@ def print_results(dic_stats, show=False, save=False):
     xxs = get_distances(clusters)
     yys = target_error(np.array(xxs), mm_gender)
     ax[1].plot(xxs, bbs, marker='s', color='b', label="Spread b")
-    ax[1].plot(xxs, yys,  '--', color='lightgreen', label="Task error", linewidth=2.5)
+    ax[1].plot(xxs, yys, '--', color='lightgreen', label="Task error", linewidth=2.5)
     yys_up = [rec_c + ar/2 * scale * yy for yy in yys]
     bbs_up = [rec_c + ar/2 * scale * bb for bb in bbs]
     yys_down = [rec_c - ar/2 * scale * yy for yy in yys]
@@ -81,7 +82,7 @@ def print_results(dic_stats, show=False, save=False):
 
     for idx, xx in enumerate(xxs):
         te = Ellipse((xx, rec_c), width=yys[idx]*ar*scale, height=scale, angle=90, color='lightgreen', fill=True)
-        bi = Ellipse((xx, rec_c), width=bbs[idx]*ar*scale, height=scale, angle=90, color='b',linewidth=1.8,
+        bi = Ellipse((xx, rec_c), width=bbs[idx]*ar*scale, height=scale, angle=90, color='b', linewidth=1.8,
                      fill=False)
 
         ax[0].add_patch(te)

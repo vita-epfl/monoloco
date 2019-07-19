@@ -1,6 +1,7 @@
 import os
 import sys
 
+# Python does not consider the current directory to be a package
 sys.path.insert(0, os.path.join('..', 'monoloco'))
 
 
