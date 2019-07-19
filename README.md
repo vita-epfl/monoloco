@@ -28,6 +28,7 @@ A video with qualitative results is available on [YouTube](https://www.youtube.c
 ### Install
 Python 3 is required. Python 2 is not supported. 
 Do not clone this repository and make sure there is no folder named monoloco in your current directory.
+
 `pip install monoloco`
 
 Live demo is available, we recommend to try our **Webcam** functionality. More info in the webcam section.
