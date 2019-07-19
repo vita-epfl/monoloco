@@ -80,6 +80,7 @@ To check all the commands for the parser and the subparsers (including openpifpa
 * `python3 -m monoloco.run train --help`
 * `python3 -m monoloco.run eval --help`
 * `python3 -m monoloco.run prep --help`
+
 or check the file `monoloco/run.py`
               
 # Predict
