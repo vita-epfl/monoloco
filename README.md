@@ -63,14 +63,14 @@ Alternatively, you can download a Pifpaf pre-trained model from [openpifpaf](htt
 
 # Interfaces
 All the commands are run through a main file called `main.py` using subparsers.
-To check all the commands for the parser and the subparsers run:
+To check all the commands for the parser and the subparsers (including openpifpaf ones) run:
 
-* `python3 src/main.py --help`
-* `python3 src/main.py prep --help`
-* `python3 src/main.py predict --help`
-* `python3 src/main.py train --help`
-* `python3 src/main.py eval --help`
-
+* `python3 -m monoloco.run --help`
+* `python3 -m monoloco.run predict --help`
+* `python3 -m monoloco.run train --help`
+* `python3 -m monoloco.run eval --help`
+* `python3 -m monoloco.run prep --help`
+or check the file `monoloco/run.py`
               
 # Predict
 The predict script receives an image (or an entire folder using glob expressions), 
@@ -96,7 +96,7 @@ If it does not find the file, it will generate images
 with all the predictions without ground-truth matching.
 
 Below an example with and without ground-truth matching. They have been created (adding or removing `--path_gt`) with:
-`python3 src/main.py predict --networks monoloco --glob docs/002282.png --output_types combined --scale 2 
+`python3 -m monoloco.run predict --networks monoloco --glob docs/002282.png --output_types combined --scale 2 
 --model data/models/monoloco-190513-1437.pkl --n_dropout 100 --z_max 30`
  
 With ground truth matching (only matching people):
@@ -110,7 +110,7 @@ To accurately estimate distance, the focal length is necessary.
 However, it is still possible to test Monoloco on images where the calibration matrix is not available. 
 Absolute distances are not meaningful but relative distance still are. 
 Below an example on a generic image from the web, created with:
-`python3 src/main.py predict --networks monoloco --glob docs/surf.jpg --output_types combined --model data/models/monoloco-190513-1437.pkl --n_dropout 100 --z_max 25`
+`python3 -m monoloco.run predict --networks monoloco --glob docs/surf.jpg --output_types combined --model data/models/monoloco-190513-1437.pkl --n_dropout 100 --z_max 25`
 
 ![no calibration](docs/surf.jpg.combined.png)
 
@@ -124,7 +124,7 @@ Multiple visualizations can be combined in different windows.
 
 The above gif has been obtained running on a Macbook the command:
 
-`python src/main.py predict --webcam --scale 0.2 --output_types combined --z_max 10 --checkpoint resnet50`
+`python3 -m monoloco.run predict --webcam --scale 0.2 --output_types combined --z_max 10 --checkpoint resnet50`
 
 # Preprocess
 
@@ -148,7 +148,7 @@ You can create them running the predict script and using `--networks pifpaf`.
 
 ### Inputs joints for training
 MonoLoco is trained using 2D human pose joints matched with the ground truth location provided by
-nuScenes or KITTI Dataset. To create the joints run: `python src/main.py prep` specifying:
+nuScenes or KITTI Dataset. To create the joints run: `python3 -m monoloco.run prep` specifying:
 1. `--dir_ann` annotation directory containing Pifpaf joints of KITTI or nuScenes. 
 
 2. `--dataset` Which dataset to preprocess. For nuscenes, all three versions of the 
@@ -163,12 +163,12 @@ by the image name to easily access ground truth files for evaluation and predict
 # Train
 Provide the json file containing the preprocess joints as argument. 
 
-As simple as `python3 src/main.py --train --joints <json file path>`
+As simple as `python3 -m monoloco.run --train --joints <json file path>`
 
-All the hyperparameters options can be checked at `python3 src/main.py train --help`.
+All the hyperparameters options can be checked at `python3 -m monoloco.run train --help`.
 
 ### Hyperparameters tuning
-Random search in log space is provided. An example: `python3 src/main.py train --hyp --multiplier 10 --r_seed 1`.
+Random search in log space is provided. An example: `python3 -m monoloco.run train --hyp --multiplier 10 --r_seed 1`.
 One iteration of the multiplier includes 6 runs.
 
 
@@ -176,7 +176,7 @@ One iteration of the multiplier includes 6 runs.
 Evaluate performances of the trained model on KITTI or Nuscenes Dataset.
 ### 1) nuScenes
 Evaluation on nuScenes is already provided during training. It is also possible to evaluate an existing model running
-`python src/main.py eval --dataset nuscenes --model <model to evaluate>`
+`python3 -m monoloco.run eval --dataset nuscenes --model <model to evaluate>`
 
 ### 2) KITTI
 ### Baselines
@@ -196,7 +196,7 @@ and save them into `data/kitti/3dop`
 [here](https://github.com/Parrotlife/pedestrianDepth-baseline/tree/master/MonoDepth-PyTorch) 
 and save them into `data/kitti/monodepth`
 * **GeometricalBaseline**: A geometrical baseline comparison is provided. 
-The best average value for comparison can be created running `python src/main.py eval --geometric`
+The best average value for comparison can be created running `python3 -m monoloco.run eval --geometric`
 
 #### Evaluation
 First the model preprocess the joints starting from json annotations predicted from pifpaf, 
@@ -205,7 +205,7 @@ in txt file with format comparable to other baseline.
 Then the model performs evaluation.
 
 The following graph is obtained running:
-`python3 src/main.py eval --dataset kitti --generate --model data/models/monoloco-190513-1437.pkl 
+`python3 -m monoloco.run eval --dataset kitti --generate --model data/models/monoloco-190513-1437.pkl 
 --dir_ann <folder containing pifpaf annotations of KITTI images>`
 ![kitti_evaluation](docs/results.png)
 
