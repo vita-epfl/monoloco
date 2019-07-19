@@ -26,13 +26,22 @@ A video with qualitative results is available on [YouTube](https://www.youtube.c
 # Setup
 
 ### Install
+Python 3 is required. Python 2 is not supported. 
+Do not clone this repository and make sure there is no folder named monoloco in your current directory.
+`pip install monoloco`
+
+Live demo is available, we recommend to try our **Webcam** functionality. More info in the webcam section.
+
+
+For development of the monoloco source code itself, you need to clone this repository and then:
+```
+pip install openpifpaf nuscenes-devkit tabulate
+```
 Python 3.6 or 3.7 is required for nuScenes development kit. Python 3 is required for openpifpaf. 
 All details for Pifpaf pose detector at [openpifpaf](https://github.com/vita-epfl/openpifpaf).
 
 
-```
-pip install openpifpaf nuscenes-devkit tabulate
-```
+
 ### Data structure
 
     Data         
