@@ -129,23 +129,6 @@ def transform_kp(kps, tr_mode):
         uus = kps[0]
         vvs = [vv_c for vv in kps[1]]
 
-    elif tr_mode == 'lower':
-        uus = kps[0]
-        vvs = kps[1][:9] + [vv_c for vv in kps[1][9:]]
-
-    elif tr_mode == 'upper':
-        uus = kps[0]
-        vvs = [vv_c for vv in kps[1][:9]] + kps[1][9:]
-
-    elif tr_mode == 'lateral':
-        uus = []
-        for idx, kp in enumerate(kps[0]):
-            if idx % 2 == 1:
-                uus.append(kp)
-            else:
-                uus.append(uu_c)
-        vvs = kps[1]
-
     elif tr_mode == 'shoulder':
         uus = kps[0]
         vvs = kps[1][:7] + [kps[1][6] for vv in kps[1][7:]]

@@ -17,7 +17,7 @@ disable=E1102,missing-docstring,useless-object-inheritance,duplicate-code,too-ma
 # expressions are accepted.
 generated-members=numpy.*,torch.*,cv2.*
 
-ignored-modules=nuscenes
+ignored-modules=nuscenes, tabulate
 
 
 

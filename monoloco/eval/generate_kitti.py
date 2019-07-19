@@ -34,15 +34,12 @@ class GenerateKitti:
 
         # List of images
         self.list_basename = factory_basename(dir_ann)
-        # self.list_basename = ['005988']  # TODO
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
 
     def run_mono(self):
         """Run Monoloco and save txt files for KITTI evaluation"""
 
-        cnt_ann = 0
-        cnt_file = 0
-        cnt_no_file = 0
+        cnt_ann = cnt_file = cnt_no_file = 0
         dir_out = os.path.join('data', 'kitti', 'monoloco')
         # Remove the output directory if alreaady exists (avoid residual txt files)
         if os.path.exists(dir_out):
@@ -83,11 +80,7 @@ class GenerateKitti:
     def run_stereo(self):
         """Run monoloco on left and right images and alculate disparity if a match is found"""
 
-        cnt_ann = 0
-        cnt_file = 0
-        cnt_no_file = 0
-        cnt_no_stereo = 0
-        cnt_disparity = 0
+        cnt_ann = cnt_file = cnt_no_file = cnt_no_stereo = cnt_disparity = 0
         dir_out = os.path.join('data', 'kitti', 'monoloco_stereo')
 
         # Remove the output directory if alreaady exists (avoid residual txt files)

@@ -68,5 +68,3 @@ def reorder_matches(matches, boxes, mode='left_rigth'):
     matches_left = [idx for (idx, _) in matches]
 
     return [matches[matches_left.index(idx_boxes)] for idx_boxes in ordered_boxes if idx_boxes in matches_left]
-
-

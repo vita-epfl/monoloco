@@ -1,3 +1,5 @@
+# pylint: skip-file  # TODO
+
 """
 Training and evaluation of a neural network which predicts 3D localization and confidence intervals
 given 2d joints
@@ -122,10 +124,7 @@ class Trainer:
         best_model_wts = copy.deepcopy(self.model.state_dict())
         best_acc = 1e6
         best_epoch = 0
-        epoch_losses_tr = []
-        epoch_losses_val = []
-        epoch_norms = []
-        epoch_sis = []
+        epoch_losses_tr = epoch_losses_val = epoch_norms = epoch_sis = []
 
         for epoch in range(self.num_epochs):
 
@@ -137,10 +136,7 @@ class Trainer:
                 else:
                     self.model.eval()  # Set model to evaluate mode
 
-                running_loss_tr = 0.0
-                running_loss_eval = 0.0
-                norm_tr = 0.0
-                bi_tr = 0.0
+                running_loss_tr = running_loss_eval = norm_tr = bi_tr = 0.0
 
                 # Iterate over data.
                 for inputs, labels, _, _ in self.dataloaders[phase]:
@@ -155,10 +151,7 @@ class Trainer:
                     with torch.set_grad_enabled(phase == 'train'):
                         outputs = self.model(inputs)
 
-                        if self.output_size == 2:
-                            outputs_eval = outputs[:, 0:1]  # Fundamental to put slices
-                        else:
-                            outputs_eval = outputs
+                        outputs_eval = outputs[:, 0:1] if self.output_size == 2 else outputs
 
                         loss = self.criterion(outputs, labels)
                         loss_eval = self.criterion_eval(outputs_eval, labels)  # L1 loss to evaluation

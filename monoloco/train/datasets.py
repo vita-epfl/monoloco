@@ -54,11 +54,3 @@ class KeypointsDataset(Dataset):
         count = len(self.dic_clst[clst]['Y'])
 
         return inputs, outputs, count
-
-
-
-
-
-
-
-

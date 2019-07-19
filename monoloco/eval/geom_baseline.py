@@ -10,8 +10,6 @@ from ..utils.camera import pixel_to_camera, get_keypoints
 
 AVERAGE_Y = 0.48
 CLUSTERS = ['10', '20', '30', 'all']
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 def geometric_baseline(joints):
@@ -30,6 +28,8 @@ def geometric_baseline(joints):
     'right_ankle']
 
     """
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
     cnt_tot = 0
     dic_dist = defaultdict(lambda: defaultdict(list))
 
