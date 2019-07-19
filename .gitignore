@@ -4,3 +4,7 @@ data/
 __pycache__
 Monoloco/*.pyc
 .pytest*
+dist/
+build/
+*.egg-info
+
