@@ -143,21 +143,20 @@ class Printer:
 
         # Draw the front figure
         num = 0
-        if any(xx in self.output_types for xx in ['front', 'combined']):
+        self.mpl_im0.set_data(image)
+        for idx, uv in enumerate(self.uv_shoulders):
+            if any(xx in self.output_types for xx in ['front', 'combined']) and \
+                 min(self.zz_pred[idx], self.zz_gt[idx]) > 0:
 
-            self.mpl_im0.set_data(image)
-            for idx, uv in enumerate(self.uv_shoulders):
-                if min(self.zz_pred[idx], self.zz_gt[idx]) > 0:
+                color = self.cmap((self.zz_pred[idx] % self.z_max) / self.z_max)
+                self.draw_circle(axes, uv, color)
+                
+                if draw_box:
+                    self.draw_boxes(axes, idx, color)
 
-                    color = self.cmap((self.zz_pred[idx] % self.z_max) / self.z_max)
-                    self.draw_circle(axes, uv, color)
-
-                    if draw_box:
-                        self.draw_boxes(axes, idx, color)
-
-                    if draw_text:
-                        self.draw_text_front(axes, uv, num)
-                        num += 1
+                if draw_text:
+                    self.draw_text_front(axes, uv, num)
+                    num += 1
 
         # Draw the bird figure
         num = 0
@@ -171,7 +170,6 @@ class Printer:
                 if draw_text:
                     self.draw_text_bird(axes, idx, num)
                     num += 1
-
         # Add the legend
         if legend:
             draw_legend(axes)
