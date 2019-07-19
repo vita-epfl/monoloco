@@ -260,7 +260,7 @@ class EvalKitti:
                     self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
                     error = abs(dds_our[idx] - dd_gt)
                     error_stereo = abs(dds_our_stereo[idx] - dd_gt)
-                    if error_stereo > error:
+                    if error_stereo > (error + 0.1):
                         self.cnt_stereo_error += 1
 
                 for key in self.METHODS:
