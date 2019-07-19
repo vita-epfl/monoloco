@@ -150,7 +150,6 @@ class Printer:
 
                 color = self.cmap((self.zz_pred[idx] % self.z_max) / self.z_max)
                 self.draw_circle(axes, uv, color)
-                
                 if draw_box:
                     self.draw_boxes(axes, idx, color)
 
