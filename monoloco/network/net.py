@@ -1,6 +1,6 @@
 
 """
-Monoloco predictor. It receives pifpaf joints and outputs distances
+Monoloco class. From 2D joints to real-world distances
 """
 
 import logging
@@ -9,7 +9,8 @@ from collections import defaultdict
 import torch
 
 from ..utils import get_iou_matches, reorder_matches, get_keypoints, pixel_to_camera, xyz_from_distance
-from . import LinearModel, preprocess_monoloco, unnormalize_bi, laplace_sampling
+from .process import preprocess_monoloco, unnormalize_bi, laplace_sampling
+from .architectures import LinearModel
 
 
 class MonoLoco:

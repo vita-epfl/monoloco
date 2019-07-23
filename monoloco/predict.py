@@ -7,7 +7,8 @@ from PIL import Image
 from openpifpaf import show
 
 from .visuals.printer import Printer
-from .network import PifPaf, ImageList, MonoLoco, factory_for_gt, preprocess_pifpaf
+from .network import PifPaf, ImageList, MonoLoco
+from .network.process import factory_for_gt, preprocess_pifpaf
 
 
 def predict(args):

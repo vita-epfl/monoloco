@@ -15,7 +15,8 @@ from openpifpaf import transforms
 import cv2
 
 from ..visuals import Printer
-from ..network import PifPaf, MonoLoco, preprocess_pifpaf, factory_for_gt
+from ..network import PifPaf, MonoLoco
+from ..network.process import preprocess_pifpaf, factory_for_gt
 
 
 def webcam(args):

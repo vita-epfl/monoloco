@@ -10,7 +10,7 @@ import datetime
 
 from .transforms import transform_keypoints
 from ..utils import get_calibration, split_training, parse_ground_truth, get_iou_matches, append_cluster
-from ..network import preprocess_pifpaf, preprocess_monoloco
+from ..network.process import preprocess_pifpaf, preprocess_monoloco
 
 
 class PreprocessKitti:

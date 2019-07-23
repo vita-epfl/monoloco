@@ -14,7 +14,7 @@ from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
 
 from ..utils import get_iou_matches, append_cluster, select_categories, project_3d
-from ..network import preprocess_pifpaf, preprocess_monoloco
+from ..network.process import preprocess_pifpaf, preprocess_monoloco
 
 
 class PreprocessNuscenes:
