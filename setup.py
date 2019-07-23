@@ -10,9 +10,9 @@ setup(
     version=VERSION,
     packages=[
         'monoloco',
-        'monoloco.train',
-        'monoloco.predict',
+        'monoloco.network',
         'monoloco.eval',
+        'monoloco.train',
         'monoloco.prep',
         'monoloco.visuals',
         'monoloco.utils'
@@ -28,9 +28,15 @@ setup(
 
     install_requires=[
         'openpifpaf',
-        'nuscenes-devkit',  # for nuScenes dataset preprocessing
         'tabulate',   # For evaluation
-        'pylint',
-        'pytest',
     ],
+    extras_require={
+        'test': [
+            'pylint',
+            'pytest',
+        ],
+        'prep': [
+            'nuscenes-devkit',
+        ],
+    },
 )
