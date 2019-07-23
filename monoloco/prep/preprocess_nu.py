@@ -10,7 +10,6 @@ from collections import defaultdict
 import datetime
 
 import numpy as np
-
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
 

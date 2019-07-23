@@ -99,10 +99,10 @@ def main():
 
     if args.command == 'predict':
         if args.webcam:
-            from .visuals import webcam
+            from .visuals.webcam import webcam
             webcam(args)
         else:
-            from .predict import predict
+            from .predict.predict import predict
             predict(args)
 
     elif args.command == 'prep':

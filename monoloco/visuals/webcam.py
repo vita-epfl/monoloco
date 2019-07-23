@@ -16,7 +16,8 @@ from openpifpaf import transforms
 
 from ..visuals import Printer
 from ..utils import preprocess_pif
-from ..predict import PifPaf, MonoLoco, factory_for_gt
+from ..predict import PifPaf, MonoLoco
+from ..predict.factory import factory_for_gt
 
 
 def webcam(args):
