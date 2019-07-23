@@ -36,7 +36,7 @@ Live demo is available, we recommend to try our **Webcam** functionality. More i
 
 For development of the monoloco source code itself, you need to clone this repository and then:
 ```
-pip3 install -e '.[test,prep]'
+pip3 install -e '.[test, prep]'
 ```
 Python 3.6 or 3.7 is required for nuScenes development kit. Python 3 is required for openpifpaf. 
 All details for Pifpaf pose detector at [openpifpaf](https://github.com/vita-epfl/openpifpaf).
