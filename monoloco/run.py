@@ -96,13 +96,14 @@ def cli():
 
 def main():
     args = cli()
-
+    from .visuals.paper import gmm
+    gmm()
     if args.command == 'predict':
         if args.webcam:
             from .visuals.webcam import webcam
             webcam(args)
         else:
-            from predict import predict
+            from .predict import predict
             predict(args)
 
     elif args.command == 'prep':

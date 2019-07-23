@@ -49,7 +49,7 @@ def filter_disparities(kps, kps_right_list, idx, expected_disps):
             disparity_y_conf = np.where(mask_conf, disparity_y, np.nan)
 
             # Mask outliers using iqr
-            mask_outlier = get_iqr_mask(disparity_x_conf)
+            mask_outlier = interquartile_mask(disparity_x_conf)
             disparity_x_mask = np.where(mask_outlier, disparity_x_conf, np.nan)
             disparity_y_mask = np.where(mask_outlier, disparity_y_conf, np.nan)
             avg_disparity_x = np.nanmedian(disparity_x_mask, axis=1)  # ignore the nan
@@ -79,7 +79,7 @@ def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
     return False
 
 
-def get_iqr_mask(distribution):
+def interquartile_mask(distribution):
     quartile_1, quartile_3 = np.nanpercentile(distribution, [25, 75], axis=1)
     iqr = quartile_3 - quartile_1
     lower_bound = quartile_1 - (iqr * 1.5)
