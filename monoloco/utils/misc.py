@@ -1,6 +1,4 @@
 
-import random
-
 
 def append_cluster(dic_jo, phase, xx, dd, kps):
     """Append the annotation based on its distance"""
@@ -38,10 +36,8 @@ def get_task_error(dd, mode='std'):
 
 
 def get_pixel_error(dd_gt, zz_gt):
-    """calculate error in stereo distance due to +-1 pixel mismatch (function of depth)"""
+    """calculate error in stereo distance due to 1 pixel mismatch (function of depth)"""
 
     disp = 0.54 * 721 / zz_gt
-    random.seed(1)
-    sign = random.choice((-1, 1))
-    delta_z = zz_gt - 0.54 * 721 / (disp + sign)
+    delta_z = zz_gt - 0.54 * 721 / (disp - 1)
     return dd_gt + delta_z
