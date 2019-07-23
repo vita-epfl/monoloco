@@ -36,7 +36,7 @@ Live demo is available, we recommend to try our **Webcam** functionality. More i
 
 For development of the monoloco source code itself, you need to clone this repository and then:
 ```
-pip3 install --editable '.[test,prep]'
+pip3 install -e '.[test,prep]'
 ```
 Python 3.6 or 3.7 is required for nuScenes development kit. Python 3 is required for openpifpaf. 
 All details for Pifpaf pose detector at [openpifpaf](https://github.com/vita-epfl/openpifpaf).
@@ -152,6 +152,7 @@ data/kitti/images`
 #### 2) nuScenes dataset
 Download nuScenes dataset from [nuScenes](https://www.nuscenes.org/download) (either Mini or TrainVal), 
 save it anywhere and soft link it in `data/nuscenes`
+
 nuScenes preprocessing requires `pip3 install nuscenes-devkit`
 
 
