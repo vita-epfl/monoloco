@@ -4,10 +4,8 @@ python:
  - "3.6"
  - "3.7"
 install:
- - pip install openpifpaf
- - pip install nuscenes-devkit
- - pip install tabulate
- - pip install pylint
+ - pip install --upgrade pip setuptools
+ - pip install ".[test]"
 script:
  - pylint monoloco --disable=unused-variable,fixme
  - pytest -vv
