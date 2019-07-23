@@ -9,15 +9,13 @@ Implementation adapted from https://github.com/vita-epfl/openpifpaf/blob/master/
 import time
 
 import torch
-import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 from openpifpaf import transforms
+import cv2
 
 from ..visuals import Printer
-from ..utils import preprocess_pif
-from ..predict import PifPaf, MonoLoco
-from ..predict.factory import factory_for_gt
+from ..network import PifPaf, MonoLoco, preprocess_pifpaf, factory_for_gt
 
 
 def webcam(args):
@@ -64,7 +62,7 @@ def webcam(args):
             visualizer_monoloco.send(None)
 
         if pifpaf_out:
-            boxes, keypoints = preprocess_pif(pifpaf_out, (width, height))
+            boxes, keypoints = preprocess_pifpaf(pifpaf_out, (width, height))
             outputs, varss = monoloco.forward(keypoints, kk)
             dic_out = monoloco.post_process(outputs, varss, boxes, keypoints, kk, dict_gt)
             visualizer_monoloco.send((pil_image, dic_out))

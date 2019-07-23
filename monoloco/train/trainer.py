@@ -19,10 +19,9 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
-from .datasets import KeypointsDataset
-from .architectures import LinearModel
-from .losses import LaplacianLoss
-from ..utils import set_logger, laplace_sampling, unnormalize_bi
+from train.datasets import KeypointsDataset
+from ..network import LinearModel, LaplacianLoss, laplace_sampling, unnormalize_bi
+from ..utils import set_logger
 
 
 class Trainer:

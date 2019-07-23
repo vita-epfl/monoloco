@@ -8,12 +8,9 @@ from collections import defaultdict
 import json
 import datetime
 
-from ..prep.transforms import transform_keypoints
-from ..utils.kitti import get_calibration, split_training, parse_ground_truth
-from ..utils.network import get_monoloco_inputs
-from ..utils.pifpaf import preprocess_pif
-from ..utils.iou import get_iou_matches
-from ..utils.misc import append_cluster
+from .transforms import transform_keypoints
+from ..utils import get_calibration, split_training, parse_ground_truth, get_iou_matches, append_cluster
+from ..network import preprocess_pifpaf, preprocess_monoloco
 
 
 class PreprocessKitti:
@@ -84,10 +81,10 @@ class PreprocessKitti:
             try:
                 with open(os.path.join(self.dir_ann, basename + '.png.pifpaf.json'), 'r') as f:
                     annotations = json.load(f)
-                boxes, keypoints = preprocess_pif(annotations, im_size=(1238, 374))
+                boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1238, 374))
                 keypoints_hflip = transform_keypoints(keypoints, mode='flip')
-                inputs = get_monoloco_inputs(keypoints, kk).tolist()
-                inputs_hflip = get_monoloco_inputs(keypoints, kk).tolist()
+                inputs = preprocess_monoloco(keypoints, kk).tolist()
+                inputs_hflip = preprocess_monoloco(keypoints, kk).tolist()
                 all_keypoints = [keypoints, keypoints_hflip]
                 all_inputs = [inputs, inputs_hflip]
 

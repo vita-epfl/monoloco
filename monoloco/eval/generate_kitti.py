@@ -13,8 +13,9 @@ import copy
 import numpy as np
 import torch
 
-from ..predict.network import MonoLoco
+from ..network import MonoLoco, preprocess_pifpaf
 from ..eval.geom_baseline import compute_distance
+from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, depth_from_disparity
 
 
 class GenerateKitti:
@@ -47,7 +48,7 @@ class GenerateKitti:
         for basename in self.list_basename:
             path_calib = os.path.join(self.dir_kk, basename + '.txt')
             annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
-            boxes, keypoints = preprocess_pif(annotations, im_size=(1242, 374))
+            boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1242, 374))
 
             if not keypoints:
                 cnt_no_file += 1
@@ -91,7 +92,7 @@ class GenerateKitti:
 
             for mode in ['left', 'right']:
                 annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename, mode=mode)
-                boxes, keypoints = preprocess_pif(annotations, im_size=(1242, 374))
+                boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1242, 374))
 
                 if not keypoints and mode == 'left':
                     cnt_no_file += 1
