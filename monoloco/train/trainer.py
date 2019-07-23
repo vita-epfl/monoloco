@@ -22,8 +22,7 @@ from torch.optim import lr_scheduler
 from .datasets import KeypointsDataset
 from .architectures import LinearModel
 from .losses import LaplacianLoss
-from ..utils.logs import set_logger
-from ..utils.network import laplace_sampling, unnormalize_bi
+from ..utils import set_logger, laplace_sampling, unnormalize_bi
 
 
 class Trainer:

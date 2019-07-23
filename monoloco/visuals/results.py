@@ -1,6 +1,7 @@
 # pylint: disable=R0915
 
 import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse

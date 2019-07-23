@@ -1,19 +1,10 @@
 
 # pylint: skip-file
+
 import argparse
 
 from openpifpaf.network import nets
 from openpifpaf import decoder
-
-from .prep.preprocess_nu import PreprocessNuscenes
-from .prep.preprocess_ki import PreprocessKitti
-from .predict.predict import predict
-from .train.trainer import Trainer
-from .eval.generate_kitti import GenerateKitti
-from .eval.geom_baseline import geometric_baseline
-from .train.hyp_tuning import HypTuning
-from .eval.eval_kitti import EvalKitti
-from .visuals.webcam import webcam
 
 
 def cli():
@@ -108,25 +99,31 @@ def main():
 
     if args.command == 'predict':
         if args.webcam:
+            from .visuals import webcam
             webcam(args)
         else:
+            from .predict import predict
             predict(args)
 
     elif args.command == 'prep':
         if 'nuscenes' in args.dataset:
+            from .prep import PreprocessNuscenes
             prep = PreprocessNuscenes(args.dir_ann, args.dir_nuscenes, args.dataset, args.iou_min)
             prep.run()
         if 'kitti' in args.dataset:
+            from .prep import PreprocessKitti
             prep = PreprocessKitti(args.dir_ann, args.iou_min)
             prep.run()
 
     elif args.command == 'train':
+        from .train import HypTuning
         if args.hyp:
             hyp_tuning = HypTuning(joints=args.joints, epochs=args.epochs,
                                    baseline=args.baseline, dropout=args.dropout,
                                    multiplier=args.multiplier, r_seed=args.r_seed)
             hyp_tuning.train()
         else:
+            from .train import Trainer
             training = Trainer(joints=args.joints, epochs=args.epochs, bs=args.bs,
                                baseline=args.baseline, dropout=args.dropout, lr=args.lr, sched_step=args.sched_step,
                                n_stage=args.n_stage, sched_gamma=args.sched_gamma, hidden_size=args.hidden_size,
@@ -137,20 +134,24 @@ def main():
 
     elif args.command == 'eval':
         if args.geometric:
+            from .eval import geometric_baseline
             geometric_baseline(args.joints)
 
         if args.generate:
+            from .eval import GenerateKitti
             kitti_txt = GenerateKitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout)
             kitti_txt.run_mono()
             if args.stereo:
                 kitti_txt.run_stereo()
 
         if args.dataset == 'kitti':
+            from .eval import EvalKitti
             kitti_eval = EvalKitti(verbose=args.verbose, stereo=args.stereo)
             kitti_eval.run()
             kitti_eval.printer(show=args.show)
 
         if 'nuscenes' in args.dataset:
+            from .train import Trainer
             training = Trainer(joints=args.joints)
             _ = training.evaluate(load=True, model=args.model, debug=False)
 

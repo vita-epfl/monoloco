@@ -4,10 +4,8 @@ from PIL import Image
 
 import torch
 
-from ..predict.pifpaf import PifPaf, ImageList
-from ..predict.network import MonoLoco
-from ..predict.factory import factory_for_gt, factory_outputs
-from ..utils.pifpaf import preprocess_pif
+from ..predict import PifPaf, ImageList, MonoLoco, factory_for_gt, factory_outputs
+from ..utils import preprocess_pif
 
 
 def predict(args):

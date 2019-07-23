@@ -15,10 +15,6 @@ import torch
 
 from ..predict.network import MonoLoco
 from ..eval.geom_baseline import compute_distance
-from ..utils.kitti import get_calibration
-from ..utils.pifpaf import preprocess_pif
-from ..utils.camera import xyz_from_distance, get_keypoints, pixel_to_camera
-from ..utils.stereo import depth_from_disparity
 
 
 class GenerateKitti:

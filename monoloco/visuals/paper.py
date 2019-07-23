@@ -1,10 +1,11 @@
 # pylint: skip-file
 
-import numpy as np
-import os
 import math
+
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
+
 from visuals.printer import get_angle
 
 

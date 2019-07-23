@@ -9,8 +9,7 @@ import matplotlib.cm as cm
 from matplotlib.patches import Ellipse, Circle, Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from ..utils.camera import pixel_to_camera
-from ..utils.misc import get_task_error
+from ..utils import pixel_to_camera, get_task_error
 
 
 class Printer:

@@ -1,7 +1,7 @@
 
 import numpy as np
 import torch
-from ..utils.camera import get_keypoints, pixel_to_camera
+from ..utils import get_keypoints, pixel_to_camera
 
 
 def get_monoloco_inputs(keypoints, kk):

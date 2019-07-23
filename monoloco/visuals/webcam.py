@@ -9,17 +9,14 @@ Implementation adapted from https://github.com/vita-epfl/openpifpaf/blob/master/
 import time
 
 import torch
+import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 from openpifpaf import transforms
 
-import cv2
-
-from ..visuals.printer import Printer
-from ..utils.pifpaf import preprocess_pif
-from ..predict.pifpaf import PifPaf
-from ..predict.network import MonoLoco
-from ..predict.factory import factory_for_gt
+from ..visuals import Printer
+from ..utils import preprocess_pif
+from ..predict import PifPaf, MonoLoco, factory_for_gt
 
 
 def webcam(args):
