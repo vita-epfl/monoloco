@@ -12,14 +12,11 @@ import torch
 import matplotlib.pyplot as plt
 from PIL import Image
 from openpifpaf import transforms
-
 import cv2
 
-from ..visuals.printer import Printer
-from ..utils.pifpaf import preprocess_pif
-from ..predict.pifpaf import PifPaf
-from ..predict.network import MonoLoco
-from ..predict.factory import factory_for_gt
+from ..visuals import Printer
+from ..network import PifPaf, MonoLoco
+from ..network.process import preprocess_pifpaf, factory_for_gt
 
 
 def webcam(args):
@@ -66,7 +63,7 @@ def webcam(args):
             visualizer_monoloco.send(None)
 
         if pifpaf_out:
-            boxes, keypoints = preprocess_pif(pifpaf_out, (width, height))
+            boxes, keypoints = preprocess_pifpaf(pifpaf_out, (width, height))
             outputs, varss = monoloco.forward(keypoints, kk)
             dic_out = monoloco.post_process(outputs, varss, boxes, keypoints, kk, dict_gt)
             visualizer_monoloco.send((pil_image, dic_out))

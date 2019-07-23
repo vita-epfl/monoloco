@@ -1,11 +1,12 @@
 # pylint: skip-file
 
-import numpy as np
-import os
 import math
+
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
-from visuals.printer import get_angle
+
+from .printer import get_angle
 
 
 def paper():
@@ -112,30 +113,24 @@ def paper():
         plt.close()
 
 
-
 def target_error(xx, mm):
     return mm * xx
+
 
 def gmm():
     mu_men = 178
     std_men = 7
     mu_women = 165
     std_women = 7
-    N_men_1 = np.random.normal(mu_men, std_men, 1000000)
-    N_men_2 = np.random.normal(mu_men, std_men, 1000000)
-    N_women_1 = np.random.normal(mu_women, std_women, 1000000)
-    N_women_2 = np.random.normal(mu_women, std_women, 1000000)
-    N_gmm_1 = np.concatenate((N_men_1, N_women_1))
-    N_gmm_2 = np.concatenate((N_men_2, N_women_2))
-    mu_gmm_1 = np.mean(N_gmm_1)
-    mu_gmm_2 = np.mean(N_gmm_2)
-    std_gmm = np.std(N_gmm_1)
-    mm_gender = std_gmm / mu_gmm_1
-    var_gmm = np.var(N_gmm_1)
-    abs_diff_1 = np.abs(mu_gmm_1 - N_gmm_1)
-    abs_diff_2 = np.mean(np.abs(N_gmm_1 - N_gmm_2))
-    mean_deviation_1 = np.mean(abs_diff_1)
-    mean_deviation_2 = np.mean(abs_diff_2)
+    N_men = np.random.normal(mu_men, std_men, 10000000)
+    N_women = np.random.normal(mu_women, std_women, 10000000)
+    N_gmm = np.concatenate((N_men, N_women))
+    perc, _ = np.nanpercentile(N_gmm, [18.5, 81.5])  # Laplace bi => 63%
+    mu_gmm = np.mean(N_gmm)
+    bi_gmm = mu_gmm - perc
+    abs_diff = np.abs(mu_gmm - N_gmm)
+
+    mean_deviation = np.mean(abs_diff)
     # sns.distplot(N_men, hist=False, rug=False, label="Men")
     # sns.distplot(N_women, hist=False, rug=False, label="Women")
     # sns.distplot(N_gmm, hist=False, rug=False, label="GMM")
@@ -143,15 +138,10 @@ def gmm():
     # plt.ylabel("Height distributions of men and women")
     # plt.legend()
     # plt.show()
-    print("Mean of GMM distribution: {:.2f}".format(mu_gmm_1))
-    print("Standard deviation: {:.2f}".format(std_gmm))
-    print("Relative error (standard deviation) {:.3f} %".format(mm_gender * 100))
-    print("Variance: {:.2f}".format(var_gmm))
-    print("Mean deviation: {:.2f}".format(mean_deviation_1))
-    print("Mean deviation 2: {:.2f}".format(mean_deviation_2))
-    print("Relative error (mean absolute deviation): {:.3f} %".format((mean_deviation_1 / mu_gmm_1) * 100))
-
-    return mm_gender
+    print("Mean of GMM distribution: {:.2f}".format(mu_gmm))
+    print("+- bi interval (63%) : {:.2f}".format(bi_gmm))
+    print("Mean deviation: {:.2f}".format(mean_deviation))
+    print("Relative error (mean absolute deviation): {:.3f} %".format((mean_deviation / mu_gmm) * 100))
 
 
 def get_confidence(xx, zz, std):

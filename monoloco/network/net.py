@@ -1,6 +1,6 @@
 
 """
-Monoloco predictor. It receives pifpaf joints and outputs distances
+Monoloco class. From 2D joints to real-world distances
 """
 
 import logging
@@ -8,10 +8,9 @@ from collections import defaultdict
 
 import torch
 
-from ..utils.iou import get_iou_matches, reorder_matches
-from ..utils.camera import get_keypoints, pixel_to_camera, xyz_from_distance
-from ..utils.network import get_monoloco_inputs, unnormalize_bi, laplace_sampling
-from ..train.architectures import LinearModel
+from ..utils import get_iou_matches, reorder_matches, get_keypoints, pixel_to_camera, xyz_from_distance
+from .process import preprocess_monoloco, unnormalize_bi, laplace_sampling
+from .architectures import LinearModel
 
 
 class MonoLoco:
@@ -43,7 +42,7 @@ class MonoLoco:
             return None, None
 
         with torch.no_grad():
-            inputs = get_monoloco_inputs(torch.tensor(keypoints).to(self.device), torch.tensor(kk).to(self.device))
+            inputs = preprocess_monoloco(torch.tensor(keypoints).to(self.device), torch.tensor(kk).to(self.device))
             if self.n_dropout > 0:
                 self.model.dropout.training = True  # Manually reactivate dropout in eval
                 total_outputs = torch.empty((0, inputs.size()[0])).to(self.device)

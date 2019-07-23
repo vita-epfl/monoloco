@@ -10,16 +10,11 @@ from collections import defaultdict
 import datetime
 
 import numpy as np
-
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
 
-from ..utils.iou import get_iou_matches
-from ..utils.misc import append_cluster
-from ..utils.nuscenes import select_categories
-from ..utils.camera import project_3d
-from ..utils.pifpaf import preprocess_pif
-from ..utils.network import get_monoloco_inputs
+from ..utils import get_iou_matches, append_cluster, select_categories, project_3d
+from ..network.process import preprocess_pifpaf, preprocess_monoloco
 
 
 class PreprocessNuscenes:
@@ -97,12 +92,12 @@ class PreprocessNuscenes:
                     if exists:
                         with open(path_pif, 'r') as file:
                             annotations = json.load(file)
-                            boxes, keypoints = preprocess_pif(annotations, im_size=(1600, 900))
+                            boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1600, 900))
                     else:
                         continue
 
                     if keypoints:
-                        inputs = get_monoloco_inputs(keypoints, kk).tolist()
+                        inputs = preprocess_monoloco(keypoints, kk).tolist()
 
                         matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
                         for (idx, idx_gt) in matches:

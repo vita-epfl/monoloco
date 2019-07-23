@@ -1,4 +1,4 @@
-# pylint: skip-file  # TODO
+# pylint: skip-file  # TODO make train file and class trainer and
 
 """
 Training and evaluation of a neural network which predicts 3D localization and confidence intervals
@@ -19,11 +19,11 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
-from .datasets import KeypointsDataset
-from .architectures import LinearModel
-from .losses import LaplacianLoss
-from ..utils.logs import set_logger
-from ..utils.network import laplace_sampling, unnormalize_bi
+from train.datasets import KeypointsDataset
+from ..network import LaplacianLoss
+from ..network.process import laplace_sampling, unnormalize_bi
+from ..network.architectures import LinearModel
+from ..utils import set_logger
 
 
 class Trainer:
