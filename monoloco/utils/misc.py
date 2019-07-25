@@ -24,15 +24,10 @@ def append_cluster(dic_jo, phase, xx, dd, kps):
         dic_jo[phase]['clst']['>30']['Y'].append([dd])
 
 
-def get_task_error(dd, mode='std'):
+def get_task_error(dd):
     """Get target error not knowing the gender, modeled through a Gaussian Mixure model"""
-    assert mode in ('std', 'mad')
-    h_mean = 171.5  # average h of the human distribution
-    if mode == 'std':
-        delta_h = 9.07  # delta h for 63% confidence interval
-    elif mode == 'mad':
-        delta_h = 7.83  # delta_h of mean absolute deviation
-    return dd * (1 - h_mean / (h_mean + delta_h))
+    mm = 0.0459
+    return dd * mm
 
 
 def get_pixel_error(dd_gt, zz_gt):
