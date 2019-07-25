@@ -6,6 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
+from ..utils import get_task_error
+
 
 def print_results(dic_stats, show=False):
 
@@ -22,14 +24,13 @@ def print_results(dic_stats, show=False):
     x_min = 0
     x_max = 38
     xx = np.linspace(0, 60, 100)
-    mm_gender = 0.0556
     excl_clusters = ['all', '50', '>50', 'easy', 'moderate', 'hard']
     clusters = tuple([clst for clst in dic_stats[phase]['our'] if clst not in excl_clusters])
-    yy_gender = target_error(xx, mm_gender)
+    yy_gender = get_task_error(xx)
     yy_gps = np.linspace(5., 5., xx.shape[0])
 
     plt.figure(0)
-    fig_name = 'results.png'
+    plt.grid(linewidth=0.2)
     plt.xlabel("Distance [meters]")
     plt.ylabel("Average localization error [m]")
     plt.xlim(x_min, x_max)
@@ -52,7 +53,7 @@ def print_results(dic_stats, show=False):
     if show:
         plt.show()
     else:
-        plt.savefig(os.path.join(dir_out, fig_name))
+        plt.savefig(os.path.join(dir_out, 'results.png'))
     plt.close()
 
     # SPREAD b Figure
@@ -67,7 +68,7 @@ def print_results(dic_stats, show=False):
 
     bbs = np.array([dic_stats[phase]['our'][key]['std_ale'] for key in clusters])
     xxs = get_distances(clusters)
-    yys = target_error(np.array(xxs), mm_gender)
+    yys = get_task_error(np.array(xxs))
     ax[1].plot(xxs, bbs, marker='s', color='b', label="Spread b")
     ax[1].plot(xxs, yys, '--', color='lightgreen', label="Task error", linewidth=2.5)
     yys_up = [rec_c + ar/2 * scale * yy for yy in yys]
@@ -76,8 +77,8 @@ def print_results(dic_stats, show=False):
     bbs_down = [rec_c - ar/2 * scale * bb for bb in bbs]
 
     if plots_line:
-        ax[0].plot(xxs, yys_up, '--', color='lightgreen', markersize=5, linewidth=1)
-        ax[0].plot(xxs, yys_down, '--', color='lightgreen', markersize=5, linewidth=1)
+        ax[0].plot(xxs, yys_up, '--', color='lightgreen', markersize=5, linewidth=1.4)
+        ax[0].plot(xxs, yys_down, '--', color='lightgreen', markersize=5, linewidth=1.4)
         ax[0].plot(xxs, bbs_up, marker='s', color='b', markersize=5, linewidth=0.7)
         ax[0].plot(xxs, bbs_down, marker='s', color='b', markersize=5, linewidth=0.7)
 
@@ -94,12 +95,9 @@ def print_results(dic_stats, show=False):
     plt.legend()
     if show:
         plt.show()
+    else:
+        plt.savefig(os.path.join(dir_out, 'spread_bi.png'))
     plt.close()
-
-
-def target_error(xx, mm):
-    """Multiplication"""
-    return mm * xx
 
 
 def get_distances(clusters):

@@ -26,7 +26,7 @@ def append_cluster(dic_jo, phase, xx, dd, kps):
 
 def get_task_error(dd):
     """Get target error not knowing the gender, modeled through a Gaussian Mixure model"""
-    mm = 0.0459
+    mm = 0.046
     return dd * mm
 
 

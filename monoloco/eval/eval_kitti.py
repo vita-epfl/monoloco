@@ -25,7 +25,7 @@ class EvalKitti:
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
     METHODS = ['m3d', 'geom', 'task_error', '3dop', 'our']
     HEADERS = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
-    CATEGORIES = ['pedestrian', 'cyclist']
+    CATEGORIES = ['pedestrian']
 
     def __init__(self, thresh_iou_our=0.3, thresh_iou_m3d=0.3, thresh_conf_m3d=0.3, thresh_conf_our=0.3,
                  verbose=False, stereo=False):
@@ -100,15 +100,14 @@ class EvalKitti:
                 if out_gt[0]:
                     out_m3d = self._parse_txts(path_m3d, category, method='m3d')
                     out_3dop = self._parse_txts(path_3dop, category, method='3dop')
-                    # out_md = self._parse_txts(path_md, category, method='md')
-                    out_md = out_m3d
+                    out_md = self._parse_txts(path_md, category, method='md')
                     out_our = self._parse_txts(path_our, category, method='our')
                     out_our_stereo = self._parse_txts(path_our_stereo, category, method='our') if self.stereo else []
 
                     # Compute the error with ground truth
                     self._estimate_error(out_gt, out_m3d, method='m3d')
                     self._estimate_error(out_gt, out_3dop, method='3dop')
-                    # self._estimate_error(out_gt, out_md, method='md')
+                    self._estimate_error(out_gt, out_md, method='md')
                     self._estimate_error(out_gt, out_our, method='our')
                     if self.stereo:
                         self._estimate_error(out_gt, out_our_stereo, method='our_stereo')
@@ -125,6 +124,9 @@ class EvalKitti:
             # Show statistics
             print('\n' + category.upper() + ':')
             self.show_statistics()
+
+            # Show/save results
+            self.printer(show=False)
 
     def printer(self, show):
         print_results(self.dic_stats, show)
@@ -214,7 +216,7 @@ class EvalKitti:
             if method == 'our':
                 self.update_errors(dds_geom[idx], dds_gt[idx_gt], cat, self.errors['geom'])
                 self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
-                dd_task_error = dds_gt[idx_gt] + (get_task_error(dds_gt[idx_gt], mode='mad'))**2
+                dd_task_error = dds_gt[idx_gt] + (get_task_error(dds_gt[idx_gt]))**2
                 self.update_errors(dd_task_error, dds_gt[idx_gt], cat, self.errors['task_error'])
 
             elif method == 'our_stereo':
@@ -248,8 +250,7 @@ class EvalKitti:
 
                 self.update_errors(dds_our[idx], dd_gt, cat, self.errors['our_merged'])
                 self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
-                self.update_errors(dd_gt + get_task_error(dd_gt, mode='mad'),
-                                   dd_gt, cat, self.errors['task_error_merged'])
+                self.update_errors(dd_gt + get_task_error(dd_gt), dd_gt, cat, self.errors['task_error_merged'])
                 self.update_errors(dds_m3d[indices[0]], dd_gt, cat, self.errors['m3d_merged'])
                 self.update_errors(dds_3dop[indices[1]], dd_gt, cat, self.errors['3dop_merged'])
                 self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['md_merged'])

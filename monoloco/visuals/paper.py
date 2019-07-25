@@ -62,8 +62,8 @@ def paper():
         plt.plot(xx, yy_female, '-.', linewidth=1.7, color='darkorange', label='Adult female')
         plt.plot(xx, yy_male, '-.', linewidth=1.7, color='b', label='Adult male')
         plt.xlim(np.min(xx), np.max(xx))
-        plt.xlabel("Distance from the camera [m]")
-        plt.ylabel("Localization error due to human height variation [m]")
+        plt.xlabel("Ground-truth distance from the camera $d_{gt}$ [m]")
+        plt.ylabel("Localization error $\hat{e}$  due to human height variation [m]")
         plt.legend(loc=(0.01, 0.55))  # Location from 0 to 1 from lower left
         plt.savefig(os.path.join('docs', 'task_error.png'))
 
@@ -74,6 +74,7 @@ def target_error(xx, mm):
 
 def gmm():
     dist_gmm, dist_male, dist_female = height_distributions()
+    # get_percentile(dist_gmm)
     mu_gmm = np.mean(dist_gmm)
     mm_gmm = np.mean(np.abs(1 - mu_gmm / dist_gmm))
     mm_male = np.mean(np.abs(1 - np.mean(dist_male) / dist_male))
@@ -136,10 +137,12 @@ def plot_dist(dist_gmm, dist_men, dist_women):
 
 
 def get_percentile(dist_gmm):
-    dd_gt = 100
+    dd_gt = 1000
     mu_gmm = np.mean(dist_gmm)
     dist_d = dd_gt * mu_gmm / dist_gmm
-    perc_d, _ = np.nanpercentile(dist_d, [18.5, 81.5])  # Laplace bi => 63%
+    perc_d, _ = np.nanpercentile(dist_d, [18.5, 81.5]) # Laplace bi => 63%
+    perc_d2, _ = np.nanpercentile(dist_d, [23, 77])
     mu_d = np.mean(dist_d)
-    mm_bi = (mu_d - perc_d) / mu_d
-    mad_d = np.mean(np.abs(dist_d - mu_d))
+    # mm_bi = (mu_d - perc_d) / mu_d
+    # mm_test = (mu_d - perc_d2) / mu_d
+    # mad_d = np.mean(np.abs(dist_d - mu_d))
