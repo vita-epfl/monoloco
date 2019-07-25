@@ -96,8 +96,8 @@ def cli():
 
 def main():
     args = cli()
-    from .visuals.paper import gmm
-    gmm()
+    from .visuals.paper import paper
+    paper()
     if args.command == 'predict':
         if args.webcam:
             from .visuals.webcam import webcam

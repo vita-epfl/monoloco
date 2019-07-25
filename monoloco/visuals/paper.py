@@ -1,65 +1,23 @@
-# pylint: skip-file
+
 
 import math
+import os
 import itertools
 
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
-from .printer import get_angle
-
 
 def paper():
     """Print paper figures"""
 
-    method = True
+    method = False
     task_error = True
 
     # Pull figure
     if method:
-        fig_name = 'output_method.png'
-        z_max = 5
-        x_max = z_max * 25 / 30
-
-        z_1 = 2
-        z_2 = 4
-        x_1 = 1
-        x_2 = -2
         std_1 = 0.75
-        std_2 = 1.5
-        angle_1 = get_angle(x_1, z_1)
-        angle_2 = get_angle(x_2, z_2)
-
-        (x_1_down, x_1_up), (z_1_down, z_1_up) = get_confidence(x_1, z_1, std_1)
-        (x_2_down, x_2_up), (z_2_down, z_2_up) = get_confidence(x_2, z_2, std_2)
-        #
-        # fig = plt.figure(0)
-        # ax = fig.add_subplot(1, 1, 1)
-        #
-        # ell_1 = Ellipse((x_1, z_1), width=std_1 * 2, height=0.3, angle=angle_1, color='b', fill=False)
-        #
-        # ell_2 = Ellipse((x_2, z_2), width=std_2 * 2, height=0.3, angle=angle_2, color='b', fill=False)
-        #
-        # ax.add_patch(ell_1)
-        # ax.add_patch(ell_2)
-        # plt.plot(x_1_down, z_1_down, marker='o', markersize=8, color='salmon')
-        # plt.plot(x_1, z_1, 'go', markersize=8)
-        # plt.plot(x_1_up, z_1_up, 'o',  markersize=8, color='cornflowerblue')
-        #
-        # plt.plot(x_2_down, z_2_down, marker='o', markersize=8, color='salmon')
-        # plt.plot(x_2, z_2, 'go', markersize=8)
-        # plt.plot(x_2_up, z_2_up, 'bo',  markersize=8, color='cornflowerblue')
-        #
-        # plt.plot([0, x_max], [0, z_max], 'k--')
-        # plt.plot([0, -x_max], [0, z_max], 'k--')
-        # plt.xticks([])
-        # plt.yticks([])
-        # plt.xlabel('X [m]')
-        # plt.ylabel('Z [m]')
-        # plt.show()
-        # plt.close()
-
         fig = plt.figure(1)
         ax = fig.add_subplot(1, 1, 1)
 
@@ -77,41 +35,37 @@ def paper():
         plt.yticks([])
         plt.xlabel('X [m]')
         plt.ylabel('Z [m]')
-        # plt.savefig(os.path.join('docs', fig_name))
-        plt.show()
-        plt.close()
+        plt.savefig(os.path.join('docs', 'output_method.png'))
 
     # Task error figure
     if task_error:
         plt.figure(2)
-        fig_name = 'task_error.png'
         xx = np.linspace(0, 40, 100)
-        mm_male = 7 / 178
-        mm_female = 7 / 165
-        mm_young_male = mm_male + (178-164) / 178
-        mm_young_female = mm_female + (165-156) / 165
-        mm_gender = gmm()
+        mu_men = 178
+        mu_women = 165
+        mu_child_m = 164
+        mu_child_w = 156
+        mm_gmm, mm_male, mm_female = gmm()
+        mm_young_male = mm_male + (mu_men - mu_child_m) / mu_men
+        mm_young_female = mm_female + (mu_women - mu_child_w) / mu_women
         yy_male = target_error(xx, mm_male)
         yy_female = target_error(xx, mm_female)
         yy_young_male = target_error(xx, mm_young_male)
         yy_young_female = target_error(xx, mm_young_female)
-        yy_gender = target_error(xx, mm_gender)
+        yy_gender = target_error(xx, mm_gmm)
         yy_gps = np.linspace(5., 5., xx.shape[0])
         plt.grid(linewidth=0.3)
         plt.plot(xx, yy_gps, color='y', label='GPS')
-        plt.plot(xx, yy_young_male, linestyle='dotted',linewidth=2.1, color='b', label='Adult/young male')
-        plt.plot(xx, yy_young_female, linestyle='dotted',linewidth=2.1, color='darkorange', label='Adult/young female')
+        plt.plot(xx, yy_young_male, linestyle='dotted', linewidth=2.1, color='b', label='Adult/young male')
+        plt.plot(xx, yy_young_female, linestyle='dotted', linewidth=2.1, color='darkorange', label='Adult/young female')
         plt.plot(xx, yy_gender, '--', color='lightgreen', linewidth=2.8, label='Generic adult (task error)')
         plt.plot(xx, yy_female, '-.', linewidth=1.7, color='darkorange', label='Adult female')
         plt.plot(xx, yy_male, '-.', linewidth=1.7, color='b', label='Adult male')
-
         plt.xlim(np.min(xx), np.max(xx))
         plt.xlabel("Distance from the camera [m]")
         plt.ylabel("Localization error due to human height variation [m]")
         plt.legend(loc=(0.01, 0.55))  # Location from 0 to 1 from lower left
-        # plt.savefig(os.path.join(dir_out, fig_name))
-        plt.show()
-        plt.close()
+        plt.savefig(os.path.join('docs', 'task_error.png'))
 
 
 def target_error(xx, mm):
@@ -119,16 +73,17 @@ def target_error(xx, mm):
 
 
 def gmm():
-    dist_gmm, dist_men, dist_women = height_distributions()
+    dist_gmm, dist_male, dist_female = height_distributions()
     mu_gmm = np.mean(dist_gmm)
     mm_gmm = np.mean(np.abs(1 - mu_gmm / dist_gmm))
-    mm_men = np.mean(np.abs(1 - np.mean(dist_men) / dist_men))
-    mm_women = np.mean(np.abs(1 - np.mean(dist_women) / dist_women))
+    mm_male = np.mean(np.abs(1 - np.mean(dist_male) / dist_male))
+    mm_female = np.mean(np.abs(1 - np.mean(dist_female) / dist_female))
 
     print("Mean of GMM distribution: {:.4f}".format(mu_gmm))
     print("coefficient for gmm: {:.4f}".format(mm_gmm))
-    print("coefficient for men: {:.4f}".format(mm_men))
-    print("coefficient for women: {:.4f}".format(mm_women))
+    print("coefficient for men: {:.4f}".format(mm_male))
+    print("coefficient for women: {:.4f}".format(mm_female))
+    return mm_gmm, mm_male, mm_female
 
 
 def get_confidence(xx, zz, std):
@@ -146,8 +101,9 @@ def height_distributions():
     std_men = 7
     mu_women = 165
     std_women = 7
-    dist_men = np.random.normal(mu_men, std_men, 10000000)
-    dist_women = np.random.normal(mu_women, std_women, 10000000)
+    dist_men = np.random.normal(mu_men, std_men, int(1e7))
+    dist_women = np.random.normal(mu_women, std_women, int(1e7))
+
     dist_gmm = np.concatenate((dist_men, dist_women))
     return dist_gmm, dist_men, dist_women
 
@@ -187,4 +143,3 @@ def get_percentile(dist_gmm):
     mu_d = np.mean(dist_d)
     mm_bi = (mu_d - perc_d) / mu_d
     mad_d = np.mean(np.abs(dist_d - mu_d))
-
