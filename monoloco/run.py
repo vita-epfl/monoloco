@@ -96,6 +96,8 @@ def cli():
 
 def main():
     args = cli()
+    from .visuals.paper import gmm
+    gmm()
     if args.command == 'predict':
         if args.webcam:
             from .visuals.webcam import webcam
@@ -154,8 +156,8 @@ def main():
             training = Trainer(joints=args.joints)
             _ = training.evaluate(load=True, model=args.model, debug=False)
 
-    else:
-        raise ValueError("Main subparser not recognized or not provided")
+    # else:
+    #     raise ValueError("Main subparser not recognized or not provided")
 
 
 if __name__ == '__main__':

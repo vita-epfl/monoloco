@@ -1,6 +1,7 @@
 # pylint: skip-file
 
 import math
+import itertools
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -118,30 +119,16 @@ def target_error(xx, mm):
 
 
 def gmm():
-    mu_men = 178
-    std_men = 7
-    mu_women = 165
-    std_women = 7
-    N_men = np.random.normal(mu_men, std_men, 10000000)
-    N_women = np.random.normal(mu_women, std_women, 10000000)
-    N_gmm = np.concatenate((N_men, N_women))
-    perc, _ = np.nanpercentile(N_gmm, [18.5, 81.5])  # Laplace bi => 63%
-    mu_gmm = np.mean(N_gmm)
-    bi_gmm = mu_gmm - perc
-    abs_diff = np.abs(mu_gmm - N_gmm)
+    dist_gmm, dist_men, dist_women = height_distributions()
+    mu_gmm = np.mean(dist_gmm)
+    mm_gmm = np.mean(np.abs(1 - mu_gmm / dist_gmm))
+    mm_men = np.mean(np.abs(1 - np.mean(dist_men) / dist_men))
+    mm_women = np.mean(np.abs(1 - np.mean(dist_women) / dist_women))
 
-    mean_deviation = np.mean(abs_diff)
-    # sns.distplot(N_men, hist=False, rug=False, label="Men")
-    # sns.distplot(N_women, hist=False, rug=False, label="Women")
-    # sns.distplot(N_gmm, hist=False, rug=False, label="GMM")
-    # plt.xlabel("X [cm]")
-    # plt.ylabel("Height distributions of men and women")
-    # plt.legend()
-    # plt.show()
-    print("Mean of GMM distribution: {:.2f}".format(mu_gmm))
-    print("+- bi interval (63%) : {:.2f}".format(bi_gmm))
-    print("Mean deviation: {:.2f}".format(mean_deviation))
-    print("Relative error (mean absolute deviation): {:.3f} %".format((mean_deviation / mu_gmm) * 100))
+    print("Mean of GMM distribution: {:.4f}".format(mu_gmm))
+    print("coefficient for gmm: {:.4f}".format(mm_gmm))
+    print("coefficient for men: {:.4f}".format(mm_men))
+    print("coefficient for women: {:.4f}".format(mm_women))
 
 
 def get_confidence(xx, zz, std):
@@ -151,3 +138,53 @@ def get_confidence(xx, zz, std):
     delta_x = std * math.cos(theta)
     delta_z = std * math.sin(theta)
     return (xx - delta_x, xx + delta_x), (zz - delta_z, zz + delta_z)
+
+
+def height_distributions():
+
+    mu_men = 178
+    std_men = 7
+    mu_women = 165
+    std_women = 7
+    dist_men = np.random.normal(mu_men, std_men, 10000000)
+    dist_women = np.random.normal(mu_women, std_women, 10000000)
+    dist_gmm = np.concatenate((dist_men, dist_women))
+    return dist_gmm, dist_men, dist_women
+
+
+def expandgrid(*itrs):
+    mm = 0
+    combinations = list(itertools.product(*itrs))
+
+    for h_i, h_gt in combinations:
+        mm += abs(float(1 - h_i / h_gt))
+
+    mm /= len(combinations)
+
+    return combinations
+
+
+def plot_dist(dist_gmm, dist_men, dist_women):
+    try:
+        import seaborn as sns
+        sns.distplot(dist_men, hist=False, rug=False, label="Men")
+        sns.distplot(dist_women, hist=False, rug=False, label="Women")
+        sns.distplot(dist_gmm, hist=False, rug=False, label="GMM")
+        plt.xlabel("X [cm]")
+        plt.ylabel("Height distributions of men and women")
+        plt.legend()
+        plt.show()
+        plt.close()
+    except ImportError:
+        print("Import Seaborn first")
+
+
+def get_percentile(dist_gmm):
+    dd_gt = 100
+    mu_gmm = np.mean(dist_gmm)
+    dist_d = dd_gt * mu_gmm / dist_gmm
+    perc_d, _ = np.nanpercentile(dist_d, [18.5, 81.5])  # Laplace bi => 63%
+    mu_d = np.mean(dist_d)
+    mm_bi = (mu_d - perc_d) / mu_d
+    mad_d = np.mean(np.abs(dist_d - mu_d))
+
