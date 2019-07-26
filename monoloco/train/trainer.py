@@ -1,5 +1,5 @@
-# pylint: skip-file  # TODO make train file and class trainer and
 
+# pylint: disable=too-many-statements
 """
 Training and evaluation of a neural network which predicts 3D localization and confidence intervals
 given 2d joints
