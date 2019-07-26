@@ -263,13 +263,12 @@ class Trainer:
                                          dic_err[phase][clst]['bi'], dic_err[phase][clst]['conf_bi'] * 100))
 
         # Save the model and the results
-        self.save = False
         if self.save and not load:
             torch.save(self.model.state_dict(), self.path_model)
             print('-'*120)
-            self.logger.info("model saved: {} \n".format(self.path_model))
+            self.logger.info("\nmodel saved: {} \n".format(self.path_model))
         else:
-            self.logger.info("model not saved\n")
+            self.logger.info("\nmodel not saved\n")
 
         return dic_err, self.model
 
