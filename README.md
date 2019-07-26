@@ -108,8 +108,8 @@ If it does not find the file, it will generate images
 with all the predictions without ground-truth matching.
 
 Below an example with and without ground-truth matching. They have been created (adding or removing `--path_gt`) with:
-`python3 -m monoloco.run predict --networks monoloco --glob docs/002282.png --output_types combined --scale 2 
---model data/models/monoloco-190513-1437.pkl --n_dropout 50 --z_max 30 instance-threshold 0.15`
+`python3 -m monoloco.run predict --glob docs/002282.png --output_types combined --scale 2 
+--model data/models/monoloco-190513-1437.pkl --n_dropout 50 --z_max 30`
  
 With ground truth matching (only matching people):
 ![predict_ground_truth](docs/002282.png.combined_1.png)
@@ -122,7 +122,7 @@ To accurately estimate distance, the focal length is necessary.
 However, it is still possible to test Monoloco on images where the calibration matrix is not available. 
 Absolute distances are not meaningful but relative distance still are. 
 Below an example on a generic image from the web, created with:
-`python3 -m monoloco.run predict --networks monoloco --glob docs/surf.jpg --output_types combined --model data/models/monoloco-190513-1437.pkl --n_dropout 100 --z_max 25`
+`python3 -m monoloco.run predict --glob docs/surf.jpg --output_types combined --model data/models/monoloco-190513-1437.pkl --n_dropout 50 --z_max 25`
 
 ![no calibration](docs/surf.jpg.combined.png)
 

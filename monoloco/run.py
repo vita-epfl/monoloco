@@ -39,7 +39,7 @@ def cli():
 
     # Pifpaf
     nets.cli(predict_parser)
-    decoder.cli(predict_parser, force_complete_pose=True, instance_threshold=0.1)
+    decoder.cli(predict_parser, force_complete_pose=True, instance_threshold=0.15)
     predict_parser.add_argument('--scale', default=1.0, type=float, help='change the scale of the image to preprocess')
 
     # Monoloco
