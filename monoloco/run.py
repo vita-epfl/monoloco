@@ -100,8 +100,8 @@ def main():
             from .visuals.webcam import webcam
             webcam(args)
         else:
-            from predict import predict
-            predict(args)
+            from . import predict
+            predict.predict(args)
 
     elif args.command == 'prep':
         if 'nuscenes' in args.dataset:
