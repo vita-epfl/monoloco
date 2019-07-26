@@ -23,7 +23,7 @@ class EvalKitti:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
-    METHODS = ['m3d', 'geom', 'task_error', '3dop', 'our']
+    METHODS = ['m3d', 'md', 'geom', 'task_error', '3dop', 'our']
     HEADERS = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
     CATEGORIES = ['pedestrian']
 
@@ -157,8 +157,8 @@ class EvalKitti:
                 with open(path, "r") as ff:
                     for line in ff:
                         box = [float(x[:-1]) for x in line.split()[0:4]]
-                        delta_h = (box[3] - box[1]) / 10   # TODO Add new value
-                        delta_w = (box[2] - box[0]) / 10
+                        delta_h = (box[3] - box[1]) / 7
+                        delta_w = (box[2] - box[0]) / 3.5
                         assert delta_h > 0 and delta_w > 0, "Bounding box <=0"
                         box[0] -= delta_w
                         box[1] -= delta_h

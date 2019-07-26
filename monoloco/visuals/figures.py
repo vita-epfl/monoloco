@@ -31,7 +31,7 @@ def show_results(dic_stats, show=False, save=False):
 
     plt.figure(0)
     plt.grid(linewidth=0.2)
-    plt.xlabel("Distance [meters]")
+    plt.xlabel("Ground-truth distance [m]")
     plt.ylabel("Average localization error [m]")
     plt.xlim(x_min, x_max)
     labels = ['Mono3D', 'Geometric Baseline', 'MonoDepth', 'Our MonoLoco', '3DOP (stereo)']
@@ -52,8 +52,10 @@ def show_results(dic_stats, show=False, save=False):
     plt.legend(loc='upper left')
     if show:
         plt.show()
-    else:
-        plt.savefig(os.path.join(dir_out, 'results.png'))
+    if save:
+        path_fig = os.path.join(dir_out, 'results.png')
+        plt.savefig(path_fig)
+        print("Figure of results saved in {}".format(path_fig))
     plt.close()
 
 
@@ -104,13 +106,16 @@ def show_spread(dic_stats, show=False, save=False):
     if show:
         plt.show()
     if save:
-        plt.savefig(os.path.join(dir_out, 'spread_bi.png'))
+        path_fig = os.path.join(dir_out, 'spread.png')
+        plt.savefig(path_fig)
+        print("Figure of confidence intervals saved in {}".format(path_fig))
     plt.close()
 
 
 def show_task_error(show, save):
     """Task error figure"""
     plt.figure(2)
+    dir_out = 'docs'
     xx = np.linspace(0, 40, 100)
     mu_men = 178
     mu_women = 165
@@ -134,20 +139,23 @@ def show_task_error(show, save):
     plt.plot(xx, yy_male, '-.', linewidth=1.7, color='b', label='Adult male')
     plt.xlim(np.min(xx), np.max(xx))
     plt.xlabel("Ground-truth distance from the camera $d_{gt}$ [m]")
-    plt.ylabel("Localization error $\hat{e}$  due to human height variation [m]")
+    plt.ylabel("Localization error $\hat{e}$  due to human height variation [m]")  # pylint: disable=W1401
     plt.legend(loc=(0.01, 0.55))  # Location from 0 to 1 from lower left
     if show:
         plt.show()
     if save:
-        plt.savefig(os.path.join('docs', 'task_error.png'))
+        path_fig = os.path.join(dir_out, 'task_error.png')
+        plt.savefig(path_fig)
+        print("Figure of task error saved in {}".format(path_fig))
+    plt.close()
 
 
-def show_method():
+def show_method(save):
     """ method figure"""
+    dir_out = 'docs'
     std_1 = 0.75
     fig = plt.figure(1)
     ax = fig.add_subplot(1, 1, 1)
-
     ell_3 = Ellipse((0, 2), width=std_1 * 2, height=0.3, angle=-90, color='b', fill=False, linewidth=2.5)
     ell_4 = Ellipse((0, 2), width=std_1 * 3, height=0.3, angle=-90, color='r', fill=False,
                     linestyle='dashed', linewidth=2.5)
@@ -162,7 +170,10 @@ def show_method():
     plt.yticks([])
     plt.xlabel('X [m]')
     plt.ylabel('Z [m]')
-    plt.savefig(os.path.join('docs', 'output_method.png'))
+    if save:
+        path_fig = os.path.join(dir_out, 'output_method.png')
+        plt.savefig(path_fig)
+        print("Figure of method saved in {}".format(path_fig))
 
 
 def target_error(xx, mm):

@@ -1,5 +1,4 @@
-
-
+# pylint: disable=too-many-branches, too-many-statements
 import argparse
 
 from openpifpaf.network import nets
