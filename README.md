@@ -31,10 +31,9 @@ We further share insights on our model of uncertainty in case of limited observa
 Python 3 is required. Python 2 is not supported. 
 Do not clone this repository and make sure there is no folder named monoloco in your current directory.
 
-`pip3 install monoloco`
-
-Live demo is available, we recommend to 
-
+```
+pip3 install monoloco
+```
 
 For development of the monoloco source code itself, you need to clone this repository and then:
 ```
