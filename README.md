@@ -19,8 +19,9 @@ We further share insights on our model of uncertainty in case of limited observa
 }
 ```
 
-**A video with qualitative results is available on [YouTube](https://www.youtube.com/watch?v=ii0fqerQrec)**
+* **A video with qualitative results is available on [YouTube](https://www.youtube.com/watch?v=ii0fqerQrec)**
 
+* **Live demo available! (more info in the webcam section)**
 
 <img src="docs/pull.png" height="600">
 
@@ -32,7 +33,7 @@ Do not clone this repository and make sure there is no folder named monoloco in 
 
 `pip3 install monoloco`
 
-Live demo is available, we recommend to try our **Webcam** functionality. More info in the webcam section.
+Live demo is available, we recommend to 
 
 
 For development of the monoloco source code itself, you need to clone this repository and then:
