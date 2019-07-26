@@ -109,7 +109,7 @@ with all the predictions without ground-truth matching.
 
 Below an example with and without ground-truth matching. They have been created (adding or removing `--path_gt`) with:
 `python3 -m monoloco.run predict --networks monoloco --glob docs/002282.png --output_types combined --scale 2 
---model data/models/monoloco-190513-1437.pkl --n_dropout 100 --z_max 30`
+--model data/models/monoloco-190513-1437.pkl --n_dropout 50 --z_max 30 instance-threshold 0.15`
  
 With ground truth matching (only matching people):
 ![predict_ground_truth](docs/002282.png.combined_1.png)

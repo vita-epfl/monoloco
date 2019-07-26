@@ -44,10 +44,10 @@ def cli():
 
     # Monoloco
     predict_parser.add_argument('--model', help='path of MonoLoco model to load',
-                                default="data/models/monoloco-190513-1437.pkl")
-    predict_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
+                                default="data/models/monoloco-190719-0923.pkl")
+    predict_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=512)
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
-                                default='data/arrays/names-kitti-190710-1206.json')
+                                default='data/arrays/names-kitti-190726-1141.json')
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')
     predict_parser.add_argument('--draw_box', help='to draw box in the images', action='store_true')
     predict_parser.add_argument('--predict', help='whether to make prediction', action='store_true')
@@ -105,11 +105,11 @@ def main():
 
     elif args.command == 'prep':
         if 'nuscenes' in args.dataset:
-            from .prep import PreprocessNuscenes
+            from .prep.preprocess_nu import PreprocessNuscenes
             prep = PreprocessNuscenes(args.dir_ann, args.dir_nuscenes, args.dataset, args.iou_min)
             prep.run()
         if 'kitti' in args.dataset:
-            from .prep import PreprocessKitti
+            from .prep.preprocess_ki import PreprocessKitti
             prep = PreprocessKitti(args.dir_ann, args.iou_min)
             prep.run()
 
