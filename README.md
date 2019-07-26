@@ -22,7 +22,8 @@ We further share insights on our model of uncertainty in case of limited observa
 **A video with qualitative results is available on [YouTube](https://www.youtube.com/watch?v=ii0fqerQrec)**
 
 
-![overview_paper](docs/pull.png)
+<img src="docs/pull.png" height="500">
+
 # Setup
 
 ### Install
