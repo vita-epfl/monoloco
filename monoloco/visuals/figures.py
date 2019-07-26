@@ -12,7 +12,7 @@ from matplotlib.patches import Ellipse
 from ..utils import get_task_error
 
 
-def show_results(dic_stats, show=False):
+def show_results(dic_stats, show=False, save=False):
 
     """
     Visualize error as function of the distance and compare it with target errors based on human height analyses
@@ -57,7 +57,7 @@ def show_results(dic_stats, show=False):
     plt.close()
 
 
-def show_spread(dic_stats, show=False):
+def show_spread(dic_stats, show=False, save=False):
     """Predicted confidence intervals and task error as a function of ground-truth distance"""
 
     phase = 'test'
@@ -103,35 +103,12 @@ def show_spread(dic_stats, show=False):
     plt.legend()
     if show:
         plt.show()
-    else:
+    if save:
         plt.savefig(os.path.join(dir_out, 'spread_bi.png'))
     plt.close()
 
 
-def show_method():
-    """ method figure"""
-    std_1 = 0.75
-    fig = plt.figure(1)
-    ax = fig.add_subplot(1, 1, 1)
-
-    ell_3 = Ellipse((0, 2), width=std_1 * 2, height=0.3, angle=-90, color='b', fill=False, linewidth=2.5)
-    ell_4 = Ellipse((0, 2), width=std_1 * 3, height=0.3, angle=-90, color='r', fill=False,
-                    linestyle='dashed', linewidth=2.5)
-    ax.add_patch(ell_4)
-    ax.add_patch(ell_3)
-    plt.plot(0, 2, marker='o', color='skyblue', markersize=9)
-    plt.plot([0, 3], [0, 4], 'k--')
-    plt.plot([0, -3], [0, 4], 'k--')
-    plt.xlim(-3, 3)
-    plt.ylim(0, 3.5)
-    plt.xticks([])
-    plt.yticks([])
-    plt.xlabel('X [m]')
-    plt.ylabel('Z [m]')
-    plt.savefig(os.path.join('docs', 'output_method.png'))
-
-
-def show_task_error():
+def show_task_error(show, save):
     """Task error figure"""
     plt.figure(2)
     xx = np.linspace(0, 40, 100)
@@ -159,7 +136,33 @@ def show_task_error():
     plt.xlabel("Ground-truth distance from the camera $d_{gt}$ [m]")
     plt.ylabel("Localization error $\hat{e}$  due to human height variation [m]")
     plt.legend(loc=(0.01, 0.55))  # Location from 0 to 1 from lower left
-    plt.savefig(os.path.join('docs', 'task_error.png'))
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(os.path.join('docs', 'task_error.png'))
+
+
+def show_method():
+    """ method figure"""
+    std_1 = 0.75
+    fig = plt.figure(1)
+    ax = fig.add_subplot(1, 1, 1)
+
+    ell_3 = Ellipse((0, 2), width=std_1 * 2, height=0.3, angle=-90, color='b', fill=False, linewidth=2.5)
+    ell_4 = Ellipse((0, 2), width=std_1 * 3, height=0.3, angle=-90, color='r', fill=False,
+                    linestyle='dashed', linewidth=2.5)
+    ax.add_patch(ell_4)
+    ax.add_patch(ell_3)
+    plt.plot(0, 2, marker='o', color='skyblue', markersize=9)
+    plt.plot([0, 3], [0, 4], 'k--')
+    plt.plot([0, -3], [0, 4], 'k--')
+    plt.xlim(-3, 3)
+    plt.ylim(0, 3.5)
+    plt.xticks([])
+    plt.yticks([])
+    plt.xlabel('X [m]')
+    plt.ylabel('Z [m]')
+    plt.savefig(os.path.join('docs', 'output_method.png'))
 
 
 def target_error(xx, mm):
@@ -216,7 +219,6 @@ def get_confidence_points(confidences, distances, errors):
         distance_points.append(dd)
 
     return distance_points, confidence_points
-
 
 
 def height_distributions():

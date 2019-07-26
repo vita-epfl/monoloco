@@ -1,3 +1,3 @@
 
 from .printer import Printer
-from .results import print_results
+from .figures import show_results, show_spread

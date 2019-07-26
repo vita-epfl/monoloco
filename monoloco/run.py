@@ -86,6 +86,7 @@ def cli():
     eval_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=256)
     eval_parser.add_argument('--n_stage', type=int, help='Number of stages in the model', default=3)
     eval_parser.add_argument('--show', help='whether to show statistic graphs', action='store_true')
+    eval_parser.add_argument('--save', help='whether to save statistic graphs', action='store_true')
     eval_parser.add_argument('--verbose', help='verbosity of statistics', action='store_true')
     eval_parser.add_argument('--stereo', help='include stereo baseline results', action='store_true')
 
@@ -146,7 +147,7 @@ def main():
             from .eval import EvalKitti
             kitti_eval = EvalKitti(verbose=args.verbose, stereo=args.stereo)
             kitti_eval.run()
-            kitti_eval.printer(show=args.show)
+            kitti_eval.printer(show=args.show, save=args.save)
 
         if 'nuscenes' in args.dataset:
             from .train import Trainer

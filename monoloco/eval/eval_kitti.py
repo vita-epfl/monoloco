@@ -15,7 +15,7 @@ from tabulate import tabulate
 
 from ..utils import get_iou_matches, get_task_error, get_pixel_error, check_conditions, get_category, split_training, \
     parse_ground_truth
-from ..visuals import print_results
+from ..visuals import show_results, show_spread
 
 
 class EvalKitti:
@@ -125,11 +125,10 @@ class EvalKitti:
             print('\n' + category.upper() + ':')
             self.show_statistics()
 
-            # Show/save results
-            self.printer(show=False)
-
-    def printer(self, show):
-        print_results(self.dic_stats, show)
+    def printer(self, show, save):
+        if save or show:
+            show_results(self.dic_stats, show, save)
+            show_spread(self.dic_stats, show, save)
 
     def _parse_txts(self, path, category, method):
         boxes = []
