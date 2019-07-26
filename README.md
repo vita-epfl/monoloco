@@ -19,7 +19,7 @@ We further share insights on our model of uncertainty in case of limited observa
 }
 ```
 
-* **A video with qualitative results is available on [YouTube](https://www.youtube.com/watch?v=ii0fqerQrec)**
+* **Check our video with method description and qualitative results on [YouTube](https://www.youtube.com/watch?v=ii0fqerQrec)**
 
 * **Live demo available! (more info in the webcam section)**
 
