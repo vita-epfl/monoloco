@@ -8,18 +8,24 @@ from PIL import Image, ImageFile
 
 from openpifpaf.network import nets
 from openpifpaf import decoder
-from openpifpaf import transforms
+
+normalize = torchvision.transforms.Normalize(  # pylint: disable=invalid-name
+    mean=[0.485, 0.456, 0.406],
+    std=[0.229, 0.224, 0.225]
+)
+
+image_transform = torchvision.transforms.Compose([  # pylint: disable=invalid-name
+    torchvision.transforms.ToTensor(),
+    normalize,
+])
 
 
 class ImageList(torch.utils.data.Dataset):
     """It defines transformations to apply to images and outputs of the dataloader"""
-    def __init__(self, image_paths, scale, image_transform=None):
+    def __init__(self, image_paths, scale):
         self.image_paths = image_paths
-        self.image_transform = image_transform or transforms.image_transform  # to_tensor + normalize  (from pifpaf)
+        self.image_transform = image_transform   # to_tensor + normalize  (from pifpaf)
         self.scale = scale
-
-        # data = datasets.ImageList(args.images, preprocess=transforms.RescaleRelative(2
-        # .0)
 
     def __getitem__(self, index):
         image_path = self.image_paths[index]
