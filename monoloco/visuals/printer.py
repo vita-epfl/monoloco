@@ -34,7 +34,7 @@ class Printer:
         self.fig_width = fig_width
 
         # Define the output dir
-        self.path_out = output_path
+        self.output_path = output_path
         self.cmap = cm.get_cmap('jet')
         self.extensions = []
 
@@ -174,7 +174,7 @@ class Printer:
         for idx, fig in enumerate(figures):
             fig.canvas.draw()
             if save:
-                fig.savefig(self.path_out + self.extensions[idx], bbox_inches='tight')
+                fig.savefig(self.output_path + self.extensions[idx], bbox_inches='tight')
             if show:
                 fig.show()
 

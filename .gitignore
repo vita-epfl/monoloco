@@ -7,4 +7,5 @@ Monoloco/*.pyc
 dist/
 build/
 *.egg-info
+tests/*.png
 
