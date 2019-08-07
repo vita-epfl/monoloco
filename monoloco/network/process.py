@@ -3,6 +3,7 @@ import json
 
 import numpy as np
 import torch
+import torchvision
 
 from ..utils import get_keypoints, pixel_to_camera
 
@@ -139,3 +140,13 @@ def prepare_pif_kps(kps_in):
     ccs = kps_in[2:][::3]
 
     return [xxs, yys, ccs]
+
+
+def image_transform(image):
+
+    normalize = torchvision.transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
+    transforms = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), normalize, ])
+    return transforms(image)

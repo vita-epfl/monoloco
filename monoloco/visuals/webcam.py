@@ -11,12 +11,11 @@ import time
 import torch
 import matplotlib.pyplot as plt
 from PIL import Image
-from openpifpaf import transforms
 import cv2
 
 from ..visuals import Printer
 from ..network import PifPaf, MonoLoco
-from ..network.process import preprocess_pifpaf, factory_for_gt
+from ..network.process import preprocess_pifpaf, factory_for_gt, image_transform
 
 
 def webcam(args):
@@ -42,7 +41,7 @@ def webcam(args):
         height, width, _ = image.shape
         print('resized image size: {}'.format(image.shape))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        processed_image_cpu = transforms.image_transform(image.copy())
+        processed_image_cpu = image_transform(image.copy())
         processed_image = processed_image_cpu.contiguous().to(args.device, non_blocking=True)
         fields = pifpaf.fields(torch.unsqueeze(processed_image, 0))[0]
         _, _, pifpaf_out = pifpaf.forward(image, processed_image_cpu, fields)
