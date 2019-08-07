@@ -347,7 +347,7 @@ class EvalKitti:
     def show_statistics(self):
 
         print('-'*90)
-        alp = [[str(100 * average(self.errors[key][perc]))[:4]
+        alp = [[str(100 * average(self.errors[key][perc]))[:5]
                 for perc in ['<0.5m', '<1m', '<2m']]
                for key in self.METHODS]
 
@@ -373,8 +373,8 @@ class EvalKitti:
                     if key == 'our':
                         print("% of annotation inside the confidence interval: {:.1f} %, "
                               "of which {:.1f} % at higher risk"
-                              .format(self.dic_stats['test'][key][clst]['interval'],
-                                      self.dic_stats['test'][key][clst]['at_risk']))
+                              .format(self.dic_stats['test'][key][clst]['interval']*100,
+                                      self.dic_stats['test'][key][clst]['at_risk']*100))
 
                 for perc in ['<0.5m', '<1m', '<2m']:
                     print("{} Instances with error {}: {:.2f} %"

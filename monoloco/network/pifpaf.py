@@ -5,21 +5,17 @@ import numpy as np
 import torchvision
 import torch
 from PIL import Image, ImageFile
-
 from openpifpaf.network import nets
 from openpifpaf import decoder
-from openpifpaf import transforms
+
+from .process import image_transform
 
 
 class ImageList(torch.utils.data.Dataset):
     """It defines transformations to apply to images and outputs of the dataloader"""
-    def __init__(self, image_paths, scale, image_transform=None):
+    def __init__(self, image_paths, scale):
         self.image_paths = image_paths
-        self.image_transform = image_transform or transforms.image_transform  # to_tensor + normalize  (from pifpaf)
         self.scale = scale
-
-        # data = datasets.ImageList(args.images, preprocess=transforms.RescaleRelative(2
-        # .0)
 
     def __getitem__(self, index):
         image_path = self.image_paths[index]
@@ -34,7 +30,7 @@ class ImageList(torch.utils.data.Dataset):
                                                              interpolation=Image.BICUBIC)
         # PIL images are not iterables
         original_image = torchvision.transforms.functional.to_tensor(image)  # 0-255 --> 0-1
-        image = self.image_transform(image)
+        image = image_transform(image)
 
         return image_path, original_image, image
 

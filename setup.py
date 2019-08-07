@@ -27,7 +27,7 @@ setup(
     zip_safe=False,
 
     install_requires=[
-        'openpifpaf==0.8.0',
+        'openpifpaf',
         'tabulate',   # For evaluation
     ],
     extras_require={

@@ -3,6 +3,7 @@ import json
 
 import numpy as np
 import torch
+import torchvision
 
 from ..utils import get_keypoints, pixel_to_camera
 
@@ -82,18 +83,6 @@ def laplace_sampling(outputs, n_samples):
     return xx
 
 
-def epistemic_variance(total_outputs):
-    """Compute epistemic variance"""
-
-    # var_y = np.sum(total_outputs**2, axis=0) / total_outputs.shape[0] - (np.mean(total_outputs, axis=0))**2
-    var_y = np.var(total_outputs, axis=0)
-    lower_b = np.quantile(a=total_outputs, q=0.25, axis=0)
-    upper_b = np.quantile(a=total_outputs, q=0.75, axis=0)
-    var_new = (upper_b - lower_b)
-
-    return var_y, var_new
-
-
 def unnormalize_bi(outputs):
     """Unnormalize relative bi of a nunmpy array"""
 
@@ -151,3 +140,13 @@ def prepare_pif_kps(kps_in):
     ccs = kps_in[2:][::3]
 
     return [xxs, yys, ccs]
+
+
+def image_transform(image):
+
+    normalize = torchvision.transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
+    transforms = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), normalize, ])
+    return transforms(image)
