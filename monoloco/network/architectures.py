@@ -3,7 +3,10 @@ import torch.nn as nn
 
 
 class LinearModel(nn.Module):
-    """Architecture inspired by https://github.com/una-dinosauria/3d-pose-baseline"""
+    """
+    Architecture inspired by https://github.com/una-dinosauria/3d-pose-baseline
+    Pytorch implementation from: https://github.com/weigq/3d_pose_baseline_pytorch
+    """
 
     def __init__(self, input_size, output_size=2, linear_size=256, p_dropout=0.2, num_stage=3):
         super(LinearModel, self).__init__()
