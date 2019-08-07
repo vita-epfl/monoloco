@@ -26,7 +26,7 @@ class GenerateKitti:
         # Load monoloco
         use_cuda = torch.cuda.is_available()
         device = torch.device("cuda" if use_cuda else "cpu")
-        self.monoloco = MonoLoco(model_path=model, device=device, n_dropout=n_dropout, p_dropout=p_dropout)
+        self.monoloco = MonoLoco(model=model, device=device, n_dropout=n_dropout, p_dropout=p_dropout)
         self.dir_out = os.path.join('data', 'kitti', 'monoloco')
         self.dir_ann = dir_ann
 

@@ -17,22 +17,25 @@ class MonoLoco:
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-    OUTPUT_SIZE = 2
     INPUT_SIZE = 17 * 2
     LINEAR_SIZE = 256
     N_SAMPLES = 100
 
-    def __init__(self, model_path, device, n_dropout=0, p_dropout=0.2):
+    def __init__(self, model, device, n_dropout=0, p_dropout=0.2):
 
         self.device = device
         self.n_dropout = n_dropout
         self.epistemic = bool(self.n_dropout > 0)
 
-        # load the model parameters
-        self.model = LinearModel(p_dropout=p_dropout,
-                                 input_size=self.INPUT_SIZE, output_size=self.OUTPUT_SIZE, linear_size=self.LINEAR_SIZE,
-                                 )
-        self.model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))
+        # if the path is provided load the model parameters
+        if isinstance(model, str):
+            model_path = model
+            self.model = LinearModel(p_dropout=p_dropout, input_size=self.INPUT_SIZE, linear_size=self.LINEAR_SIZE)
+            self.model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))
+
+        # if the model is directly provided
+        else:
+            self.model = model
         self.model.eval()  # Default is train
         self.model.to(self.device)
 

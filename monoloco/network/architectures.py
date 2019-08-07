@@ -79,7 +79,7 @@ class Linear(nn.Module):
 class LinearModel(nn.Module):
 
     """Class from Simple yet effective baseline"""
-    def __init__(self, input_size, output_size, linear_size=256, p_dropout=0.2, num_stage=3):
+    def __init__(self, input_size, output_size=2, linear_size=256, p_dropout=0.2, num_stage=3):
         super(LinearModel, self).__init__()
 
         self.input_size = input_size

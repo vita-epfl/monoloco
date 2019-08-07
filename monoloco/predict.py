@@ -17,7 +17,7 @@ def predict(args):
 
     # load pifpaf and monoloco models
     pifpaf = PifPaf(args)
-    monoloco = MonoLoco(model_path=args.model, device=args.device, n_dropout=args.n_dropout, p_dropout=args.dropout)
+    monoloco = MonoLoco(model=args.model, device=args.device, n_dropout=args.n_dropout, p_dropout=args.dropout)
 
     # data
     data = ImageList(args.images, scale=args.scale)

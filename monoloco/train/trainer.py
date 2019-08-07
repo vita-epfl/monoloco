@@ -12,6 +12,7 @@ import logging
 from collections import defaultdict
 import sys
 import time
+import warnings
 
 import matplotlib.pyplot as plt
 import torch
@@ -36,10 +37,11 @@ class Trainer:
 
         # Initialize directories and parameters
         dir_out = os.path.join('data', 'models')
-        assert os.path.exists(dir_out), "Output directory not found"
+        if not os.path.exists(dir_out):
+            warnings.warn("Warning: output directory not found, the model will not be saved")
         dir_logs = os.path.join('data', 'logs')
         if not os.path.exists(dir_logs):
-            os.makedirs(dir_logs)
+            warnings.warn("Warning: default logs directory not found")
         assert os.path.exists(joints), "Input file not found"
 
         self.joints = joints

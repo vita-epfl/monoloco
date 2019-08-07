@@ -54,9 +54,7 @@ class Printer:
         self.zz_pred = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
                         for idx, xx in enumerate(dic_ann['xyz_pred'])]
         self.dds_real = dic_ann['dds_real']
-        self.uv_centers = dic_ann['uv_centers']
         self.uv_shoulders = dic_ann['uv_shoulders']
-        self.uv_kps = dic_ann['uv_kps']
         self.boxes = dic_ann['boxes']
         self.boxes_gt = dic_ann['boxes_gt']
 
