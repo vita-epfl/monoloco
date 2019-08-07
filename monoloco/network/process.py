@@ -82,18 +82,6 @@ def laplace_sampling(outputs, n_samples):
     return xx
 
 
-def epistemic_variance(total_outputs):
-    """Compute epistemic variance"""
-
-    # var_y = np.sum(total_outputs**2, axis=0) / total_outputs.shape[0] - (np.mean(total_outputs, axis=0))**2
-    var_y = np.var(total_outputs, axis=0)
-    lower_b = np.quantile(a=total_outputs, q=0.25, axis=0)
-    upper_b = np.quantile(a=total_outputs, q=0.75, axis=0)
-    var_new = (upper_b - lower_b)
-
-    return var_y, var_new
-
-
 def unnormalize_bi(outputs):
     """Unnormalize relative bi of a nunmpy array"""
 
