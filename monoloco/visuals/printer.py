@@ -34,7 +34,7 @@ class Printer:
         self.fig_width = fig_width
 
         # Define the output dir
-        self.path_out = output_path
+        self.output_path = output_path
         self.cmap = cm.get_cmap('jet')
         self.extensions = []
 
@@ -54,9 +54,7 @@ class Printer:
         self.zz_pred = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
                         for idx, xx in enumerate(dic_ann['xyz_pred'])]
         self.dds_real = dic_ann['dds_real']
-        self.uv_centers = dic_ann['uv_centers']
         self.uv_shoulders = dic_ann['uv_shoulders']
-        self.uv_kps = dic_ann['uv_kps']
         self.boxes = dic_ann['boxes']
         self.boxes_gt = dic_ann['boxes_gt']
 
@@ -176,7 +174,7 @@ class Printer:
         for idx, fig in enumerate(figures):
             fig.canvas.draw()
             if save:
-                fig.savefig(self.path_out + self.extensions[idx], bbox_inches='tight')
+                fig.savefig(self.output_path + self.extensions[idx], bbox_inches='tight')
             if show:
                 fig.show()
 

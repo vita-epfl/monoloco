@@ -28,7 +28,7 @@ def webcam(args):
     # load models
     args.camera = True
     pifpaf = PifPaf(args)
-    monoloco = MonoLoco(model_path=args.model, device=args.device)
+    monoloco = MonoLoco(model=args.model, device=args.device)
 
     # Start recording
     cam = cv2.VideoCapture(0)

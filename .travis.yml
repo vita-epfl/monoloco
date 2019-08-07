@@ -8,4 +8,4 @@ install:
  - pip install ".[test]"
 script:
  - pylint monoloco --disable=unused-variable,fixme
- - pytest -vv
+ - pytest -v
