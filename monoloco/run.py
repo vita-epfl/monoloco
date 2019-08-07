@@ -6,9 +6,7 @@ from openpifpaf import decoder
 
 
 def cli():
-
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # Subparser definition
     subparsers = parser.add_subparsers(help='Different parsers for main actions', dest='command')
@@ -22,8 +20,7 @@ def cli():
     prep_parser.add_argument('--dataset',
                              help='datasets to preprocess: nuscenes, nuscenes_teaser, nuscenes_mini, kitti',
                              default='nuscenes')
-    prep_parser.add_argument('--dir_nuscenes', help='directory of nuscenes devkit',
-                             default='data/nuscenes/')
+    prep_parser.add_argument('--dir_nuscenes', help='directory of nuscenes devkit', default='data/nuscenes/')
     prep_parser.add_argument('--iou_min', help='minimum iou to match ground truth', type=float, default=0.3)
 
     # Predict (2D pose and/or 3D location from images)

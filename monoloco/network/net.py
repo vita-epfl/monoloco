@@ -21,9 +21,12 @@ class MonoLoco:
     LINEAR_SIZE = 256
     N_SAMPLES = 100
 
-    def __init__(self, model, device, n_dropout=0, p_dropout=0.2):
+    def __init__(self, model, device=None, n_dropout=0, p_dropout=0.2):
 
-        self.device = device
+        if not device:
+            self.device = torch.device('cpu')
+        else:
+            self.device = device
         self.n_dropout = n_dropout
         self.epistemic = bool(self.n_dropout > 0)
 
@@ -66,7 +69,7 @@ class MonoLoco:
         return outputs, varss
 
     @staticmethod
-    def post_process(outputs, varss, boxes, keypoints, kk, dic_gt, iou_min=0.3):
+    def post_process(outputs, varss, boxes, keypoints, kk, dic_gt=None, iou_min=0.3):
         """Post process monoloco to output final dictionary with all information for visualizations"""
 
         dic_out = defaultdict(list)
