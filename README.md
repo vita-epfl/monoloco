@@ -31,10 +31,9 @@ We further share insights on our model of uncertainty in case of limited observa
 Python 3 is required. Python 2 is not supported. 
 Do not clone this repository and make sure there is no folder named monoloco in your current directory.
 
-`pip3 install monoloco`
-
-Live demo is available, we recommend to 
-
+```
+pip3 install monoloco
+```
 
 For development of the monoloco source code itself, you need to clone this repository and then:
 ```
@@ -137,8 +136,9 @@ Multiple visualizations can be combined in different windows.
 
 The above gif has been obtained running on a Macbook the command:
 
-`pip3 install opencv-python`
-`python3 -m monoloco.run predict --webcam --scale 0.2 --output_types combined --z_max 10 --checkpoint resnet50 --model data/models/monoloco-190513-1437.pkl`
+```pip3 install opencv-python
+python3 -m monoloco.run predict --webcam --scale 0.2 --output_types combined --z_max 10 --checkpoint resnet50 --model data/models/monoloco-190513-1437.pkl
+```
 
 # Preprocess
 
