@@ -4,11 +4,8 @@ and extract and save the annotations in txt files"""
 
 import math
 import os
-import glob
-import json
 import shutil
 import itertools
-import copy
 
 import numpy as np
 import torch

@@ -5,66 +5,86 @@ import warnings
 import numpy as np
 
 
-def depth_from_disparity(zzs, kps, kps_right):
-    """Associate instances in left and right images and compute disparity"""
+def calculate_monoloco_disparity(zzs):
+
+    disparities = 0.54 * 721 / np.array(zzs)
+    return disparities
+
+
+def depth_from_disparity(zzs, keypoints, keypoints_right):
+    """
+    Associate instances in left and right images and compute disparity using:
+    1. monoloco prior
+    2. pose similarity
+    """
+    cnt_stereo = 0
     zzs_stereo = []
     zzs = np.array(zzs)
-    kps = np.array(kps)
-    kps_right_list = copy.deepcopy(kps_right)
-    cnt_stereo = 0
-    expected_disps = 0.54 * 721 / np.array(zzs)
+    keypoints = np.array(keypoints)
+    keypoints_r_list = copy.deepcopy(keypoints_right)
+
+    # monoloco_disparities = calculate_monoloco_disparity(zzs)
+    # pose_disparities = ...
 
     for idx, zz_mono in enumerate(zzs):
-        if kps_right_list:
+        if keypoints_r_list:
+            avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoints[idx], keypoints_r_list)
+            zz_stereo, idx_min = depth_from_monoloco_disparity(zz_mono, avg_disparities)
 
-            zz_stereo, disparity_x, disparity_y, idx_min = filter_disparities(kps, kps_right_list, idx, expected_disps)
-
-            if verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
+            if verify_stereo(zz_stereo, zz_mono, disparities_x, disparities_y):
                 zzs_stereo.append(zz_stereo)
                 cnt_stereo += 1
-                kps_right_list.pop(idx_min)
+                keypoints_r_list.pop(idx_min)
             else:
                 zzs_stereo.append(zz_mono)
         else:
             zzs_stereo.append(zz_mono)
-
     assert len(zzs_stereo) == len(zzs)
     return zzs_stereo, cnt_stereo
 
 
-def filter_disparities(kps, kps_right_list, idx, expected_disps):
+def mask_joint_disparity(kps, keypoints_r):
     """filter joints based on confidence and interquartile range of the distribution"""
 
     CONF_MIN = 0.3
-    kps_right = np.array(kps_right_list)
+    keypoints_r = np.array(keypoints_r)
+
     with warnings.catch_warnings() and np.errstate(invalid='ignore'):
-        try:
-            disparity_x = kps[idx, 0, :] - kps_right[:, 0, :]
-            disparity_y = kps[idx, 1, :] - kps_right[:, 1, :]
+        disparity_x = kps[0, :] - keypoints_r[:, 0, :]
+        disparity_y = kps[1, :] - keypoints_r[:, 1, :]
 
-            # Mask for low confidence
-            mask_conf_left = kps[idx, 2, :] > CONF_MIN
-            mask_conf_right = kps_right[:, 2, :] > CONF_MIN
-            mask_conf = mask_conf_left & mask_conf_right
-            disparity_x_conf = np.where(mask_conf, disparity_x, np.nan)
-            disparity_y_conf = np.where(mask_conf, disparity_y, np.nan)
+        # Mask for low confidence
+        mask_conf_left = kps[2, :] > CONF_MIN
+        mask_conf_right = keypoints_r[:, 2, :] > CONF_MIN
+        mask_conf = mask_conf_left & mask_conf_right
+        disparity_x_conf = np.where(mask_conf, disparity_x, np.nan)
+        disparity_y_conf = np.where(mask_conf, disparity_y, np.nan)
 
-            # Mask outliers using iqr
-            mask_outlier = interquartile_mask(disparity_x_conf)
-            disparity_x_mask = np.where(mask_outlier, disparity_x_conf, np.nan)
-            disparity_y_mask = np.where(mask_outlier, disparity_y_conf, np.nan)
-            avg_disparity_x = np.nanmedian(disparity_x_mask, axis=1)  # ignore the nan
-            diffs_x = [abs(expected_disps[idx] - real) for real in avg_disparity_x]
-            idx_min = diffs_x.index(min(diffs_x))
-            zz_stereo = 0.54 * 721. / float(avg_disparity_x[idx_min])
+        # Mask outliers using iqr
+        mask_outlier = interquartile_mask(disparity_x_conf)
+        disparity_x_mask = np.where(mask_outlier, disparity_x_conf, np.nan)
+        disparity_y_mask = np.where(mask_outlier, disparity_y_conf, np.nan)
+        avg_disparity = np.nanmedian(disparity_x, axis=1)  # ignore the nan
 
-        except ZeroDivisionError:
-            zz_stereo = - 100
+        return avg_disparity, disparity_x_mask, disparity_y_mask
 
-        return zz_stereo, disparity_x_mask[idx_min], disparity_y_mask[idx_min], idx_min
+
+def depth_from_monoloco_disparity(zz_mono, avg_disparities):
+    """Use monoloco depth as prior for expected disparity"""
+    expected_disparity = 0.54 * 721. / zz_mono
+
+    try:
+        diffs_x = [abs(expected_disparity - real) for real in avg_disparities]
+        idx_min = diffs_x.index(min(diffs_x))
+        zz_stereo = 0.54 * 721. / float(avg_disparities[idx_min])
+    except ZeroDivisionError:
+        zz_stereo = - 100
+
+    return zz_stereo, idx_min
 
 
 def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
+    """Verify disparities based on coefficient of variation, maximum y difference and z difference wrt monoloco"""
 
     COV_MIN = 0.1
     y_max_difference = (50 / zz_mono)
