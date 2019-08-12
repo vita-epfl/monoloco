@@ -28,6 +28,7 @@ def depth_from_disparity(zzs, kps, kps_right):
         else:
             zzs_stereo.append(zz_mono)
 
+    assert len(zzs_stereo) == len(zzs)
     return zzs_stereo, cnt_stereo
 
 
