@@ -16,7 +16,8 @@ import torch
 from ..network import MonoLoco
 from ..network.process import preprocess_pifpaf
 from ..eval.geom_baseline import compute_distance
-from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, depth_from_disparity
+from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, depth_from_disparity, \
+    factory_basename, open_annotations
 
 
 class GenerateKitti:
@@ -178,15 +179,6 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
         ff.write("\n")
 
 
-def factory_basename(dir_ann):
-    """ Return all the basenames in the annotations folder"""
-
-    list_ann = glob.glob(os.path.join(dir_ann, '*.json'))
-    list_basename = [os.path.basename(x).split('.')[0] for x in list_ann]
-    assert list_basename, " Missing json annotations file to create txt files for KITTI datasets"
-    return list_basename
-
-
 def factory_file(path_calib, dir_ann, basename, mode='left'):
     """Choose the annotation and the calibration files. Stereo option with ite = 1"""
 
@@ -201,11 +193,7 @@ def factory_file(path_calib, dir_ann, basename, mode='left'):
         kk, tt = p_right[:]
         path_ann = os.path.join(dir_ann + '_right', basename + '.png.pifpaf.json')
 
-    try:
-        with open(path_ann, 'r') as f:
-            annotations = json.load(f)
-    except FileNotFoundError:
-        annotations = []
+    annotations = open_annotations(path_ann)
 
     return annotations, kk, tt
 

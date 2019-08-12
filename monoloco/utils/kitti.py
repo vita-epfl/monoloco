@@ -1,5 +1,7 @@
 
 import math
+import glob
+import os
 
 import numpy as np
 
@@ -152,3 +154,12 @@ def parse_ground_truth(path_gt, category):
                 dds_gt.append(math.sqrt(loc_gt[0] ** 2 + loc_gt[1] ** 2 + loc_gt[2] ** 2))
 
     return boxes_gt, boxes_3d, dds_gt, zzs_gt, truncs_gt, occs_gt
+
+
+def factory_basename(dir_ann):
+    """ Return all the basenames in the annotations folder"""
+
+    list_ann = glob.glob(os.path.join(dir_ann, '*.json'))
+    list_basename = [os.path.basename(x).split('.')[0] for x in list_ann]
+    assert list_basename, " Missing json annotations file to create txt files for KITTI datasets"
+    return list_basename

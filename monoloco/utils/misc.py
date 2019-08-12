@@ -1,4 +1,4 @@
-
+import json
 
 def append_cluster(dic_jo, phase, xx, dd, kps):
     """Append the annotation based on its distance"""
@@ -36,3 +36,12 @@ def get_pixel_error(dd_gt, zz_gt):
     disp = 0.54 * 721 / zz_gt
     delta_z = zz_gt - 0.54 * 721 / (disp - 1)
     return dd_gt + delta_z
+
+
+def open_annotations(path_ann):
+    try:
+        with open(path_ann, 'r') as f:
+            annotations = json.load(f)
+    except FileNotFoundError:
+        annotations = []
+    return annotations
