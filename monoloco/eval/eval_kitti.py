@@ -71,12 +71,10 @@ class EvalKitti:
         for category in self.CATEGORIES:
 
             # Initialize variables
-            self.errors = defaultdict(lambda: defaultdict(list))
-            self.dic_stds = defaultdict(lambda: defaultdict(list))
+            self.errors = self.dic_stds = defaultdict(lambda: defaultdict(list))
             self.dic_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(float))))
             self.dic_cnt = defaultdict(int)
-            self.cnt_gt = 0
-            self.cnt_stereo_error = 0
+            self.cnt_gt = self.cnt_stereo_error = 0
 
             # Iterate over each ground truth file in the training set
             for name in self.set_val:
