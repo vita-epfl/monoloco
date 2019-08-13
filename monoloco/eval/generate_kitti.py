@@ -47,7 +47,7 @@ class GenerateKitti:
 
         if self.stereo:
             cnt_disparity = cnt_no_stereo = 0
-            dir_out_right = os.path.join('data', 'kitti', 'monoloco_right')
+            dir_out_right = os.path.join('data', 'kitti', 'monoloco_stereo')
             make_new_directory(dir_out_right)
             print("\nCreated empty output directory for txt files")
 
@@ -86,8 +86,8 @@ class GenerateKitti:
                     zzs, cnt = depth_from_disparity(zzs, keypoints, keypoints_r)
                     cnt_disparity += cnt
                     all_outputs[-1] = zzs
-                    path_txt = os.path.join(dir_out_right, basename + '.txt')
-                    save_txts(path_txt, all_inputs, all_outputs, all_params)
+                path_txt = os.path.join(dir_out_right, basename + '.txt')
+                save_txts(path_txt, all_inputs, all_outputs, all_params)
 
             # Update counting
             cnt_ann += len(boxes)

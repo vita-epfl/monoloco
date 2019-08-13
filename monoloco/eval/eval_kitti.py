@@ -254,13 +254,16 @@ class EvalKitti:
                 self.update_errors(dds_3dop[indices[1]], dd_gt, cat, self.errors['3dop_merged'])
                 self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['md_merged'])
                 if self.stereo:
-                    self.update_errors(dds_our_stereo[idx], dd_gt, cat, self.errors['our_stereo_merged'])
-                    dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
-                    self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
-                    error = abs(dds_our[idx] - dd_gt)
-                    error_stereo = abs(dds_our_stereo[idx] - dd_gt)
-                    if error_stereo > (error + 0.1):
-                        self.cnt_stereo_error += 1
+                    try:
+                        self.update_errors(dds_our_stereo[idx], dd_gt, cat, self.errors['our_stereo_merged'])
+                        dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
+                        self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
+                        error = abs(dds_our[idx] - dd_gt)
+                        error_stereo = abs(dds_our_stereo[idx] - dd_gt)
+                        if error_stereo > (error + 0.1):
+                            self.cnt_stereo_error += 1
+                    except IndexError:
+                        aa = 5
 
                 for key in self.METHODS:
                     self.dic_cnt[key + '_merged'] += 1
