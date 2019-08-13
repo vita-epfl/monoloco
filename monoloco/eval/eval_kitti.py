@@ -163,10 +163,11 @@ class EvalKitti:
                     line_list = [float(x) for x in line_monoloco.split()]
                     if check_conditions(line_list, category, method=method, thresh=self.dic_thresh_conf[method]):
                         boxes.append(line_list[:4])
-                        dds.append(line_list[8])
-                        stds_ale.append(line_list[9])
-                        stds_epi.append(line_list[10])
-                        dds_geom.append(line_list[11])
+                        loc = ([float(x) for x in line_monoloco.split()[5:8]])
+                        dds.append(math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2))
+                        stds_ale.append(line_list[8])
+                        stds_epi.append(line_list[9])
+                        dds_geom.append(line_list[10])
                         self.dic_cnt['geom'] += 1
                         self.dic_cnt[method] += 1
                 return boxes, dds, stds_ale, stds_epi, dds_geom
@@ -175,9 +176,6 @@ class EvalKitti:
 
         else:
             assert method == 'monoloco_stereo', "method not recognized"  # TODO Remove
-            stds_ale = []
-            stds_epi = []
-            dds_geom = []
             try:
                 with open(path, "r") as ff:
                     file_lines = ff.readlines()
@@ -185,21 +183,19 @@ class EvalKitti:
                     line_list = [float(x) for x in line_monoloco.split()]
                     if check_conditions(line_list, category, method=method, thresh=self.dic_thresh_conf[method]):
                         boxes.append(line_list[:4])
-                        dds.append(line_list[8])
-                        stds_ale.append(line_list[9])
-                        stds_epi.append(line_list[10])
-                        dds_geom.append(line_list[11])
+                        loc = ([float(x) for x in line_monoloco.split()[5:8]])
+                        dds.append(math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2))
                         self.dic_cnt['geom'] += 1
                         self.dic_cnt[method] += 1
-                return boxes, dds, stds_ale, stds_epi, dds_geom
+                return boxes, dds
             except FileNotFoundError:
-                return [], [], [], [], []
+                return [], []
 
     def _estimate_error(self, out_gt, out, method):
         """Estimate localization error"""
 
         boxes_gt, _, dds_gt, zzs_gt, truncs_gt, occs_gt = out_gt
-        if method in ('monoloco', 'monoloco_stereo'):
+        if method == 'monoloco':
             boxes, dds, stds_ale, stds_epi, dds_geom = out
         else:
             boxes, dds = out

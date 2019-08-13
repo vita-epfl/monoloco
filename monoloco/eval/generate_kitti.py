@@ -84,7 +84,7 @@ class GenerateKitti:
                     cnt_disparity += cnt
                     all_outputs[-1] = zzs
                 path_txt = os.path.join(dir_out_right, basename + '.txt')
-                save_txts(path_txt, all_inputs, all_outputs, all_params, mode='stereo')
+                save_txts(path_txt, all_inputs, zzs, all_params, mode='baseline')
 
             # Update counting
             cnt_ann += len(boxes)
@@ -96,28 +96,30 @@ class GenerateKitti:
                   .format(cnt_disparity / cnt_ann * 100, cnt_no_stereo))
 
 
-def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='mono'):
+def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco'):
 
-    assert mode in ('mono', 'stereo')
-    outputs, varss, dds_geom, zzs = all_outputs[:]
+    assert mode in ('monoloco', 'baseline')
+    if mode == 'monoloco':
+        outputs, varss, dds_geom, zzs = all_outputs[:]
+    else:
+        zzs = all_outputs
     uv_boxes, xy_centers = all_inputs[:]
     kk, tt = all_params[:]
 
     with open(path_txt, "w+") as ff:
-        for idx in range(outputs.shape[0]):
+        for idx, zz_base in enumerate(zzs):
 
             xx = float(xy_centers[idx][0]) * zzs[idx] + tt[0]
             yy = float(xy_centers[idx][1]) * zzs[idx] + tt[1]
-            zz = zzs[idx] + tt[2]
-            dd = math.sqrt(xx ** 2 + yy ** 2 + zz ** 2)
-            cam_0 = [xx, yy, zz, dd]
+            zz = zz_base + tt[2]
+            cam_0 = [xx, yy, zz]
 
             for el in uv_boxes[idx][:]:
                 ff.write("%s " % el)
             for el in cam_0:
                 ff.write("%s " % el)
 
-            if mode == 'mono':
+            if mode == 'monoloco':
                 ff.write("%s " % float(outputs[idx][1]))
                 ff.write("%s " % float(varss[idx]))
                 ff.write("%s " % dds_geom[idx])

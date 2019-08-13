@@ -24,9 +24,11 @@ def cosine_distance(vector_l, vector_r):
     matrix = None
     return matrix
 
+
 def re_id_representation():
     """George: From images crop - run reid and compute representation vectors"""
     return None
+
 
 def similarity_to_depth(matrix_similarity):
     """
