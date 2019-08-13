@@ -116,21 +116,27 @@ class EvalKitti:
 
         boxes = []
         dds = []
-
         # Iterate over each line of the txt file
-        if method in ['3dop', 'm3d']:
+        if method == 'monoloco':
+            stds_ale = []
+            stds_epi = []
+            dds_geom = []
             try:
                 with open(path, "r") as ff:
                     for line in ff:
                         if check_conditions(line, category, method=method, thresh=self.dic_thresh_conf[method]):
-                            boxes.append([float(x) for x in line.split()[4:8]])
-                            loc = ([float(x) for x in line.split()[11:14]])
+                            line_list = line.split()
+                            boxes.append([float(x) for x in line_list[4:8]])
+                            loc = ([float(x) for x in line_list[11:14]])
                             dds.append(math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2))
-                            self.dic_cnt[method] += 1
-                return boxes, dds
-
+                            stds_ale.append(float(line_list[16]))
+                            stds_epi.append(float(line_list[17]))
+                            dds_geom.append(float(line_list[18]))
+                        self.dic_cnt['geom'] += 1
+                        self.dic_cnt[method] += 1
+                return boxes, dds, stds_ale, stds_epi, dds_geom
             except FileNotFoundError:
-                return [], []
+                return [], [], [], [], []
 
         elif method == 'monodepth':
             try:
@@ -152,42 +158,18 @@ class EvalKitti:
             except FileNotFoundError:
                 return [], []
 
-        elif method == 'monoloco':
-            stds_ale = []
-            stds_epi = []
-            dds_geom = []
-            try:
-                with open(path, "r") as ff:
-                    file_lines = ff.readlines()
-                for line_monoloco in file_lines[:-1]:
-                    line_list = [float(x) for x in line_monoloco.split()]
-                    if check_conditions(line_list, category, method=method, thresh=self.dic_thresh_conf[method]):
-                        boxes.append(line_list[:4])
-                        loc = ([float(x) for x in line_monoloco.split()[5:8]])
-                        dds.append(math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2))
-                        stds_ale.append(line_list[8])
-                        stds_epi.append(line_list[9])
-                        dds_geom.append(line_list[10])
-                        self.dic_cnt['geom'] += 1
-                        self.dic_cnt[method] += 1
-                return boxes, dds, stds_ale, stds_epi, dds_geom
-            except FileNotFoundError:
-                return [], [], [], [], []
-
         else:
-            assert method == 'monoloco_stereo', "method not recognized"  # TODO Remove
             try:
                 with open(path, "r") as ff:
-                    file_lines = ff.readlines()
-                for line_monoloco in file_lines[:-1]:
-                    line_list = [float(x) for x in line_monoloco.split()]
-                    if check_conditions(line_list, category, method=method, thresh=self.dic_thresh_conf[method]):
-                        boxes.append(line_list[:4])
-                        loc = ([float(x) for x in line_monoloco.split()[5:8]])
-                        dds.append(math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2))
-                        self.dic_cnt['geom'] += 1
-                        self.dic_cnt[method] += 1
+                    for line in ff:
+                        if check_conditions(line, category, method=method, thresh=self.dic_thresh_conf[method]):
+                            line_list = line.split()
+                            boxes.append([float(x) for x in line_list[4:8]])
+                            loc = ([float(x) for x in line_list[11:14]])
+                            dds.append(math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2))
+                            self.dic_cnt[method] += 1
                 return boxes, dds
+
             except FileNotFoundError:
                 return [], []
 
@@ -226,17 +208,20 @@ class EvalKitti:
             matches[method] = get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou[method])
 
         # Update error of commonly matched instances
+        methods_to_compare = [method for method in self.methods if method != 'monoloco']
+        methods_matches = [matches[method] for method in self.methods if method != 'monoloco']
         for (idx, idx_gt) in matches['monoloco']:
-            methods_matches = [matches[method] for method in self.methods if method != 'monoloco']
+
             # check, indices = extract_indices(idx_gt, matches_m3d, matches_3dop, matches_md)
             check, indices = extract_indices(idx_gt, *methods_matches)
             if check:
                 cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
-                dd = methods_out[method][1][idx]
                 dd_gt = dds_gt[idx_gt]
-                for method in self.methods:
-                    self.update_errors(dd, dd_gt, cat, self.errors[method + '_merged'])
 
+                for idx_indices, method in enumerate(methods_to_compare):
+                    self.update_errors(methods_out[method][1][idx_indices], dd_gt, cat, self.errors[method + '_merged'])
+
+                self.update_errors(methods_out[method][1][idx], dd_gt, cat, self.errors['monoloco_merged'])
                 self.update_errors(dd_gt + get_task_error(dd_gt), dd_gt, cat, self.errors['task_error_merged'])
                 dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
                 self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
@@ -324,12 +309,13 @@ class EvalKitti:
 
     def show_statistics(self):
 
+        all_methods = self.methods + self.BASELINES
         print('-'*90)
-        self.summary_table()
+        self.summary_table(all_methods)
 
         if self.verbose:
-            methods_all = list(chain.from_iterable((method, method + '_merged') for method in self.METHODS))
-            for key in methods_all:
+            all_methods_merged = list(chain.from_iterable((method, method + '_merged') for method in all_methods))
+            for key in all_methods_merged:
                 for clst in self.CLUSTERS[:4]:
                     print(" {} Average error in cluster {}: {:.2f} with a max error of {:.1f}, "
                           "for {} annotations"
@@ -359,10 +345,9 @@ class EvalKitti:
                 print("Stereo error greater than mono: {:.1f} %"
                       .format(100 * self.cnt_stereo_error / self.dic_cnt['monoloco_merged']))
 
-    def summary_table(self):
+    def summary_table(self, all_methods):
         """Tabulate table for ALP and ALE metrics"""
 
-        all_methods = self.methods + self.BASELINES
         for key in all_methods:
             for perc in self.ALP_THRESHOLDS:
                 try:

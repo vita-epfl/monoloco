@@ -79,12 +79,7 @@ def check_conditions(line, category, method, thresh=0.3):
     assert method in ['gt', 'm3d', '3dop', 'monoloco', 'monoloco_stereo'], "Method %r not recognized" % method
     assert category in ['pedestrian', 'cyclist', 'all']
 
-    if method in ('m3d', '3dop'):
-        conf = line.split()[15]
-        if line.split()[0] == category and float(conf) >= thresh:
-            check = True
-
-    elif method == 'gt':
+    if method == 'gt':
         if category == 'all':
             categories_gt = ['Pedestrian', 'Person_sitting', 'Cyclist']
         else:
@@ -92,8 +87,14 @@ def check_conditions(line, category, method, thresh=0.3):
         if line.split()[0] in categories_gt:
             check = True
 
+    elif method in ('m3d', '3dop'):
+        conf = float(line.split()[15])
+        if line.split()[0] == category and conf >= thresh:
+            check = True
+
     elif method in ('monoloco', 'monoloco_stereo'):
-        if line[4] >= thresh:
+        conf = float(line.split()[15])
+        if conf >= thresh:
             check = True
 
     return check

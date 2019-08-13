@@ -44,8 +44,8 @@ class GenerateKitti:
 
         if self.stereo:
             cnt_disparity = cnt_no_stereo = 0
-            dir_out_right = os.path.join('data', 'kitti', 'stereo_baselines')
-            make_new_directory(dir_out_right)
+            dir_out_stereo = os.path.join('data', 'kitti', 'monoloco_stereo')
+            make_new_directory(dir_out_stereo)
             print("\nCreated empty output directory for txt files")
 
         # Run monoloco over the list of images
@@ -83,7 +83,7 @@ class GenerateKitti:
                     zzs, cnt = depth_from_disparity(zzs, keypoints, keypoints_r)
                     cnt_disparity += cnt
                     all_outputs[-1] = zzs
-                path_txt = os.path.join(dir_out_right, basename + '.txt')
+                path_txt = os.path.join(dir_out_stereo, basename + '.txt')
                 save_txts(path_txt, all_inputs, zzs, all_params, mode='baseline')
 
             # Update counting
@@ -113,22 +113,17 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco'):
             yy = float(xy_centers[idx][1]) * zzs[idx] + tt[1]
             zz = zz_base + tt[2]
             cam_0 = [xx, yy, zz]
+            output_list = [0.]*3 + uv_boxes[idx][:-1] + [0.]*3 + cam_0 + [0.] + uv_boxes[idx][-1:]  # kitti format
+            ff.write("%s " % 'pedestrian')
+            for el in output_list:
+                ff.write("%f " % el)
 
-            for el in uv_boxes[idx][:]:
-                ff.write("%s " % el)
-            for el in cam_0:
-                ff.write("%s " % el)
-
+            # add additional uncertainty information
             if mode == 'monoloco':
-                ff.write("%s " % float(outputs[idx][1]))
-                ff.write("%s " % float(varss[idx]))
-                ff.write("%s " % dds_geom[idx])
+                ff.write("%f " % float(outputs[idx][1]))
+                ff.write("%f " % float(varss[idx]))
+                ff.write("%f " % dds_geom[idx])
             ff.write("\n")
-
-        # Save intrinsic matrix in the last row
-        for kk_el in itertools.chain(*kk):  # Flatten a list of lists
-            ff.write("%f " % kk_el)
-        ff.write("\n")
 
 
 def factory_file(path_calib, dir_ann, basename, mode='left'):
@@ -173,7 +168,7 @@ def eval_geometric(keypoints, kk, average_y=0.48):
 
 
 def make_new_directory(dir_out):
-    """Remove the output directory if alreaady exists (avoid residual txt files)"""
+    """Remove the output directory if already exists (avoid residual txt files)"""
     if os.path.exists(dir_out):
         shutil.rmtree(dir_out)
     os.makedirs(dir_out)
