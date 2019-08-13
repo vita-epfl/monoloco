@@ -23,11 +23,12 @@ class EvalKitti:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
+    ALP_THRESHOLDS = ('<0.5', '<1m', '<2m')
     METHODS_MONO = ['m3d', 'monodepth', '3dop', 'monoloco']
     METHODS_STEREO = ['monoloco_stereo']
     BASELINES = ['geom', 'task_error', 'pixel_error']
-    HEADERS = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
-    CATEGORIES = ['pedestrian']
+    HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
+    CATEGORIES = ('pedestrian',)
 
     def __init__(self, thresh_iou_monoloco=0.3, thresh_iou_m3d=0.3, thresh_conf_m3d=0.3, thresh_conf_monoloco=0.3,
                  verbose=False, stereo=False):
@@ -35,11 +36,9 @@ class EvalKitti:
         self.main_dir = os.path.join('data', 'kitti')
         self.dir_gt = os.path.join(self.main_dir, 'gt')
         self.methods = self.METHODS_MONO
-        self.all_methods = self.METHODS_MONO + self.BASELINES
         self.stereo = stereo
         if self.stereo:
             self.methods.extend(self.METHODS_STEREO)
-            self.all_methods.extend(self.METHODS_STEREO)
         path_train = os.path.join('splits', 'kitti_train.txt')
         path_val = os.path.join('splits', 'kitti_val.txt')
         dir_logs = os.path.join('data', 'logs')
@@ -217,31 +216,18 @@ class EvalKitti:
                 self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
                 dd_task_error = dds_gt[idx_gt] + (get_task_error(dds_gt[idx_gt]))**2
                 self.update_errors(dd_task_error, dds_gt[idx_gt], cat, self.errors['task_error'])
-
-            elif method == 'monoloco_stereo':
                 dd_pixel_error = get_pixel_error(dds_gt[idx_gt], zzs_gt[idx_gt])
                 self.update_errors(dd_pixel_error, dds_gt[idx_gt], cat, self.errors['pixel_error'])
 
     def _compare_error(self, out_gt, methods_out):
         """Compare the error for a pool of instances commonly matched by all methods"""
-
-        # Extract outputs of each method
         boxes_gt, _, dds_gt, zzs_gt, truncs_gt, occs_gt = out_gt
-        # boxes_m3d, dds_m3d = out_m3d
-        # boxes_3dop, dds_3dop = out_3dop
-        # boxes_md, dds_md = out_md
-        # boxes_our, dds_our, _, _, dds_geom = out_our
-        # if self.stereo:
-        #     boxes_our_stereo, dds_our_stereo, _, _, dds_geom_stereo = out_our_stereo
+
+        # Find IoU matches
         matches = defaultdict(list)
         for method in self.methods:
-            # Find IoU matches
             boxes = methods_out[method][0]
             matches[method] = get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou[method])
-        # matches_our = get_iou_matches(boxes_our, boxes_gt, self.dic_thresh_iou['our'])
-        # matches_m3d = get_iou_matches(boxes_m3d, boxes_gt, self.dic_thresh_iou['m3d'])
-        # matches_3dop = get_iou_matches(boxes_3dop, boxes_gt, self.dic_thresh_iou['3dop'])
-        # matches_md = get_iou_matches(boxes_md, boxes_gt, self.dic_thresh_iou['md'])
 
         # Update error of commonly matched instances
         for (idx, idx_gt) in matches['monoloco']:
@@ -254,23 +240,10 @@ class EvalKitti:
                 dd_gt = dds_gt[idx_gt]
                 for method in self.methods:
                     self.update_errors(dd, dd_gt, cat, self.errors[method + '_merged'])
-                    # self.update_errors(dds_our[idx], dd_gt, cat, self.errors['monoloco_merged'])
-                    # self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
-                    # self.update_errors(dd_gt + get_task_error(dd_gt), dd_gt, cat, self.errors['task_error_merged'])
-                    # self.update_errors(dds_m3d[indices[0]], dd_gt, cat, self.errors['m3d_merged'])
-                    # self.update_errors(dds_3dop[indices[1]], dd_gt, cat, self.errors['3dop_merged'])
-                    # self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['monodepth_merged'])
+
                 self.update_errors(dd_gt + get_task_error(dd_gt), dd_gt, cat, self.errors['task_error_merged'])
                 dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
                 self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
-
-                # if self.stereo:
-                #     error = abs(dds_our[idx] - dd_gt)
-                #     error_stereo = abs(dds_our_stereo[idx] - dd_gt)
-                #     if error_stereo > (error + 0.1):
-                #         self.cnt_stereo_error += 1
-                #     for key in self.METHODS_STEREO:
-                #         self.dic_cnt[key + '_merged'] += 1
 
                 for key in self.methods:
                     self.dic_cnt[key + '_merged'] += 1
@@ -374,7 +347,7 @@ class EvalKitti:
                               .format(self.dic_stats['test'][key][clst]['interval']*100,
                                       self.dic_stats['test'][key][clst]['at_risk']*100))
 
-                for perc in ['<0.5m', '<1m', '<2m']:
+                for perc in self.ALP_THRESHOLDS:
                     print("{} Instances with error {}: {:.2f} %"
                           .format(key, perc, 100 * average(self.errors[key][perc])))
 
@@ -391,17 +364,26 @@ class EvalKitti:
                       .format(100 * self.cnt_stereo_error / self.dic_cnt['monoloco_merged']))
 
     def summary_table(self):
+        """Tabulate table for ALP and ALE metrics"""
+
+        all_methods = self.methods + self.BASELINES
+        for key in all_methods:
+            for perc in self.ALP_THRESHOLDS:
+                try:
+                    average(self.errors[key][perc])
+                except ZeroDivisionError:
+                    aa = 5
 
         alp = [[str(100 * average(self.errors[key][perc]))[:5]
                 for perc in ['<0.5m', '<1m', '<2m']]
-               for key in self.all_methods]
+               for key in all_methods]
 
         ale = [[str(self.dic_stats['test'][key + '_merged'][clst]['mean'])[:4] + ' (' +
                 str(self.dic_stats['test'][key][clst]['mean'])[:4] + ')'
                 for clst in self.CLUSTERS[:4]]
-               for key in self.all_methods]
+               for key in all_methods]
 
-        results = [[key] + alp[idx] + ale[idx] for idx, key in enumerate(self.all_methods)]
+        results = [[key] + alp[idx] + ale[idx] for idx, key in enumerate(all_methods)]
         print(tabulate(results, headers=self.HEADERS))
         print('-' * 90 + '\n')
 
