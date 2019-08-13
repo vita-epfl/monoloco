@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 
 
-def depth_from_disparity(zzs, kps, kps_right):
+def depth_from_disparity_old(zzs, kps, kps_right):
     """Associate instances in left and right images and compute disparity"""
     zzs_stereo = []
     zzs = np.array(zzs)
@@ -53,7 +53,9 @@ def filter_disparities(kps, kps_right_list, idx, expected_disps):
             mask_outlier = interquartile_mask(disparity_x_conf)
             disparity_x_mask = np.where(mask_outlier, disparity_x_conf, np.nan)
             disparity_y_mask = np.where(mask_outlier, disparity_y_conf, np.nan)
+            print(disparity_x_mask.shape)
             avg_disparity_x = np.nanmedian(disparity_x_mask, axis=1)  # ignore the nan
+            print(np.sum(avg_disparity_x))
             diffs_x = [abs(expected_disps[idx] - real) for real in avg_disparity_x]
             idx_min = diffs_x.index(min(diffs_x))
             zz_stereo = 0.54 * 721. / float(avg_disparity_x[idx_min])

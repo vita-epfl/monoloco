@@ -13,9 +13,8 @@ import torch
 from ..network import MonoLoco
 from ..network.process import preprocess_pifpaf
 from ..eval.geom_baseline import compute_distance
-from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, depth_from_disparity, \
-    factory_basename, open_annotations
-
+from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, factory_basename, open_annotations
+from ..utils import depth_from_disparity
 
 class GenerateKitti:
 

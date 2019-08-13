@@ -29,6 +29,7 @@ def depth_from_disparity(zzs, keypoints, keypoints_right):
     for idx, zz_mono in enumerate(zzs):
         if keypoints_r_list:
             avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoints[idx], keypoints_r_list)
+
             zz_stereo, idx_min = depth_from_monoloco_disparity(zz_mono, avg_disparities)
 
             if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
@@ -64,7 +65,7 @@ def mask_joint_disparity(kps, keypoints_r):
         mask_outlier = interquartile_mask(disparity_x_conf)
         disparity_x_mask = np.where(mask_outlier, disparity_x_conf, np.nan)
         disparity_y_mask = np.where(mask_outlier, disparity_y_conf, np.nan)
-        avg_disparity = np.nanmedian(disparity_x, axis=1)  # ignore the nan
+        avg_disparity = np.nanmedian(disparity_x_mask, axis=1)  # ignore the nan
 
         return avg_disparity, disparity_x_mask, disparity_y_mask
 
