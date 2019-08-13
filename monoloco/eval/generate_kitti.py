@@ -16,6 +16,7 @@ from ..eval.geom_baseline import compute_distance
 from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, factory_basename, \
     open_annotations, depth_from_disparity
 
+
 class GenerateKitti:
 
     def __init__(self, model, dir_ann, p_dropout=0.2, n_dropout=0, stereo=True):
@@ -43,7 +44,7 @@ class GenerateKitti:
 
         if self.stereo:
             cnt_disparity = cnt_no_stereo = 0
-            dir_out_right = os.path.join('data', 'kitti', 'monoloco_stereo')
+            dir_out_right = os.path.join('data', 'kitti', 'stereo_baselines')
             make_new_directory(dir_out_right)
             print("\nCreated empty output directory for txt files")
 
@@ -83,7 +84,7 @@ class GenerateKitti:
                     cnt_disparity += cnt
                     all_outputs[-1] = zzs
                 path_txt = os.path.join(dir_out_right, basename + '.txt')
-                save_txts(path_txt, all_inputs, all_outputs, all_params)
+                save_txts(path_txt, all_inputs, all_outputs, all_params, mode='stereo')
 
             # Update counting
             cnt_ann += len(boxes)
@@ -95,8 +96,9 @@ class GenerateKitti:
                   .format(cnt_disparity / cnt_ann * 100, cnt_no_stereo))
 
 
-def save_txts(path_txt, all_inputs, all_outputs, all_params):
+def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='mono'):
 
+    assert mode in ('mono', 'stereo')
     outputs, varss, dds_geom, zzs = all_outputs[:]
     uv_boxes, xy_centers = all_inputs[:]
     kk, tt = all_params[:]
@@ -114,9 +116,11 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params):
                 ff.write("%s " % el)
             for el in cam_0:
                 ff.write("%s " % el)
-            ff.write("%s " % float(outputs[idx][1]))
-            ff.write("%s " % float(varss[idx]))
-            ff.write("%s " % dds_geom[idx])
+
+            if mode == 'mono':
+                ff.write("%s " % float(outputs[idx][1]))
+                ff.write("%s " % float(varss[idx]))
+                ff.write("%s " % dds_geom[idx])
             ff.write("\n")
 
         # Save intrinsic matrix in the last row

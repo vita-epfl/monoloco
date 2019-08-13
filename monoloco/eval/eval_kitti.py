@@ -24,6 +24,7 @@ class EvalKitti:
     logger = logging.getLogger(__name__)
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
     METHODS = ['m3d', 'md', 'geom', 'task_error', '3dop', 'our']
+    METHODS_STEREO = ['our_stereo', 'pixel_error']
     HEADERS = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
     CATEGORIES = ['pedestrian']
 
@@ -38,7 +39,6 @@ class EvalKitti:
         self.stereo = stereo
         if self.stereo:
             self.dir_our_stereo = os.path.join('data', 'kitti', 'monoloco_stereo')
-            self.METHODS.extend(['our_stereo', 'pixel_error'])
         path_train = os.path.join('splits', 'kitti_train.txt')
         path_val = os.path.join('splits', 'kitti_val.txt')
         dir_logs = os.path.join('data', 'logs')
@@ -96,7 +96,7 @@ class EvalKitti:
                     out_3dop = self._parse_txts(path_3dop, category, method='3dop')
                     out_md = self._parse_txts(path_md, category, method='md')
                     out_our = self._parse_txts(path_our, category, method='our')
-                    out_our_stereo = self._parse_txts(path_our_stereo, category, method='our') if self.stereo else []
+                    out_our_stereo = self._parse_txts(path_our_stereo, category, method='our_stereo') if self.stereo else []
 
                     # Compute the error with ground truth
                     self._estimate_error(out_gt, out_m3d, method='m3d')
@@ -166,27 +166,40 @@ class EvalKitti:
             except FileNotFoundError:
                 return [], []
 
-        else:
-            assert method == 'our', "method not recognized"
+        elif method == 'our':
             try:
                 with open(path, "r") as ff:
                     file_lines = ff.readlines()
                 for line_our in file_lines[:-1]:
                     line_list = [float(x) for x in line_our.split()]
-
                     if check_conditions(line_list, category, method=method, thresh=self.dic_thresh_conf[method]):
                         boxes.append(line_list[:4])
                         dds.append(line_list[8])
                         stds_ale.append(line_list[9])
                         stds_epi.append(line_list[10])
                         dds_geom.append(line_list[11])
-                        self.dic_cnt[method] += 1
                         self.dic_cnt['geom'] += 1
-
-                # kk_list = [float(x) for x in file_lines[-1].split()]
-
+                        self.dic_cnt[method] += 1
                 return boxes, dds, stds_ale, stds_epi, dds_geom
+            except FileNotFoundError:
+                return [], [], [], [], []
 
+        else:
+            assert method == 'our_stereo', "method not recognized"
+            try:
+                with open(path, "r") as ff:
+                    file_lines = ff.readlines()
+                for line_our in file_lines[:-1]:
+                    line_list = [float(x) for x in line_our.split()]
+                    if check_conditions(line_list, category, method=method, thresh=self.dic_thresh_conf[method]):
+                        boxes.append(line_list[:4])
+                        dds.append(line_list[8])
+                        stds_ale.append(line_list[9])
+                        stds_epi.append(line_list[10])
+                        dds_geom.append(line_list[11])
+                        self.dic_cnt['geom'] += 1
+                        self.dic_cnt[method] += 1
+                return boxes, dds, stds_ale, stds_epi, dds_geom
             except FileNotFoundError:
                 return [], [], [], [], []
 
@@ -194,7 +207,7 @@ class EvalKitti:
         """Estimate localization error"""
 
         boxes_gt, _, dds_gt, zzs_gt, truncs_gt, occs_gt = out_gt
-        if method[:3] == 'our':
+        if method in ('our', 'our_stereo'):
             boxes, dds, stds_ale, stds_epi, dds_geom = out
         else:
             boxes, dds = out
@@ -247,17 +260,17 @@ class EvalKitti:
                 self.update_errors(dds_m3d[indices[0]], dd_gt, cat, self.errors['m3d_merged'])
                 self.update_errors(dds_3dop[indices[1]], dd_gt, cat, self.errors['3dop_merged'])
                 self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['md_merged'])
+
                 if self.stereo:
-                    try:
-                        self.update_errors(dds_our_stereo[idx], dd_gt, cat, self.errors['our_stereo_merged'])
-                        dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
-                        self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
-                        error = abs(dds_our[idx] - dd_gt)
-                        error_stereo = abs(dds_our_stereo[idx] - dd_gt)
-                        if error_stereo > (error + 0.1):
-                            self.cnt_stereo_error += 1
-                    except IndexError:
-                        aa = 5
+                    self.update_errors(dds_our_stereo[idx], dd_gt, cat, self.errors['our_stereo_merged'])
+                    dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
+                    self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
+                    error = abs(dds_our[idx] - dd_gt)
+                    error_stereo = abs(dds_our_stereo[idx] - dd_gt)
+                    if error_stereo > (error + 0.1):
+                        self.cnt_stereo_error += 1
+                    for key in self.METHODS_STEREO:
+                        self.dic_cnt[key + '_merged'] += 1
 
                 for key in self.METHODS:
                     self.dic_cnt[key + '_merged'] += 1
@@ -344,18 +357,9 @@ class EvalKitti:
     def show_statistics(self):
 
         print('-'*90)
-        alp = [[str(100 * average(self.errors[key][perc]))[:5]
-                for perc in ['<0.5m', '<1m', '<2m']]
-               for key in self.METHODS]
-
-        ale = [[str(self.dic_stats['test'][key + '_merged'][clst]['mean'])[:4] + ' (' +
-                str(self.dic_stats['test'][key][clst]['mean'])[:4] + ')'
-                for clst in self.CLUSTERS[:4]]
-               for key in self.METHODS]
-
-        results = [[key] + alp[idx] + ale[idx] for idx, key in enumerate(self.METHODS)]
-        print(tabulate(results, headers=self.HEADERS))
-        print('-'*90 + '\n')
+        self.summary_table(mode='mono')
+        if self.stereo:
+            self.summary_table(mode='stereo')
 
         if self.verbose:
             methods_all = list(chain.from_iterable((method, method + '_merged') for method in self.METHODS))
@@ -388,6 +392,23 @@ class EvalKitti:
             if self.stereo:
                 print("Stereo error greater than mono: {:.1f} %"
                       .format(100 * self.cnt_stereo_error / self.dic_cnt['our_merged']))
+
+    def summary_table(self, mode='mono'):
+
+        methods = self.METHODS if mode == 'mono' else self.METHODS_STEREO
+
+        alp = [[str(100 * average(self.errors[key][perc]))[:5]
+                for perc in ['<0.5m', '<1m', '<2m']]
+               for key in methods]
+
+        ale = [[str(self.dic_stats['test'][key + '_merged'][clst]['mean'])[:4] + ' (' +
+                str(self.dic_stats['test'][key][clst]['mean'])[:4] + ')'
+                for clst in self.CLUSTERS[:4]]
+               for key in methods]
+
+        results = [[key] + alp[idx] + ale[idx] for idx, key in enumerate(methods)]
+        print(tabulate(results, headers=self.HEADERS))
+        print('-' * 90 + '\n')
 
 
 def get_statistics(dic_stats, errors, dic_stds, key):
