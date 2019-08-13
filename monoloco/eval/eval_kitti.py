@@ -62,11 +62,7 @@ class EvalKitti:
         _, self.set_val = split_training(names_gt, path_train, path_val)
 
         # Define variables to save statistics
-        self.errors = None
-        self.dic_stds = None
-        self.dic_stats = None
-        self.dic_cnt = None
-        self.cnt_stereo_error = None
+        self.errors = self.dic_stds = self.dic_stats = self.dic_cnt = self.cnt_stereo_error = None
         self.cnt_gt = 0
 
     def run(self):
