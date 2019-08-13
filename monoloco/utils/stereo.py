@@ -31,7 +31,7 @@ def depth_from_disparity(zzs, keypoints, keypoints_right):
             avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoints[idx], keypoints_r_list)
             zz_stereo, idx_min = depth_from_monoloco_disparity(zz_mono, avg_disparities)
 
-            if verify_stereo(zz_stereo, zz_mono, disparities_x, disparities_y):
+            if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
                 zzs_stereo.append(zz_stereo)
                 cnt_stereo += 1
                 keypoints_r_list.pop(idx_min)
