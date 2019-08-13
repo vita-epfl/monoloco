@@ -47,6 +47,7 @@ def pose_representation(dir_ann, basename):
     boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
     return boxes_l, keypoints_l, boxes_r, keypoints_r
 
+
 def generate_baselines(dir_ann):
     """Create txt files for evaluation for stereo baselines"""
     cnt_ann = cnt_file = cnt_no_file = cnt_no_stereo = cnt_disparity = 0
