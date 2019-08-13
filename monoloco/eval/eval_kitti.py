@@ -23,22 +23,23 @@ class EvalKitti:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
-    METHODS = ['m3d', 'md', 'geom', 'task_error', '3dop', 'our']
-    METHODS_STEREO = ['our_stereo', 'pixel_error']
+    METHODS_MONO = ['m3d', 'monodepth', '3dop', 'monoloco']
+    METHODS_STEREO = ['monoloco_stereo']
+    BASELINES = ['geom', 'task_error', 'pixel_error']
     HEADERS = ['method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all']
     CATEGORIES = ['pedestrian']
 
-    def __init__(self, thresh_iou_our=0.3, thresh_iou_m3d=0.3, thresh_conf_m3d=0.3, thresh_conf_our=0.3,
+    def __init__(self, thresh_iou_monoloco=0.3, thresh_iou_m3d=0.3, thresh_conf_m3d=0.3, thresh_conf_monoloco=0.3,
                  verbose=False, stereo=False):
 
-        self.dir_gt = os.path.join('data', 'kitti', 'gt')
-        self.dir_m3d = os.path.join('data', 'kitti', 'm3d')
-        self.dir_3dop = os.path.join('data', 'kitti', '3dop')
-        self.dir_md = os.path.join('data', 'kitti', 'monodepth')
-        self.dir_our = os.path.join('data', 'kitti', 'monoloco')
+        self.main_dir = os.path.join('data', 'kitti')
+        self.dir_gt = os.path.join(self.main_dir, 'gt')
+        self.methods = self.METHODS_MONO
+        self.all_methods = self.METHODS_MONO + self.BASELINES
         self.stereo = stereo
         if self.stereo:
-            self.dir_our_stereo = os.path.join('data', 'kitti', 'monoloco_stereo')
+            self.methods.extend(self.METHODS_STEREO)
+            self.all_methods.extend(self.METHODS_STEREO)
         path_train = os.path.join('splits', 'kitti_train.txt')
         path_val = os.path.join('splits', 'kitti_val.txt')
         dir_logs = os.path.join('data', 'logs')
@@ -49,20 +50,18 @@ class EvalKitti:
         self.path_results = os.path.join(dir_logs, 'eval-' + now_time + '.json')
         self.verbose = verbose
 
-        assert os.path.exists(self.dir_m3d) and os.path.exists(self.dir_our) \
-               and os.path.exists(self.dir_3dop)
-
         self.dic_thresh_iou = {'m3d': thresh_iou_m3d, '3dop': thresh_iou_m3d,
-                               'md': thresh_iou_our, 'our': thresh_iou_our, 'our_stereo': thresh_iou_our}
+                               'monodepth': thresh_iou_m3d, 'monoloco': thresh_iou_monoloco,
+                               'monoloco_stereo': thresh_iou_monoloco}
         self.dic_thresh_conf = {'m3d': thresh_conf_m3d, '3dop': thresh_conf_m3d,
-                                'our': thresh_conf_our, 'our_stereo': thresh_conf_our}
+                                'monoloco': thresh_conf_m3d, 'monoloco_stereo': thresh_conf_monoloco}
 
         # Extract validation images for evaluation
         names_gt = tuple(os.listdir(self.dir_gt))
         _, self.set_val = split_training(names_gt, path_train, path_val)
 
         # Define variables to save statistics
-        self.errors = self.dic_stds = self.dic_stats = self.dic_cnt = self.cnt_stereo_error = None
+        self.dic_methods = self.errors = self.dic_stds = self.dic_stats = self.dic_cnt = self.cnt_stereo_error = None
         self.cnt_gt = 0
 
     def run(self):
@@ -79,35 +78,25 @@ class EvalKitti:
             # Iterate over each ground truth file in the training set
             for name in self.set_val:
                 path_gt = os.path.join(self.dir_gt, name)
-                path_m3d = os.path.join(self.dir_m3d, name)
-                path_our = os.path.join(self.dir_our, name)
-                if self.stereo:
-                    path_our_stereo = os.path.join(self.dir_our_stereo, name)
-                path_3dop = os.path.join(self.dir_3dop, name)
-                path_md = os.path.join(self.dir_md, name)
 
                 # Iterate over each line of the gt file and save box location and distances
                 out_gt = parse_ground_truth(path_gt, category)
+                methods_out = defaultdict(tuple)  # Save all methods for comparison
                 self.cnt_gt += len(out_gt[0])
 
-                # Extract annotations for the same file
                 if out_gt[0]:
-                    out_m3d = self._parse_txts(path_m3d, category, method='m3d')
-                    out_3dop = self._parse_txts(path_3dop, category, method='3dop')
-                    out_md = self._parse_txts(path_md, category, method='md')
-                    out_our = self._parse_txts(path_our, category, method='our')
-                    out_our_stereo = self._parse_txts(path_our_stereo, category, method='our_stereo') if self.stereo else []
+                    for method in self.methods:
+                        # Extract annotations
+                        dir_method = os.path.join(self.main_dir, method)
+                        assert os.path.exists(dir_method), "directory of the method %s does not exists" % method
+                        path_method = os.path.join(dir_method, name)
+                        methods_out[method] = self._parse_txts(path_method, category, method=method)
 
-                    # Compute the error with ground truth
-                    self._estimate_error(out_gt, out_m3d, method='m3d')
-                    self._estimate_error(out_gt, out_3dop, method='3dop')
-                    self._estimate_error(out_gt, out_md, method='md')
-                    self._estimate_error(out_gt, out_our, method='our')
-                    if self.stereo:
-                        self._estimate_error(out_gt, out_our_stereo, method='our_stereo')
+                        # Compute the error with ground truth
+                        self._estimate_error(out_gt, methods_out[method], method=method)
 
                     # Iterate over all the files together to find a pool of common annotations
-                    self._compare_error(out_gt, out_m3d, out_3dop, out_md, out_our, out_our_stereo)
+                    self._compare_error(out_gt, methods_out)
 
             # Update statistics of errors and uncertainty
             for key in self.errors:
@@ -125,11 +114,9 @@ class EvalKitti:
             show_spread(self.dic_stats, show, save)
 
     def _parse_txts(self, path, category, method):
+
         boxes = []
         dds = []
-        stds_ale = []
-        stds_epi = []
-        dds_geom = []
 
         # Iterate over each line of the txt file
         if method in ['3dop', 'm3d']:
@@ -146,7 +133,7 @@ class EvalKitti:
             except FileNotFoundError:
                 return [], []
 
-        elif method == 'md':
+        elif method == 'monodepth':
             try:
                 with open(path, "r") as ff:
                     for line in ff:
@@ -166,12 +153,15 @@ class EvalKitti:
             except FileNotFoundError:
                 return [], []
 
-        elif method == 'our':
+        elif method == 'monoloco':
+            stds_ale = []
+            stds_epi = []
+            dds_geom = []
             try:
                 with open(path, "r") as ff:
                     file_lines = ff.readlines()
-                for line_our in file_lines[:-1]:
-                    line_list = [float(x) for x in line_our.split()]
+                for line_monoloco in file_lines[:-1]:
+                    line_list = [float(x) for x in line_monoloco.split()]
                     if check_conditions(line_list, category, method=method, thresh=self.dic_thresh_conf[method]):
                         boxes.append(line_list[:4])
                         dds.append(line_list[8])
@@ -185,12 +175,15 @@ class EvalKitti:
                 return [], [], [], [], []
 
         else:
-            assert method == 'our_stereo', "method not recognized"
+            assert method == 'monoloco_stereo', "method not recognized"  # TODO Remove
+            stds_ale = []
+            stds_epi = []
+            dds_geom = []
             try:
                 with open(path, "r") as ff:
                     file_lines = ff.readlines()
-                for line_our in file_lines[:-1]:
-                    line_list = [float(x) for x in line_our.split()]
+                for line_monoloco in file_lines[:-1]:
+                    line_list = [float(x) for x in line_monoloco.split()]
                     if check_conditions(line_list, category, method=method, thresh=self.dic_thresh_conf[method]):
                         boxes.append(line_list[:4])
                         dds.append(line_list[8])
@@ -207,7 +200,7 @@ class EvalKitti:
         """Estimate localization error"""
 
         boxes_gt, _, dds_gt, zzs_gt, truncs_gt, occs_gt = out_gt
-        if method in ('our', 'our_stereo'):
+        if method in ('monoloco', 'monoloco_stereo'):
             boxes, dds, stds_ale, stds_epi, dds_geom = out
         else:
             boxes, dds = out
@@ -219,65 +212,71 @@ class EvalKitti:
             cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
             self.update_errors(dds[idx], dds_gt[idx_gt], cat, self.errors[method])
 
-            if method == 'our':
+            if method == 'monoloco':
                 self.update_errors(dds_geom[idx], dds_gt[idx_gt], cat, self.errors['geom'])
                 self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
                 dd_task_error = dds_gt[idx_gt] + (get_task_error(dds_gt[idx_gt]))**2
                 self.update_errors(dd_task_error, dds_gt[idx_gt], cat, self.errors['task_error'])
 
-            elif method == 'our_stereo':
+            elif method == 'monoloco_stereo':
                 dd_pixel_error = get_pixel_error(dds_gt[idx_gt], zzs_gt[idx_gt])
                 self.update_errors(dd_pixel_error, dds_gt[idx_gt], cat, self.errors['pixel_error'])
 
-    def _compare_error(self, out_gt, out_m3d, out_3dop, out_md, out_our, out_our_stereo):
+    def _compare_error(self, out_gt, methods_out):
         """Compare the error for a pool of instances commonly matched by all methods"""
 
         # Extract outputs of each method
         boxes_gt, _, dds_gt, zzs_gt, truncs_gt, occs_gt = out_gt
-        boxes_m3d, dds_m3d = out_m3d
-        boxes_3dop, dds_3dop = out_3dop
-        boxes_md, dds_md = out_md
-        boxes_our, dds_our, _, _, dds_geom = out_our
-        if self.stereo:
-            boxes_our_stereo, dds_our_stereo, _, _, dds_geom_stereo = out_our_stereo
-
-        # Find IoU matches
-        matches_our = get_iou_matches(boxes_our, boxes_gt, self.dic_thresh_iou['our'])
-        matches_m3d = get_iou_matches(boxes_m3d, boxes_gt, self.dic_thresh_iou['m3d'])
-        matches_3dop = get_iou_matches(boxes_3dop, boxes_gt, self.dic_thresh_iou['3dop'])
-        matches_md = get_iou_matches(boxes_md, boxes_gt, self.dic_thresh_iou['md'])
+        # boxes_m3d, dds_m3d = out_m3d
+        # boxes_3dop, dds_3dop = out_3dop
+        # boxes_md, dds_md = out_md
+        # boxes_our, dds_our, _, _, dds_geom = out_our
+        # if self.stereo:
+        #     boxes_our_stereo, dds_our_stereo, _, _, dds_geom_stereo = out_our_stereo
+        matches = defaultdict(list)
+        for method in self.methods:
+            # Find IoU matches
+            boxes = methods_out[method][0]
+            matches[method] = get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou[method])
+        # matches_our = get_iou_matches(boxes_our, boxes_gt, self.dic_thresh_iou['our'])
+        # matches_m3d = get_iou_matches(boxes_m3d, boxes_gt, self.dic_thresh_iou['m3d'])
+        # matches_3dop = get_iou_matches(boxes_3dop, boxes_gt, self.dic_thresh_iou['3dop'])
+        # matches_md = get_iou_matches(boxes_md, boxes_gt, self.dic_thresh_iou['md'])
 
         # Update error of commonly matched instances
-        for (idx, idx_gt) in matches_our:
-            check, indices = extract_indices(idx_gt, matches_m3d, matches_3dop, matches_md)
+        for (idx, idx_gt) in matches['monoloco']:
+            methods_matches = [matches[method] for method in self.methods if method != 'monoloco']
+            # check, indices = extract_indices(idx_gt, matches_m3d, matches_3dop, matches_md)
+            check, indices = extract_indices(idx_gt, *methods_matches)
             if check:
                 cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
+                dd = methods_out[method][1][idx]
                 dd_gt = dds_gt[idx_gt]
-
-                self.update_errors(dds_our[idx], dd_gt, cat, self.errors['our_merged'])
-                self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
+                for method in self.methods:
+                    self.update_errors(dd, dd_gt, cat, self.errors[method + '_merged'])
+                    # self.update_errors(dds_our[idx], dd_gt, cat, self.errors['monoloco_merged'])
+                    # self.update_errors(dds_geom[idx], dd_gt, cat, self.errors['geom_merged'])
+                    # self.update_errors(dd_gt + get_task_error(dd_gt), dd_gt, cat, self.errors['task_error_merged'])
+                    # self.update_errors(dds_m3d[indices[0]], dd_gt, cat, self.errors['m3d_merged'])
+                    # self.update_errors(dds_3dop[indices[1]], dd_gt, cat, self.errors['3dop_merged'])
+                    # self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['monodepth_merged'])
                 self.update_errors(dd_gt + get_task_error(dd_gt), dd_gt, cat, self.errors['task_error_merged'])
-                self.update_errors(dds_m3d[indices[0]], dd_gt, cat, self.errors['m3d_merged'])
-                self.update_errors(dds_3dop[indices[1]], dd_gt, cat, self.errors['3dop_merged'])
-                self.update_errors(dds_md[indices[2]], dd_gt, cat, self.errors['md_merged'])
+                dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
+                self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
 
-                if self.stereo:
-                    self.update_errors(dds_our_stereo[idx], dd_gt, cat, self.errors['our_stereo_merged'])
-                    dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
-                    self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
-                    error = abs(dds_our[idx] - dd_gt)
-                    error_stereo = abs(dds_our_stereo[idx] - dd_gt)
-                    if error_stereo > (error + 0.1):
-                        self.cnt_stereo_error += 1
-                    for key in self.METHODS_STEREO:
-                        self.dic_cnt[key + '_merged'] += 1
+                # if self.stereo:
+                #     error = abs(dds_our[idx] - dd_gt)
+                #     error_stereo = abs(dds_our_stereo[idx] - dd_gt)
+                #     if error_stereo > (error + 0.1):
+                #         self.cnt_stereo_error += 1
+                #     for key in self.METHODS_STEREO:
+                #         self.dic_cnt[key + '_merged'] += 1
 
-                for key in self.METHODS:
+                for key in self.methods:
                     self.dic_cnt[key + '_merged'] += 1
 
     def update_errors(self, dd, dd_gt, cat, errors):
         """Compute and save errors between a single box and the gt box which match"""
-
         diff = abs(dd - dd_gt)
         clst = find_cluster(dd_gt, self.CLUSTERS)
         errors['all'].append(diff)
@@ -357,9 +356,7 @@ class EvalKitti:
     def show_statistics(self):
 
         print('-'*90)
-        self.summary_table(mode='mono')
-        if self.stereo:
-            self.summary_table(mode='stereo')
+        self.summary_table()
 
         if self.verbose:
             methods_all = list(chain.from_iterable((method, method + '_merged') for method in self.METHODS))
@@ -371,7 +368,7 @@ class EvalKitti:
                                   self.dic_stats['test'][key][clst]['max'],
                                   self.dic_stats['test'][key][clst]['cnt']))
 
-                    if key == 'our':
+                    if key == 'monoloco':
                         print("% of annotation inside the confidence interval: {:.1f} %, "
                               "of which {:.1f} % at higher risk"
                               .format(self.dic_stats['test'][key][clst]['interval']*100,
@@ -386,27 +383,25 @@ class EvalKitti:
                 print("-" * 100)
 
             print("\n Annotations inside the confidence interval: {:.1f} %"
-                  .format(self.dic_stats['test']['our']['all']['interval']))
-            print("precision 1: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_1']))
-            print("precision 2: {:.2f}".format(self.dic_stats['test']['our']['all']['prec_2']))
+                  .format(self.dic_stats['test']['monoloco']['all']['interval']))
+            print("precision 1: {:.2f}".format(self.dic_stats['test']['monoloco']['all']['prec_1']))
+            print("precision 2: {:.2f}".format(self.dic_stats['test']['monoloco']['all']['prec_2']))
             if self.stereo:
                 print("Stereo error greater than mono: {:.1f} %"
-                      .format(100 * self.cnt_stereo_error / self.dic_cnt['our_merged']))
+                      .format(100 * self.cnt_stereo_error / self.dic_cnt['monoloco_merged']))
 
-    def summary_table(self, mode='mono'):
-
-        methods = self.METHODS if mode == 'mono' else self.METHODS_STEREO
+    def summary_table(self):
 
         alp = [[str(100 * average(self.errors[key][perc]))[:5]
                 for perc in ['<0.5m', '<1m', '<2m']]
-               for key in methods]
+               for key in self.all_methods]
 
         ale = [[str(self.dic_stats['test'][key + '_merged'][clst]['mean'])[:4] + ' (' +
                 str(self.dic_stats['test'][key][clst]['mean'])[:4] + ')'
                 for clst in self.CLUSTERS[:4]]
-               for key in methods]
+               for key in self.all_methods]
 
-        results = [[key] + alp[idx] + ale[idx] for idx, key in enumerate(methods)]
+        results = [[key] + alp[idx] + ale[idx] for idx, key in enumerate(self.all_methods)]
         print(tabulate(results, headers=self.HEADERS))
         print('-' * 90 + '\n')
 
@@ -423,7 +418,7 @@ def get_statistics(dic_stats, errors, dic_stds, key):
         dic_stats['max'] = 0.
         dic_stats['cnt'] = 0.
 
-    if key == 'our':
+    if key == 'monoloco':
         dic_stats['std_ale'] = average(dic_stds['ale'])
         dic_stats['std_epi'] = average(dic_stds['epi'])
         dic_stats['interval'] = average(dic_stds['interval'])
