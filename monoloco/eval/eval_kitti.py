@@ -115,62 +115,41 @@ class EvalKitti:
 
         boxes = []
         dds = []
-        # Iterate over each line of the txt file
-        if method == 'monoloco':
-            stds_ale = []
-            stds_epi = []
-            dds_geometric = []
-            try:
-                with open(path, "r") as ff:
-                    for line in ff:
-                        if check_conditions(line, category, method=method, thresh=self.dic_thresh_conf[method]):
-                            line_list = line.split()
-                            boxes.append([float(x) for x in line_list[4:8]])
-                            loc = ([float(x) for x in line_list[11:14]])
-                            dds.append(math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2))
-                            stds_ale.append(float(line_list[16]))
-                            stds_epi.append(float(line_list[17]))
-                            dds_geometric.append(float(line_list[18]))
-                        self.dic_cnt['geometric'] += 1
-                        self.dic_cnt[method] += 1
-                return boxes, dds, stds_ale, stds_epi, dds_geometric
-            except FileNotFoundError:
-                return [], [], [], [], []
+        stds_ale = []
+        stds_epi = []
+        dds_geometric = []
+        output = (boxes, dds) if method != 'monoloco' else (boxes, dds, stds_ale, stds_epi, dds_geometric)
 
-        elif method == 'monodepth':
-            try:
-                with open(path, "r") as ff:
-                    for line in ff:
-                        box = [float(x[:-1]) for x in line.split()[0:4]]
-                        delta_h = (box[3] - box[1]) / 7
-                        delta_w = (box[2] - box[0]) / 3.5
-                        assert delta_h > 0 and delta_w > 0, "Bounding box <=0"
-                        box[0] -= delta_w
-                        box[1] -= delta_h
-                        box[2] += delta_w
-                        box[3] += delta_h
+        try:
+            with open(path, "r") as ff:
+                for line_str in ff:
+                    line = line_str.split()
+                    if check_conditions(line, category, method=method, thresh=self.dic_thresh_conf[method]):
+                        if method == 'monodepth':
+                            box = [float(x[:-1]) for x in line[0:4]]
+                            delta_h = (box[3] - box[1]) / 7
+                            delta_w = (box[2] - box[0]) / 3.5
+                            assert delta_h > 0 and delta_w > 0, "Bounding box <=0"
+                            box[0] -= delta_w
+                            box[1] -= delta_h
+                            box[2] += delta_w
+                            box[3] += delta_h
+                            dd = float(line[5][:-1])
+                        else:
+                            box = [float(x) for x in line[4:8]]
+                            loc = ([float(x) for x in line[11:14]])
+                            dd = math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2)
                         boxes.append(box)
-                        dds.append(float(line.split()[5][:-1]))
+                        dds.append(dd)
                         self.dic_cnt[method] += 1
-                return boxes, dds
-
-            except FileNotFoundError:
-                return [], []
-
-        else:
-            try:
-                with open(path, "r") as ff:
-                    for line in ff:
-                        if check_conditions(line, category, method=method, thresh=self.dic_thresh_conf[method]):
-                            line_list = line.split()
-                            boxes.append([float(x) for x in line_list[4:8]])
-                            loc = ([float(x) for x in line_list[11:14]])
-                            dds.append(math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2))
-                            self.dic_cnt[method] += 1
-                return boxes, dds
-
-            except FileNotFoundError:
-                return [], []
+                        if method == 'monoloco':
+                            stds_ale.append(float(line[16]))
+                            stds_epi.append(float(line[17]))
+                            dds_geometric.append(float(line[18]))
+                            self.dic_cnt['geometric'] += 1
+            return output
+        except FileNotFoundError:
+            return output
 
     def _estimate_error(self, out_gt, out, method):
         """Estimate localization error"""

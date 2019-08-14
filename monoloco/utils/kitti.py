@@ -76,7 +76,8 @@ def check_conditions(line, category, method, thresh=0.3):
     """Check conditions of our or m3d txt file"""
 
     check = False
-    assert method in ['gt', 'm3d', '3dop', 'monoloco', 'monoloco_stereo'], "Method %r not recognized" % method
+    assert method in ['gt', 'm3d', '3dop', 'monoloco', 'monoloco_stereo', 'monodepth'], \
+        "Method %r not recognized" % method
     assert category in ['pedestrian', 'cyclist', 'all']
 
     if method == 'gt':
@@ -88,14 +89,16 @@ def check_conditions(line, category, method, thresh=0.3):
             check = True
 
     elif method in ('m3d', '3dop'):
-        conf = float(line.split()[15])
-        if line.split()[0] == category and conf >= thresh:
+        conf = float(line[15])
+        if line[0] == category and conf >= thresh:
             check = True
 
     elif method in ('monoloco', 'monoloco_stereo'):
-        conf = float(line.split()[15])
+        conf = float(line[15])
         if conf >= thresh:
             check = True
+    elif method == 'monodepth':
+        check = True
 
     return check
 
