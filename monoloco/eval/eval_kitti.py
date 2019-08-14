@@ -26,7 +26,7 @@ class EvalKitti:
     ALP_THRESHOLDS = ('<0.5', '<1m', '<2m')
     METHODS_MONO = ['m3d', 'monodepth', '3dop', 'monoloco']
     METHODS_STEREO = ['monoloco_stereo']
-    BASELINES = ['geom', 'task_error', 'pixel_error']
+    BASELINES = ['geometric', 'task_error', 'pixel_error']
     HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
     CATEGORIES = ('pedestrian',)
 
@@ -120,7 +120,7 @@ class EvalKitti:
         if method == 'monoloco':
             stds_ale = []
             stds_epi = []
-            dds_geom = []
+            dds_geometric = []
             try:
                 with open(path, "r") as ff:
                     for line in ff:
@@ -131,10 +131,10 @@ class EvalKitti:
                             dds.append(math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2))
                             stds_ale.append(float(line_list[16]))
                             stds_epi.append(float(line_list[17]))
-                            dds_geom.append(float(line_list[18]))
-                        self.dic_cnt['geom'] += 1
+                            dds_geometric.append(float(line_list[18]))
+                        self.dic_cnt['geometric'] += 1
                         self.dic_cnt[method] += 1
-                return boxes, dds, stds_ale, stds_epi, dds_geom
+                return boxes, dds, stds_ale, stds_epi, dds_geometric
             except FileNotFoundError:
                 return [], [], [], [], []
 
@@ -178,7 +178,7 @@ class EvalKitti:
 
         boxes_gt, _, dds_gt, zzs_gt, truncs_gt, occs_gt = out_gt
         if method == 'monoloco':
-            boxes, dds, stds_ale, stds_epi, dds_geom = out
+            boxes, dds, stds_ale, stds_epi, dds_geometric = out
         else:
             boxes, dds = out
 
@@ -190,7 +190,7 @@ class EvalKitti:
             self.update_errors(dds[idx], dds_gt[idx_gt], cat, self.errors[method])
 
             if method == 'monoloco':
-                self.update_errors(dds_geom[idx], dds_gt[idx_gt], cat, self.errors['geom'])
+                self.update_errors(dds_geometric[idx], dds_gt[idx_gt], cat, self.errors['geometric'])
                 self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
                 dd_task_error = dds_gt[idx_gt] + (get_task_error(dds_gt[idx_gt]))**2
                 self.update_errors(dd_task_error, dds_gt[idx_gt], cat, self.errors['task_error'])
@@ -202,26 +202,30 @@ class EvalKitti:
         boxes_gt, _, dds_gt, zzs_gt, truncs_gt, occs_gt = out_gt
 
         # Find IoU matches
-        matches = defaultdict(list)
-        for method in self.methods:
+        matches = []
+        boxes_monoloco = methods_out['monoloco'][0]
+        matches_monoloco = get_iou_matches(boxes_monoloco, boxes_gt, self.dic_thresh_iou['monoloco'])
+
+        base_methods = [method for method in self.methods if method != 'monoloco']
+        for method in base_methods:
             boxes = methods_out[method][0]
-            matches[method] = get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou[method])
+            matches.append(get_iou_matches(boxes, boxes_gt, self.dic_thresh_iou[method]))
 
         # Update error of commonly matched instances
-        methods_to_compare = [method for method in self.methods if method != 'monoloco']
-        methods_matches = [matches[method] for method in self.methods if method != 'monoloco']
-        for (idx, idx_gt) in matches['monoloco']:
-
-            # check, indices = extract_indices(idx_gt, matches_m3d, matches_3dop, matches_md)
-            check, indices = extract_indices(idx_gt, *methods_matches)
+        for (idx, idx_gt) in matches_monoloco:
+            check, indices = extract_indices(idx_gt, *matches)
             if check:
                 cat = get_category(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
                 dd_gt = dds_gt[idx_gt]
 
-                for idx_indices, method in enumerate(methods_to_compare):
-                    self.update_errors(methods_out[method][1][idx_indices], dd_gt, cat, self.errors[method + '_merged'])
+                for idx_indices, method in enumerate(base_methods):
+                    dd = methods_out[method][1][indices[idx_indices]]
+                    self.update_errors(dd, dd_gt, cat, self.errors[method + '_merged'])
 
-                self.update_errors(methods_out[method][1][idx], dd_gt, cat, self.errors['monoloco_merged'])
+                dd_monoloco = methods_out['monoloco'][1][idx]
+                dd_geometric = methods_out['monoloco'][4][idx]
+                self.update_errors(dd_monoloco, dd_gt, cat, self.errors['monoloco_merged'])
+                self.update_errors(dd_geometric, dd_gt, cat, self.errors['geometric_merged'])
                 self.update_errors(dd_gt + get_task_error(dd_gt), dd_gt, cat, self.errors['task_error_merged'])
                 dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
                 self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
