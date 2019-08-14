@@ -30,7 +30,7 @@ class EvalKitti:
     HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
     CATEGORIES = ('pedestrian',)
 
-    def __init__(self, thresh_iou_monoloco=0.3, thresh_iou_m3d=0.3, thresh_conf_m3d=0.3, thresh_conf_monoloco=0.3,
+    def __init__(self, thresh_iou_monoloco=0.3, thresh_iou_base=0.3, thresh_conf_monoloco=0.3, thresh_conf_base=0.3,
                  verbose=False, stereo=False):
 
         self.main_dir = os.path.join('data', 'kitti')
@@ -49,11 +49,10 @@ class EvalKitti:
         self.path_results = os.path.join(dir_logs, 'eval-' + now_time + '.json')
         self.verbose = verbose
 
-        self.dic_thresh_iou = {'m3d': thresh_iou_m3d, '3dop': thresh_iou_m3d,
-                               'monodepth': thresh_iou_m3d, 'monoloco': thresh_iou_monoloco,
-                               'monoloco_stereo': thresh_iou_monoloco}
-        self.dic_thresh_conf = {'m3d': thresh_conf_m3d, '3dop': thresh_conf_m3d,
-                                'monoloco': thresh_conf_m3d, 'monoloco_stereo': thresh_conf_monoloco}
+        self.dic_thresh_iou = {method: (thresh_iou_monoloco if method[:8] == 'monoloco' else thresh_iou_base)
+                               for method in self.methods}
+        self.dic_thresh_conf = {method: (thresh_conf_monoloco if method[:8] == 'monoloco' else thresh_conf_base)
+                                for method in self.methods}
 
         # Extract validation images for evaluation
         names_gt = tuple(os.listdir(self.dir_gt))
