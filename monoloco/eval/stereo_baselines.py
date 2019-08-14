@@ -16,28 +16,10 @@ from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, depth_fro
     open_annotations, get_calibration
 
 
-def cosine_distance(vector_l, vector_r):
-    """
-    Calculate a matrix of cosine similarities for left-right instances in a single image
-    from representation vectors of (possibly) different dimensions
-    """
-    matrix = None
-    return matrix
-
-
 def re_id_representation():
     """George: From images crop - run reid and compute representation vectors"""
     return None
 
-
-def similarity_to_depth(matrix_similarity):
-    """
-    from a matrix of cosine distances, calculate corresponding depths
-    one depth from every left instance. If similarity too low or no similarity, z=0
-    """
-
-    zzs = []
-    return zzs
 
 def pose_representation(dir_ann, basename):
     """Extract pifpaf pose representation for distance comparison from left-right images"""
@@ -89,34 +71,3 @@ def generate_baselines(dir_ann):
               .format(cnt_file, cnt_ann, cnt_no_file))
         print("Annotations corrected using stereo: {:.1f}%, not found {} stereo files"
               .format(cnt_disparity / cnt_ann * 100, cnt_no_stereo))
-
-
-def save_txts(path_txt, all_inputs, all_outputs, p_left):
-    """Save the distances, when z!=0"""
-
-    zzs_pose = all_outputs[:]
-    uv_boxes, xy_centers = all_inputs[:]
-    kk, tt = p_left[:]
-
-    with open(path_txt, "w+") as ff:
-        for idx in range(outputs.shape[0]):
-
-            xx = float(xy_centers[idx][0]) * zzs[idx] + tt[0]
-            yy = float(xy_centers[idx][1]) * zzs[idx] + tt[1]
-            zz = zzs[idx] + tt[2]
-            dd = math.sqrt(xx ** 2 + yy ** 2 + zz ** 2)
-            cam_0 = [xx, yy, zz, dd]
-
-            for el in uv_boxes[idx][:]:
-                ff.write("%s " % el)
-            for el in cam_0:
-                ff.write("%s " % el)
-            ff.write("%s " % float(outputs[idx][1]))
-            ff.write("%s " % float(varss[idx]))
-            ff.write("%s " % dds_geom[idx])
-            ff.write("\n")
-
-        # Save intrinsic matrix in the last row
-        for kk_el in itertools.chain(*kk):  # Flatten a list of lists
-            ff.write("%f " % kk_el)
-        ff.write("\n")

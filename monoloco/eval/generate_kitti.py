@@ -14,7 +14,7 @@ from ..network import MonoLoco
 from ..network.process import preprocess_pifpaf
 from ..eval.geom_baseline import compute_distance
 from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, factory_basename, \
-    open_annotations, depth_from_disparity
+    open_annotations, monoloco_stereo, pose_baseline
 
 
 class GenerateKitti:
@@ -80,9 +80,14 @@ class GenerateKitti:
                 boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
 
                 if keypoints_r:
-                    zzs, cnt = depth_from_disparity(zzs, keypoints, keypoints_r)
+                    # Monoloco Stereo
+                    zzs, cnt = monoloco_stereo(zzs, keypoints, keypoints_r)
                     cnt_disparity += cnt
                     all_outputs[-1] = zzs
+
+                    # # Pose similarity
+                    # zzs, cnt = pose_baseline(zzs, keypoints, keypoints_r)
+
                 path_txt = os.path.join(dir_out_stereo, basename + '.txt')
                 save_txts(path_txt, all_inputs, zzs, all_params, mode='baseline')
 

@@ -5,26 +5,73 @@ import warnings
 import numpy as np
 
 
-def calculate_monoloco_disparity(zzs):
-
-    disparities = 0.54 * 721 / np.array(zzs)
-    return disparities
+from ..utils import get_keypoints
 
 
-def depth_from_disparity(zzs, keypoints, keypoints_right):
+def l2_distance(keypoints, keypoints_r):
     """
-    Associate instances in left and right images and compute disparity using:
-    1. monoloco prior
-    2. pose similarity
+    Calculate a matrix of cosine similarities for left-right instances in a single image
+    from representation vectors of (possibly) different dimensions
+    """
+    # Zero-center the keypoints
+    uv_centers = np.array(get_keypoints(keypoints, mode='center').unsqueeze(-1))
+    uv_centers_r = np.array(get_keypoints(keypoints_r, mode='center').unsqueeze(-1))
+
+    keypoints_0 = np.array(keypoints)[:, :2, :] - uv_centers
+    keypoints_r_0 = np.array(keypoints_r)[:, :2, :] - uv_centers_r
+
+    matrix = np.empty((keypoints_0.shape[0], keypoints_r_0.shape[0]))
+    for idx, kps in enumerate(keypoints_0):
+        for idx_r, kps_r in enumerate(keypoints_r_0):
+            l2_norm = np.linalg.norm(kps.reshape(-1) - kps_r.reshape(-1))
+            matrix[idx, idx_r] = l2_norm
+
+    return matrix
+
+
+def similarity_to_depth(vector_similarity, avg_disparities):
+    """
+    from a matrix of cosine distances, calculate corresponding depths
+    one depth from every left instance. If similarity too low or no similarity, z=0
+    """
+    idx_min = np.argmin(vector_similarity)
+    disparity = avg_disparities[idx_min]
+    zz_pose = 0.54 * 721. / float(avg_disparities[idx_min])
+    return zz_pose
+
+
+def pose_baseline(zzs, keypoints, keypoints_r):
+
+    cnt_stereo = 0
+    zzs_stereo = []
+    keypoints_r_list = copy.deepcopy(keypoints_r)
+    zzs = np.array(zzs)
+    matrix_similarity = l2_distance(keypoints, keypoints_r)
+    for idx, zz_mono in enumerate(zzs):
+        avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoints[idx], keypoints_r)
+        zz_stereo, idx_min = similarity_to_depth(matrix_similarity[idx], avg_disparities)
+
+        if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
+            zzs_stereo.append(zz_stereo)
+            cnt_stereo += 1
+            keypoints_r_list.pop(idx_min)
+        else:
+            zzs_stereo.append(zz_mono)
+    else:
+        zzs_stereo.append(zz_mono)
+    assert len(zzs_stereo) == len(zzs)
+    return zzs_stereo, cnt_stereo
+
+
+def monoloco_stereo(zzs, keypoints, keypoints_r):
+    """
+    Associate instances in left and right images and compute disparity using monoloco prior
     """
     cnt_stereo = 0
     zzs_stereo = []
     zzs = np.array(zzs)
     keypoints = np.array(keypoints)
-    keypoints_r_list = copy.deepcopy(keypoints_right)
-
-    # monoloco_disparities = calculate_monoloco_disparity(zzs)
-    # pose_disparities = ...
+    keypoints_r_list = copy.deepcopy(keypoints_r)
 
     for idx, zz_mono in enumerate(zzs):
         if keypoints_r_list:
@@ -107,3 +154,9 @@ def interquartile_mask(distribution):
     lower_bound = quartile_1 - (iqr * 1.5)
     upper_bound = quartile_3 + (iqr * 1.5)
     return (distribution < upper_bound.reshape(-1, 1)) & (distribution > lower_bound.reshape(-1, 1))
+
+
+def calculate_monoloco_disparity(zzs):
+
+    disparities = 0.54 * 721 / np.array(zzs)
+    return disparities
