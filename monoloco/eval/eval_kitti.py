@@ -15,7 +15,7 @@ from tabulate import tabulate
 
 from ..utils import get_iou_matches, get_task_error, get_pixel_error, check_conditions, get_category, split_training, \
     parse_ground_truth
-from ..visuals import show_results, show_spread
+from ..visuals import show_results, show_spread, show_task_error
 
 
 class EvalKitti:
@@ -110,6 +110,7 @@ class EvalKitti:
         if save or show:
             show_results(self.dic_stats, show, save)
             show_spread(self.dic_stats, show, save)
+            show_task_error(show, save)
 
     def _parse_txts(self, path, category, method):
 
@@ -329,13 +330,6 @@ class EvalKitti:
 
     def summary_table(self, all_methods):
         """Tabulate table for ALP and ALE metrics"""
-
-        for key in all_methods:
-            for perc in self.ALP_THRESHOLDS:
-                try:
-                    average(self.errors[key][perc])
-                except ZeroDivisionError:
-                    aa = 5
 
         alp = [[str(100 * average(self.errors[key][perc]))[:5]
                 for perc in ['<0.5m', '<1m', '<2m']]
