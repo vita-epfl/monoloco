@@ -7,10 +7,10 @@ import torch.nn.functional as F
 def pixel_to_camera(uv_tensor, kk, z_met):
     """
     Convert a tensor in pixel coordinate to absolute camera coordinates
-    It accepts lists or tensors of (m, 2) or (m, x, 2) or (m, 2, x)
+    It accepts lists or torch/numpy tensors of (m, 2) or (m, x, 2)
     where x is the number of keypoints
     """
-    if isinstance(uv_tensor, list):
+    if isinstance(uv_tensor, (list, np.ndarray)):
         uv_tensor = torch.tensor(uv_tensor)
     if isinstance(kk, list):
         kk = torch.tensor(kk)
@@ -67,10 +67,10 @@ def project_3d(box_obj, kk):
 def get_keypoints(keypoints, mode):
     """
     Extract center, shoulder or hip points of a keypoint
-    Input --> list or torch.tensor [(m, 3, 17) or (3, 17)]
+    Input --> list or torch/numpy tensor [(m, 3, 17) or (3, 17)]
     Output --> torch.tensor [(m, 2)]
     """
-    if isinstance(keypoints, list):
+    if isinstance(keypoints, (list, np.ndarray)):
         keypoints = torch.tensor(keypoints)
     if len(keypoints.size()) == 2:  # add batch dim
         keypoints = keypoints.unsqueeze(0)

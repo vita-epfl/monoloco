@@ -12,13 +12,17 @@ def l2_distance(keypoints, keypoints_r):
     """
     Calculate a matrix/vector of cosine similarities for left-right instances in a single image
     from representation vectors of (possibly) different dimensions
-    keypoint = (m, 17. 2) or (17,2)
+    keypoints = (m, 17, 3) or (17,2)
+    keypoints_r = (m, 17, 3)
     """
     # Zero-center the keypoints
     uv_centers = np.array(get_keypoints(keypoints, mode='center').unsqueeze(-1))
     uv_centers_r = np.array(get_keypoints(keypoints_r, mode='center').unsqueeze(-1))
 
-    keypoints_0 = np.array(keypoints)[:, :2, :] - uv_centers
+    keypoints = np.array(keypoints)
+    if len(keypoints.shape) == 2:
+        keypoints = keypoints.reshape(1, keypoints.shape[0], keypoints.shape[1])
+    keypoints_0 = keypoints[:, :2, :] - uv_centers
     keypoints_r_0 = np.array(keypoints_r)[:, :2, :] - uv_centers_r
 
     matrix = np.empty((keypoints_0.shape[0], keypoints_r_0.shape[0]))
@@ -37,7 +41,7 @@ def similarity_to_depth(vector_similarity, avg_disparities):
     """
     idx_min = np.argmin(vector_similarity)
     zz_pose = 0.54 * 721. / float(avg_disparities[idx_min])
-    return zz_pose
+    return zz_pose, idx_min
 
 
 def baselines_association(zzs, keypoints, keypoints_right):
@@ -46,22 +50,22 @@ def baselines_association(zzs, keypoints, keypoints_right):
     keypoints_r = defaultdict(list)  # dictionaries share memories as lists!
     cnt_stereo = defaultdict(int)
     keypoints = np.array(keypoints)
-    keypoints_r['monoloco'] = keypoints_r['pose'] = copy.deepcopy(keypoints_right)
+    keypoints_r['ml_stereo'] = copy.deepcopy(keypoints_right)
+    keypoints_r['pose'] = copy.deepcopy(keypoints_right)
 
     for idx, zz_mono in enumerate(zzs):
         keypoint = keypoints[idx]
 
         # Monoloco baseline
-        zzs_stereo['monoloco'], keypoints_r['monoloco'], cnt = \
-            monoloco_baseline(zzs_stereo['monoloco'], zz_mono, keypoint, keypoints_r['monoloco'])
-        cnt_stereo['monoloco'] += cnt
+        zzs_stereo['ml_stereo'], keypoints_r['ml_stereo'], cnt = \
+            monoloco_baseline(zzs_stereo['ml_stereo'], zz_mono, keypoint, keypoints_r['ml_stereo'])
+        cnt_stereo['ml_stereo'] += cnt
 
-        # # Pose baseline
-        # zzs_stereo['pose'], keypoints_r['pose'], cnt_stereo['pose'] = \
-        #     pose_baseline(zzs_stereo, zz_mono, keypoint, keypoints_r['pose'])
-        # cnt_stereo['pose'] += cnt
-
-    return zzs_stereo['monoloco'], cnt_stereo['monoloco']
+        # Pose baseline
+        zzs_stereo['pose'], keypoints_r['pose'], cnt_stereo['pose'] = \
+            pose_baseline(zzs_stereo['pose'], zz_mono, keypoint, keypoints_r['pose'])
+        cnt_stereo['pose'] += cnt
+    return zzs_stereo, cnt_stereo
 
 
 def pose_baseline(zzs_stereo, zz_mono, keypoint, keypoints_r):

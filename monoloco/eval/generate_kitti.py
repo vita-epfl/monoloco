@@ -2,7 +2,6 @@
 and extract and save the annotations in txt files"""
 
 
-import math
 import os
 import shutil
 from collections import defaultdict
@@ -33,24 +32,24 @@ class GenerateKitti:
 
         # Calculate stereo baselines
         self.stereo = stereo
+        self.baseline_keys = ['ml_stereo', 'pose']
 
     def run(self):
         """Run Monoloco and save txt files for KITTI evaluation"""
 
         cnt_ann = cnt_file = cnt_no_file = 0
-        dir_out = os.path.join('data', 'kitti', 'monoloco')
-        make_new_directory(dir_out)
+        dir_out = {"monoloco": os.path.join('data', 'kitti', 'monoloco')}
+        make_new_directory(dir_out["monoloco"])
         print("\nCreated empty output directory for txt files")
 
         if self.stereo:
             cnt_disparity = defaultdict(int)
             cnt_no_stereo = 0
-            dir_out_stereo = os.path.join('data', 'kitti', 'monoloco_stereo')
-            make_new_directory(dir_out_stereo)
-            print("Created empty output directory for stereo baseline txt files")
-            dir_out_pose = os.path.join('data', 'kitti', 'pose_stereo')
-            make_new_directory(dir_out_pose)
-            print("Created empty output directory for pose basline txt files")
+            for key in self.baseline_keys:
+                dir_out[key] = os.path.join('data', 'kitti', key)
+                make_new_directory(dir_out[key])
+                print("Created empty output directory for {}".format(key))
+            print("\n\n")
 
         # Run monoloco over the list of images
         for basename in self.list_basename:
@@ -75,27 +74,26 @@ class GenerateKitti:
             all_outputs = [outputs.detach().cpu(), varss.detach().cpu(), dds_geom, zzs]
             all_inputs = [boxes, xy_centers]
             all_params = [kk, tt]
-            path_txt = os.path.join(dir_out, basename + '.txt')
-            save_txts(path_txt, all_inputs, all_outputs, all_params)
+            path_txt = {'monoloco': os.path.join(dir_out['monoloco'], basename + '.txt')}
+            save_txts(path_txt['monoloco'], all_inputs, all_outputs, all_params)
 
             # Correct using stereo disparity and save in different folder
             if self.stereo:
                 annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, mode='right')
                 boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
 
+                # Stereo baselines
                 if keypoints_r:
-                    # Monoloco Stereo
                     zzs, cnt = baselines_association(zzs, keypoints, keypoints_r)
-                    cnt_disparity['stereo'] += cnt
-                    all_outputs[-1] = zzs
-
-                    # Pose similarity
-                    # zzs, cnt = pose_baseline(zzs, keypoints, keypoints_r)
-                    cnt_disparity['pose'] += cnt
+                    for key in zzs:
+                        cnt_disparity[key] += cnt[key]
                 else:
                     cnt_no_stereo += 1
-                save_txts(os.path.join(dir_out_stereo, basename + '.txt'), all_inputs, zzs, all_params, mode='baseline')
-                save_txts(os.path.join(dir_out_pose, basename + '.txt'), all_inputs, zzs, all_params, mode='baseline')
+                    zzs = {key: zzs for key in self.baseline_keys}
+
+                for key in zzs:
+                    path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
+                    save_txts(path_txt[key], all_inputs, zzs[key], all_params, mode='baseline')
 
             # Update counting
             cnt_ann += len(boxes)
