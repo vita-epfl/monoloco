@@ -4,5 +4,5 @@ from .misc import get_task_error, get_pixel_error, append_cluster, open_annotati
 from .kitti import check_conditions, get_category, split_training, parse_ground_truth, get_calibration, factory_basename
 from .camera import xyz_from_distance, get_keypoints, pixel_to_camera, project_3d
 from .logs import set_logger
-from .stereo import monoloco_stereo, pose_baseline
+from .stereo import baselines_association
 from ..utils.nuscenes import select_categories

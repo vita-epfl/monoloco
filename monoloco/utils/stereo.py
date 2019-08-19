@@ -1,17 +1,18 @@
 
 import copy
 import warnings
+from collections import defaultdict
 
 import numpy as np
-
 
 from ..utils import get_keypoints
 
 
 def l2_distance(keypoints, keypoints_r):
     """
-    Calculate a matrix of cosine similarities for left-right instances in a single image
+    Calculate a matrix/vector of cosine similarities for left-right instances in a single image
     from representation vectors of (possibly) different dimensions
+    keypoint = (m, 17. 2) or (17,2)
     """
     # Zero-center the keypoints
     uv_centers = np.array(get_keypoints(keypoints, mode='center').unsqueeze(-1))
@@ -35,60 +36,73 @@ def similarity_to_depth(vector_similarity, avg_disparities):
     one depth from every left instance. If similarity too low or no similarity, z=0
     """
     idx_min = np.argmin(vector_similarity)
-    disparity = avg_disparities[idx_min]
     zz_pose = 0.54 * 721. / float(avg_disparities[idx_min])
     return zz_pose
 
 
-def pose_baseline(zzs, keypoints, keypoints_r):
+def baselines_association(zzs, keypoints, keypoints_right):
 
-    cnt_stereo = 0
-    zzs_stereo = []
-    keypoints_r_list = copy.deepcopy(keypoints_r)
-    zzs = np.array(zzs)
-    matrix_similarity = l2_distance(keypoints, keypoints_r)
+    zzs_stereo = defaultdict(list)
+    keypoints_r = defaultdict(list)  # dictionaries share memories as lists!
+    cnt_stereo = defaultdict(int)
+    keypoints = np.array(keypoints)
+    keypoints_r['monoloco'] = keypoints_r['pose'] = copy.deepcopy(keypoints_right)
+
     for idx, zz_mono in enumerate(zzs):
-        avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoints[idx], keypoints_r)
-        zz_stereo, idx_min = similarity_to_depth(matrix_similarity[idx], avg_disparities)
+        keypoint = keypoints[idx]
+
+        # Monoloco baseline
+        zzs_stereo['monoloco'], keypoints_r['monoloco'], cnt = \
+            monoloco_baseline(zzs_stereo['monoloco'], zz_mono, keypoint, keypoints_r['monoloco'])
+        cnt_stereo['monoloco'] += cnt
+
+        # # Pose baseline
+        # zzs_stereo['pose'], keypoints_r['pose'], cnt_stereo['pose'] = \
+        #     pose_baseline(zzs_stereo, zz_mono, keypoint, keypoints_r['pose'])
+        # cnt_stereo['pose'] += cnt
+
+    return zzs_stereo['monoloco'], cnt_stereo['monoloco']
+
+
+def pose_baseline(zzs_stereo, zz_mono, keypoint, keypoints_r):
+    """
+    Associate instances in left and right images based on pose similarity
+    """
+    cnt_stereo = 0
+    if keypoints_r:
+        avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoint, keypoints_r)
+        similarity = l2_distance(keypoint, keypoints_r)
+        zz_stereo, idx_min = similarity_to_depth(similarity, avg_disparities)
 
         if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
             zzs_stereo.append(zz_stereo)
             cnt_stereo += 1
-            keypoints_r_list.pop(idx_min)
+            keypoints_r.pop(idx_min)
         else:
             zzs_stereo.append(zz_mono)
     else:
         zzs_stereo.append(zz_mono)
-    assert len(zzs_stereo) == len(zzs)
-    return zzs_stereo, cnt_stereo
+    return zzs_stereo, keypoints_r, cnt_stereo
 
 
-def monoloco_stereo(zzs, keypoints, keypoints_r):
+def monoloco_baseline(zzs_stereo, zz_mono, keypoint, keypoints_r):
     """
-    Associate instances in left and right images and compute disparity using monoloco prior
+    Associate instances in left and right images based on monoloco_prior
     """
     cnt_stereo = 0
-    zzs_stereo = []
-    zzs = np.array(zzs)
-    keypoints = np.array(keypoints)
-    keypoints_r_list = copy.deepcopy(keypoints_r)
-
-    for idx, zz_mono in enumerate(zzs):
-        if keypoints_r_list:
-            avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoints[idx], keypoints_r_list)
-
-            zz_stereo, idx_min = depth_from_monoloco_disparity(zz_mono, avg_disparities)
-
-            if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
-                zzs_stereo.append(zz_stereo)
-                cnt_stereo += 1
-                keypoints_r_list.pop(idx_min)
-            else:
-                zzs_stereo.append(zz_mono)
+    if keypoints_r:
+        avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoint, keypoints_r)
+        zz_stereo, idx_min = depth_from_monoloco_disparity(zz_mono, avg_disparities)
+        if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
+            zzs_stereo.append(zz_stereo)
+            cnt_stereo += 1
+            keypoints_r.pop(idx_min)
         else:
             zzs_stereo.append(zz_mono)
-    assert len(zzs_stereo) == len(zzs)
-    return zzs_stereo, cnt_stereo
+    else:
+        zzs_stereo.append(zz_mono)
+
+    return zzs_stereo, keypoints_r, cnt_stereo
 
 
 def mask_joint_disparity(kps, keypoints_r):
@@ -98,8 +112,11 @@ def mask_joint_disparity(kps, keypoints_r):
     keypoints_r = np.array(keypoints_r)
 
     with warnings.catch_warnings() and np.errstate(invalid='ignore'):
-        disparity_x = kps[0, :] - keypoints_r[:, 0, :]
-        disparity_y = kps[1, :] - keypoints_r[:, 1, :]
+        try:
+            disparity_x = kps[0, :] - keypoints_r[:, 0, :]
+            disparity_y = kps[1, :] - keypoints_r[:, 1, :]
+        except IndexError:
+            aa = 5
 
         # Mask for low confidence
         mask_conf_left = kps[2, :] > CONF_MIN

@@ -5,7 +5,7 @@ and extract and save the annotations in txt files"""
 import math
 import os
 import shutil
-import itertools
+from collections import defaultdict
 
 import numpy as np
 import torch
@@ -14,7 +14,7 @@ from ..network import MonoLoco
 from ..network.process import preprocess_pifpaf
 from ..eval.geom_baseline import compute_distance
 from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, factory_basename, \
-    open_annotations, monoloco_stereo, pose_baseline
+    open_annotations, baselines_association
 
 
 class GenerateKitti:
@@ -43,10 +43,14 @@ class GenerateKitti:
         print("\nCreated empty output directory for txt files")
 
         if self.stereo:
-            cnt_disparity = cnt_no_stereo = 0
+            cnt_disparity = defaultdict(int)
+            cnt_no_stereo = 0
             dir_out_stereo = os.path.join('data', 'kitti', 'monoloco_stereo')
             make_new_directory(dir_out_stereo)
-            print("\nCreated empty output directory for txt files")
+            print("Created empty output directory for stereo baseline txt files")
+            dir_out_pose = os.path.join('data', 'kitti', 'pose_stereo')
+            make_new_directory(dir_out_pose)
+            print("Created empty output directory for pose basline txt files")
 
         # Run monoloco over the list of images
         for basename in self.list_basename:
@@ -81,15 +85,17 @@ class GenerateKitti:
 
                 if keypoints_r:
                     # Monoloco Stereo
-                    zzs, cnt = monoloco_stereo(zzs, keypoints, keypoints_r)
-                    cnt_disparity += cnt
+                    zzs, cnt = baselines_association(zzs, keypoints, keypoints_r)
+                    cnt_disparity['stereo'] += cnt
                     all_outputs[-1] = zzs
 
-                    # # Pose similarity
+                    # Pose similarity
                     # zzs, cnt = pose_baseline(zzs, keypoints, keypoints_r)
-
-                path_txt = os.path.join(dir_out_stereo, basename + '.txt')
-                save_txts(path_txt, all_inputs, zzs, all_params, mode='baseline')
+                    cnt_disparity['pose'] += cnt
+                else:
+                    cnt_no_stereo += 1
+                save_txts(os.path.join(dir_out_stereo, basename + '.txt'), all_inputs, zzs, all_params, mode='baseline')
+                save_txts(os.path.join(dir_out_pose, basename + '.txt'), all_inputs, zzs, all_params, mode='baseline')
 
             # Update counting
             cnt_ann += len(boxes)
@@ -97,8 +103,12 @@ class GenerateKitti:
         print("Saved in {} txt {} annotations. Not found {} images\n".format(cnt_file, cnt_ann, cnt_no_file))
 
         if self.stereo:
-            print("Annotations corrected using stereo: {:.1f}%, not found {} stereo files"
-                  .format(cnt_disparity / cnt_ann * 100, cnt_no_stereo))
+            print("Annotations corrected using stereo baseline: {:.1f}%\n"
+                  "Annotations corrected using pose baseline: {:.1f}%\n"
+                  "Not found {} stereo files"
+                  .format(cnt_disparity['stereo'] / cnt_ann * 100,
+                          cnt_disparity['pose'] / cnt_ann * 100,
+                          cnt_no_stereo))
 
 
 def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco'):
