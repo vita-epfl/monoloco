@@ -13,7 +13,8 @@ from ..network import MonoLoco
 from ..network.process import preprocess_pifpaf
 from ..eval.geom_baseline import compute_distance
 from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, factory_basename, \
-    open_annotations, baselines_association
+    open_annotations
+from .stereo_baselines import baselines_association
 
 
 class GenerateKitti:
@@ -32,7 +33,7 @@ class GenerateKitti:
 
         # Calculate stereo baselines
         self.stereo = stereo
-        self.baseline_keys = ['ml_stereo', 'pose']
+        self.baselines = ['ml_stereo', 'pose']
 
     def run(self):
         """Run Monoloco and save txt files for KITTI evaluation"""
@@ -45,7 +46,7 @@ class GenerateKitti:
         if self.stereo:
             cnt_disparity = defaultdict(int)
             cnt_no_stereo = 0
-            for key in self.baseline_keys:
+            for key in self.baselines:
                 dir_out[key] = os.path.join('data', 'kitti', key)
                 make_new_directory(dir_out[key])
                 print("Created empty output directory for {}".format(key))
@@ -89,7 +90,7 @@ class GenerateKitti:
                         cnt_disparity[key] += cnt[key]
                 else:
                     cnt_no_stereo += 1
-                    zzs = {key: zzs for key in self.baseline_keys}
+                    zzs = {key: zzs for key in self.baselines}
 
                 for key in zzs:
                     path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
@@ -101,12 +102,10 @@ class GenerateKitti:
         print("Saved in {} txt {} annotations. Not found {} images\n".format(cnt_file, cnt_ann, cnt_no_file))
 
         if self.stereo:
-            print("Annotations corrected using stereo baseline: {:.1f}%\n"
-                  "Annotations corrected using pose baseline: {:.1f}%\n"
-                  "Not found {} stereo files"
-                  .format(cnt_disparity['stereo'] / cnt_ann * 100,
-                          cnt_disparity['pose'] / cnt_ann * 100,
-                          cnt_no_stereo))
+            for key in self.baselines:
+                print("Annotations corrected using {} baseline: {:.1f}%\n"
+                      .format(key, cnt_disparity[key] / cnt_ann * 100))
+            print("Not found {} stereo files".format(cnt_no_stereo))
 
 
 def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco'):
