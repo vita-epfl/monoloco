@@ -6,14 +6,18 @@ import torchvision
 import torchvision.transforms as T
 import torch.nn.functional as F
 
+from ..utils import open_image
 
-def reid_features(boxes, boxes_r, reid_net):
-    pil_image = None
-    pil_image_r = None
+
+def get_reid_features(reid_net, boxes, boxes_r, path_image, path_image_r):
+
+    pil_image = open_image(path_image)
+    pil_image_r = open_image(path_image_r)
+
     for index, box in enumerate(boxes):
         cropped_img = cropped_img + [pil_image.crop((box[0], box[1], box[2], box[3]))]
     for index, box in enumerate(boxes_r):
-        cropped_img_r = cropped_img_r + [pil_image.crop((box[0], box[1], box[2], box[3]))]
+        cropped_img_r = cropped_img_r + [pil_image_r.crop((box[0], box[1], box[2], box[3]))]
     features = reid_net.forward(cropped_img)
     features_r = reid_net.forward(cropped_img_r)
     distance_matrix = reid_net.calculate_distmat(features, features_r)
@@ -21,8 +25,8 @@ def reid_features(boxes, boxes_r, reid_net):
 
 
 class ReID(object):
-    def __init__(self, weights_path=None, dropout=0.5, features=128, T=1, dim=256, num_classes=751,
-                 height=256, width=128, ,use_gpu=True, seed=1):
+    def __init__(self, weights_path=None, dropout=0.5, features=128, dim=256, num_classes=751,
+                 height=256, width=128, use_gpu=True, seed=1):
         super(ReID, self).__init__()
         torch.manual_seed(seed)
         self.use_gpu = use_gpu
@@ -44,7 +48,6 @@ class ReID(object):
                               num_features=features, dropout=dropout,cut_at_pooling=False, FCN=True, T=T,dim=dim)
         num_param = sum(p.numel() for p in self.model.parameters()) / 1e+06
         print("Model size: {:.3f} M".format(num_param))
-
 
         # load pretrained weights but ignore layers that don't match in size
         checkpoint = torch.load(weights_path)

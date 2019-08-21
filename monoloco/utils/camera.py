@@ -2,6 +2,7 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
+from PIL import Image
 
 
 def pixel_to_camera(uv_tensor, kk, z_met):
@@ -174,3 +175,9 @@ def xyz_from_distance(distances, xy_centers):
     assert xy_centers.size()[-1] == 3 and distances.size()[-1] == 1, "Size of tensor not recognized"
 
     return xy_centers * distances / torch.sqrt(1 + xy_centers[:, 0:1].pow(2) + xy_centers[:, 1:2].pow(2))
+
+
+def open_image(path_image):
+    with open(path_image, 'rb') as f:
+        pil_image = Image.open(f).convert('RGB')
+        return pil_image

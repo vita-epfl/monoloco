@@ -16,7 +16,7 @@ from ..network.process import preprocess_pifpaf
 from ..eval.geom_baseline import compute_distance
 from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, open_annotations, split_training
 from .stereo_baselines import baselines_association
-from .reid_baseline import ReID, reid_features
+from .reid_baseline import ReID, get_reid_features
 
 
 class GenerateKitti:
@@ -37,10 +37,15 @@ class GenerateKitti:
         # Calculate stereo baselines
         self.stereo = stereo
         if stereo:
-            self.baselines = ['ml_stereo', 'pose', 'reid']
+            self.baselines = ['ml_stereo', 'pose']
+            self.cnt_disparity = defaultdict(int)
+            self.cnt_no_stereo = 0
+
             # ReID Baseline
             weights_path = '/data/george-data/racing_models/model_py3.pkl'
             self.reid_net = ReID(weights_path=weights_path, num_classes=751, height=256, width=128)
+            self.dir_images = os.path.join('data', 'kitti', 'images')
+            self.dir_images_r = os.path.join('data', 'kitti', 'images_r')
 
     def run(self):
         """Run Monoloco and save txt files for KITTI evaluation"""
@@ -51,8 +56,6 @@ class GenerateKitti:
         print("\nCreated empty output directory for txt files")
 
         if self.stereo:
-            cnt_disparity = defaultdict(int)
-            cnt_no_stereo = 0
             for key in self.baselines:
                 dir_out[key] = os.path.join('data', 'kitti', key)
                 make_new_directory(dir_out[key])
@@ -86,20 +89,7 @@ class GenerateKitti:
 
             # Correct using stereo disparity and save in different folder
             if self.stereo:
-                annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, mode='right')
-                boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
-
-                # Stereo baselines
-                if keypoints_r:
-                    reid_matrix = reid_features(boxes, boxes_r, self.reid_net)
-                    zzs, cnt = baselines_association(zzs, boxes, keypoints, boxes_r, keypoints_r)
-
-                    for key in zzs:
-                        cnt_disparity[key] += cnt[key]
-                else:
-                    cnt_no_stereo += 1
-                    zzs = {key: zzs for key in self.baselines}
-
+                self._run_stereo_baselines(basename, boxes, keypoints, zzs, path_calib)
                 for key in zzs:
                     path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
                     save_txts(path_txt[key], all_inputs, zzs[key], all_params, mode='baseline')
@@ -110,9 +100,29 @@ class GenerateKitti:
             print("STEREO:")
             for key in self.baselines:
                 print("Annotations corrected using {} baseline: {:.1f}%"
-                      .format(key, cnt_disparity[key] / cnt_ann * 100))
-            print("Not found {}/{} stereo files".format(cnt_no_stereo, cnt_file))
+                      .format(key, self.cnt_disparity[key] / cnt_ann * 100))
+            print("Not found {}/{} stereo files".format(self.cnt_no_stereo, cnt_file))
             print(cnt_no_file)
+
+    def _run_stereo_baselines(self, basename, boxes, keypoints, zzs, path_calib):
+
+        annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, mode='right')
+        boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
+
+        # Stereo baselines
+        if keypoints_r:
+            # path_image = os.path.join(self.dir_images, basename + '.jpg')
+            # path_image_r = os.path.join(self.dir_images_r, basename + '.jpg')
+            # reid_features = get_reid_features(self.reid_net, boxes, boxes_r, path_image, path_image_r)
+            reid_features = None
+            zzs, cnt = baselines_association(self.baselines, zzs, keypoints, keypoints_r, reid_features)
+
+            for key in zzs:
+                self.cnt_disparity[key] += cnt[key]
+        else:
+            self.cnt_no_stereo += 1
+            zzs = {key: zzs for key in self.baselines}
+        return zzs
 
 
 def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco'):
