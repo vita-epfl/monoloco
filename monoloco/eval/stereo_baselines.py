@@ -10,16 +10,15 @@ import numpy as np
 from ..utils import get_keypoints
 
 
-def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_similarities):
+def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_features):
     """compute stereo depth for each of the given stereo baselines"""
 
     # Initialize variables
     zzs_stereo = defaultdict(list)
-    keypoints_r = defaultdict(list)  # dictionaries share memory as lists!
     cnt_stereo = defaultdict(int)
-    keypoints = np.array(keypoints)
-    for key in baselines:
-        keypoints_r[key] = copy.deepcopy(keypoints_right)
+
+    features, features_r, keypoints, keypoints_r = factory_features(
+        keypoints, keypoints_right, baselines, reid_features)
 
     # Iterate over each left pose
     for idx, zz_mono in enumerate(zzs):
@@ -27,17 +26,14 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_simil
 
         for key in baselines:
             if keypoints_r[key]:
+                if key == 'pose':
+                    aa = 5
 
                 # Filter joints disparity and calculate avg disparity
                 avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoint, keypoints_r[key])
 
                 # Extract features of the baseline
-                if key == 'reid':
-                    similarity = reid_similarities[idx]
-                elif key == 'pose':
-                    similarity = l2_distance(keypoint, keypoints_r[key])
-                else:
-                    similarity = ml_stereo_similarity(zz_mono, avg_disparities)
+                similarity = features_similarity(features[key][idx], features_r[key], key, avg_disparities, zz_mono)
 
                 # Compute the association based on features minimization and calculate depth
                 zz_stereo, idx_min, flag = similarity_to_depth(similarity, avg_disparities)
@@ -47,11 +43,63 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_simil
                     zzs_stereo[key].append(zz_stereo)
                     cnt_stereo[key] += 1
                     keypoints_r[key].pop(idx_min)  # Update the keypoints for the next iteration
+                    features_r[key].pop(idx_min)  # update available features for the next iteration
                 else:
                     zzs_stereo[key].append(zz_mono)
             else:
                 zzs_stereo[key].append(zz_mono)
     return zzs_stereo, cnt_stereo
+
+
+def factory_features(keypoints, keypoints_right, baselines, reid_features):
+
+    features = defaultdict()
+    keypoints_r = defaultdict(list)  # dictionaries share memory as lists!
+    features_r = defaultdict(list)
+    keypoints = np.array(keypoints)
+
+    for key in baselines:
+        keypoints_r[key] = copy.deepcopy(keypoints_right)
+        if key == 'reid':
+            features[key] = reid_features[0]
+            features_r = reid_features[1]
+        else:
+            features[key] = copy.deepcopy(keypoints)
+            features_r[key] = copy.deepcopy(keypoints_right)
+
+    return features, features_r, keypoints, keypoints_r
+
+
+def features_similarity(feature, features_r, key, avg_disparities, zz_mono):
+
+    if key == 'pose':
+        # Zero-center the keypoints
+        uv_center = np.array(get_keypoints(feature, mode='center').reshape(-1, 1))  # (1, 2) --> (2, 1)
+        uv_centers_r = np.array(get_keypoints(features_r, mode='center').unsqueeze(-1))  # (m,2) --> (m, 2, 1)
+        feature = feature[:2, :] - uv_center
+        feature = feature.reshape(1, -1)  # (1, 34)
+        features_r = np.array(features_r)[:, :2, :] - uv_centers_r
+        features_r = features_r.reshape(features_r.shape[0], -1)  # (m, 34)
+
+        similarity = np.linalg.norm(feature - features_r, axis=1)
+
+    elif key == 'ml_stereo':
+        expected_disparity = 0.54 * 721. / zz_mono
+        similarity = np.abs(expected_disparity - avg_disparities)
+    # else:
+    # query = features_1
+    # if features_2 is not None:
+    #     gallery = features_2
+    # else:
+    #     gallery = features_1
+    # m = query.size(0)
+    # n = gallery.size(0)
+    # if not use_cosine:
+    #     distmat = torch.pow(query, 2).sum(dim=1, keepdim=True).expand(m, n) + \
+    #               torch.pow(gallery, 2).sum(dim=1, keepdim=True).expand(n, m).t()
+    #     distmat.addmm_(1, -2, query, gallery.t())
+
+    return similarity
 
 
 def similarity_to_depth(features, avg_disparities):
@@ -75,7 +123,7 @@ def ml_stereo_similarity(zz_mono, avg_disparities):
     return features
 
 
-def l2_distance(keypoints, keypoints_r):
+def l2_distance_keypoints(keypoints, keypoints_r):
     """
     Calculate a matrix/vector of l2 similarities for left-right instances in a single image
     from representation vectors of (possibly) different dimensions
@@ -99,6 +147,17 @@ def l2_distance(keypoints, keypoints_r):
             matrix[idx, idx_r] = l2_norm
 
     return matrix
+
+def l2_distance_features(features, features_r):
+
+    matrix = np.empty((features.shape[0], fe_r_0.shape[0]))
+    for idx, kps in enumerate(keypoints_0):
+        for idx_r, kps_r in enumerate(keypoints_r_0):
+            l2_norm = np.linalg.norm(kps.reshape(-1) - kps_r.reshape(-1))
+            matrix[idx, idx_r] = l2_norm
+
+    return matrix
+
 
 
 def mask_joint_disparity(kps, keypoints_r):

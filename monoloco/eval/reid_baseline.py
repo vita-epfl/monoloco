@@ -14,23 +14,26 @@ def get_reid_features(reid_net, boxes, boxes_r, path_image, path_image_r):
 
     pil_image = open_image(path_image)
     pil_image_r = open_image(path_image_r)
-
-    for index, box in enumerate(boxes):
+    assert boxes and boxes_r
+    cropped_img = []
+    for box in boxes:
         cropped_img = cropped_img + [pil_image.crop((box[0], box[1], box[2], box[3]))]
-    for index, box in enumerate(boxes_r):
+    cropped_img_r = []
+    for box in boxes_r:
         cropped_img_r = cropped_img_r + [pil_image_r.crop((box[0], box[1], box[2], box[3]))]
+
     features = reid_net.forward(cropped_img)
     features_r = reid_net.forward(cropped_img_r)
-    distance_matrix = reid_net.calculate_distmat(features, features_r)
-    return distance_matrix
+    return features.cpu().numpy(), features_r.cpu().numpy()
 
 
 class ReID(object):
     def __init__(self, weights_path, device, num_classes=751, height=256, width=128):
         super(ReID, self).__init__()
         torch.manual_seed(1)
+        self.device = device
 
-        if device.type == "cuda":  #TODO Check
+        if self.device.type == "cuda":  # TODO Check
             cudnn.benchmark = True
             torch.cuda.manual_seed_all(1)
         else:
@@ -60,7 +63,7 @@ class ReID(object):
     def forward(self, images):
         image = torch.stack([self.transform_test(image) for image in images], dim=0)
 
-        image = image.cuda()
+        image = image.to(self.device)
         with torch.no_grad():
             features = self.model(image)
         return features
@@ -68,7 +71,7 @@ class ReID(object):
     @staticmethod
     def calculate_distmat(features_1, features_2=None, use_cosine=False):
         query = features_1
-        if features_2:
+        if features_2 is not None:
             gallery = features_2
         else:
             gallery = features_1
