@@ -39,29 +39,22 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
                 else:
                     features = ml_stereo_features(zz_mono, avg_disparities)
 
-                # Compute the association based on pose features and calculate depth
-                zz_stereo, idx_min = features_to_depth(features, avg_disparities)
+                # Compute the association based on features minimization and calculate depth
+                zz_stereo, idx_min = features_minimization(features, avg_disparities)
 
                 # Filter stereo depth
                 if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
                     zzs_stereo[key].append(zz_stereo)
                     cnt_stereo[key] += 1
-                    keypoints_r[key].pop(idx_min)
+                    keypoints_r[key].pop(idx_min)  # Update the keypoints for the next iteration
                 else:
                     zzs_stereo[key].append(zz_mono)
             else:
                 zzs_stereo[key].append(zz_mono)
+    return zzs_stereo
 
 
-def ml_stereo_features(zz_mono, avg_disparities):
-    """compute distance of each average disparity from the expected disparity based on monoloco distance"""
-
-    expected_disparity = np.array(0.54 * 721. / zz_mono).resize((1, 1))
-    features = np.abs(expected_disparity - avg_disparities)
-    return features
-
-
-def features_to_depth(features, avg_disparities):
+def features_minimization(features, avg_disparities):
 
     idx_min = int(np.argmin(features))
     try:
@@ -73,68 +66,12 @@ def features_to_depth(features, avg_disparities):
     return zz_stereo, idx_min
 
 
-# def reid_baseline(zzs_stereo, zz_mono, keypoint, keypoints_r, similarity):
-#
-#     cnt_stereo = 0
-#     if keypoints_r:
-#         avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoint, keypoints_r)
-#
-#         zz_stereo, idx_min = similarity_to_depth(similarity, avg_disparities)
-#
-#         if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
-#             zzs_stereo.append(zz_stereo)
-#             cnt_stereo += 1
-#             keypoints_r.pop(idx_min)
-#         else:
-#             zzs_stereo.append(zz_mono)
-#     else:
-#         zzs_stereo.append(zz_mono)
-#     return zzs_stereo, keypoints_r, cnt_stereo
-#
-#
-#     return None
+def ml_stereo_features(zz_mono, avg_disparities):
+    """compute distance of each average disparity from the expected disparity based on monoloco distance"""
 
-
-# def pose_baseline(zzs_stereo, zz_mono, keypoint, keypoints_r):
-#     """
-#     Associate instances in left and right images based on pose similarity
-#     """
-#     cnt_stereo = 0
-#     if keypoints_r:
-#         avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoint, keypoints_r)
-#         similarity = l2_distance(keypoint, keypoints_r)
-#         zz_stereo, idx_min = similarity_to_depth(similarity, avg_disparities)
-#
-#
-#         if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
-#             zzs_stereo.append(zz_stereo)
-#             cnt_stereo += 1
-#             keypoints_r.pop(idx_min)
-#         else:
-#             zzs_stereo.append(zz_mono)
-#     else:
-#         zzs_stereo.append(zz_mono)
-#     return zzs_stereo, keypoints_r, cnt_stereo
-
-
-# def monoloco_baseline(zzs_stereo, zz_mono, keypoint, keypoints_r):
-#     """
-#     Associate instances in left and right images based on monoloco_prior
-#     """
-#     cnt_stereo = 0
-#     if keypoints_r:
-#         avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoint, keypoints_r)
-#         zz_stereo, idx_min = depth_from_monoloco_disparity(zz_mono, avg_disparities)
-#         if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
-#             zzs_stereo.append(zz_stereo)
-#             cnt_stereo += 1
-#             keypoints_r.pop(idx_min)
-#         else:
-#             zzs_stereo.append(zz_mono)
-#     else:
-#         zzs_stereo.append(zz_mono)
-#
-#     return zzs_stereo, keypoints_r, cnt_stereo
+    expected_disparity = np.array(0.54 * 721. / zz_mono).resize((1, 1))
+    features = np.abs(expected_disparity - avg_disparities)
+    return features
 
 
 def l2_distance(keypoints, keypoints_r):
@@ -161,19 +98,6 @@ def l2_distance(keypoints, keypoints_r):
             matrix[idx, idx_r] = l2_norm
 
     return matrix
-
-
-def similarity_to_depth(vector_similarity, avg_disparities):
-    """
-    from a matrix of cosine distances, calculate corresponding depths
-    one depth from every left instance. If similarity too low or no similarity, z=0
-    """
-    idx_min = round(float(np.argmin(vector_similarity)))
-    try:
-        zz_pose = 0.54 * 721. / float(avg_disparities[idx_min])
-    except ZeroDivisionError:
-        zz_pose = 0
-    return zz_pose, idx_min
 
 
 def mask_joint_disparity(kps, keypoints_r):
@@ -203,20 +127,6 @@ def mask_joint_disparity(kps, keypoints_r):
         return avg_disparity, disparity_x_mask, disparity_y_mask
 
 
-def depth_from_monoloco_disparity(zz_mono, avg_disparities):
-    """Use monoloco depth as prior for expected disparity"""
-    expected_disparity = 0.54 * 721. / zz_mono
-
-    try:
-        diffs_x = [abs(expected_disparity - real) for real in avg_disparities]
-        idx_min = diffs_x.index(min(diffs_x))
-        zz_stereo = 0.54 * 721. / float(avg_disparities[idx_min])
-    except ZeroDivisionError:
-        zz_stereo = 0
-
-    return zz_stereo, idx_min
-
-
 def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
     """Verify disparities based on coefficient of variation, maximum y difference and z difference wrt monoloco"""
 
@@ -244,9 +154,3 @@ def interquartile_mask(distribution):
     lower_bound = quartile_1 - (iqr * 1.5)
     upper_bound = quartile_3 + (iqr * 1.5)
     return (distribution < upper_bound.reshape(-1, 1)) & (distribution > lower_bound.reshape(-1, 1))
-
-
-def calculate_monoloco_disparity(zzs):
-
-    disparities = 0.54 * 721 / np.array(zzs)
-    return disparities
