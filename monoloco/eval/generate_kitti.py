@@ -16,6 +16,7 @@ from ..network.process import preprocess_pifpaf
 from ..eval.geom_baseline import compute_distance
 from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, open_annotations, split_training
 from .stereo_baselines import baselines_association
+from .reid_baseline import ReID, reid_features
 
 
 class GenerateKitti:
@@ -35,7 +36,11 @@ class GenerateKitti:
 
         # Calculate stereo baselines
         self.stereo = stereo
-        self.baselines = ['ml_stereo', 'pose']
+        if stereo:
+            self.baselines = ['ml_stereo', 'pose', 'reid']
+            # ReID Baseline
+            weights_path = '/data/george-data/racing_models/model_py3.pkl'
+            self.reid_net = ReID(weights_path=weights_path, num_classes=751, height=256, width=128)
 
     def run(self):
         """Run Monoloco and save txt files for KITTI evaluation"""
@@ -86,7 +91,9 @@ class GenerateKitti:
 
                 # Stereo baselines
                 if keypoints_r:
-                    zzs, cnt = baselines_association(zzs, keypoints, keypoints_r)
+                    reid_matrix = reid_features(boxes, boxes_r, self.reid_net)
+                    zzs, cnt = baselines_association(zzs, boxes, keypoints, boxes_r, keypoints_r)
+
                     for key in zzs:
                         cnt_disparity[key] += cnt[key]
                 else:
