@@ -1,8 +1,10 @@
+
 """Run monoloco over all the pifpaf joints of KITTI images
 and extract and save the annotations in txt files"""
 
 
 import os
+import glob
 import shutil
 from collections import defaultdict
 
@@ -12,8 +14,7 @@ import torch
 from ..network import MonoLoco
 from ..network.process import preprocess_pifpaf
 from ..eval.geom_baseline import compute_distance
-from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, factory_basename, \
-    open_annotations
+from ..utils import get_keypoints, pixel_to_camera, xyz_from_distance, get_calibration, open_annotations, split_training
 from .stereo_baselines import baselines_association
 
 
@@ -27,8 +28,9 @@ class GenerateKitti:
         self.monoloco = MonoLoco(model=model, device=device, n_dropout=n_dropout, p_dropout=p_dropout)
         self.dir_ann = dir_ann
 
-        # List of images
-        self.list_basename = factory_basename(dir_ann)
+        # Extract list of pifpaf files in validation images
+        dir_gt = os.path.join('data', 'kitti', 'gt')
+        self.set_basename = factory_basename(dir_ann, dir_gt)
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
 
         # Calculate stereo baselines
@@ -50,17 +52,16 @@ class GenerateKitti:
                 dir_out[key] = os.path.join('data', 'kitti', key)
                 make_new_directory(dir_out[key])
                 print("Created empty output directory for {}".format(key))
-            print("\n\n")
+            print("\n")
 
         # Run monoloco over the list of images
-        for basename in self.list_basename:
+        for basename in self.set_basename:
             path_calib = os.path.join(self.dir_kk, basename + '.txt')
             annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
             boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1242, 374))
-
-            if not keypoints:
-                cnt_no_file += 1
-                continue
+            assert keypoints, "all pifpaf files should have at least one annotation"
+            cnt_ann += len(boxes)
+            cnt_file += 1
 
             # Run the network and the geometric baseline
             outputs, varss = self.monoloco.forward(keypoints, kk)
@@ -96,16 +97,15 @@ class GenerateKitti:
                     path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
                     save_txts(path_txt[key], all_inputs, zzs[key], all_params, mode='baseline')
 
-            # Update counting
-            cnt_ann += len(boxes)
-            cnt_file += 1
-        print("Saved in {} txt {} annotations. Not found {} images\n".format(cnt_file, cnt_ann, cnt_no_file))
+        print("\nSaved in {} txt {} annotations. Not found {} images".format(cnt_file, cnt_ann, cnt_no_file))
 
         if self.stereo:
+            print("STEREO:")
             for key in self.baselines:
-                print("Annotations corrected using {} baseline: {:.1f}%\n"
+                print("Annotations corrected using {} baseline: {:.1f}%"
                       .format(key, cnt_disparity[key] / cnt_ann * 100))
-            print("Not found {} stereo files".format(cnt_no_stereo))
+            print("Not found {}/{} stereo files".format(cnt_no_stereo, cnt_file))
+            print(cnt_no_file)
 
 
 def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco'):
@@ -184,3 +184,21 @@ def make_new_directory(dir_out):
     if os.path.exists(dir_out):
         shutil.rmtree(dir_out)
     os.makedirs(dir_out)
+
+
+def factory_basename(dir_ann, dir_gt):
+    """ Return all the basenames in the annotations folder corresponding to validation images"""
+
+    # Extract ground truth validation images
+    names_gt = tuple(os.listdir(dir_gt))
+    path_train = os.path.join('splits', 'kitti_train.txt')
+    path_val = os.path.join('splits', 'kitti_val.txt')
+    _, set_val_gt = split_training(names_gt, path_train, path_val)
+    set_val_gt = {os.path.basename(x).split('.')[0] for x in set_val_gt}
+
+    # Extract pifpaf files corresponding to validation images
+    list_ann = glob.glob(os.path.join(dir_ann, '*.json'))
+    set_basename = set([os.path.basename(x).split('.')[0] for x in list_ann])
+    set_val = set_basename.intersection(set_val_gt)
+    assert set_val, " Missing json annotations file to create txt files for KITTI datasets"
+    return set_val
