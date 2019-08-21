@@ -24,7 +24,7 @@ def get_reid_features(reid_net, boxes, boxes_r, path_image, path_image_r):
 
     features = reid_net.forward(cropped_img)
     features_r = reid_net.forward(cropped_img_r)
-    return features.cpu().numpy(), features_r.cpu().numpy()
+    return features.cpu(), features_r.cpu()
 
 
 class ReID(object):
@@ -33,7 +33,7 @@ class ReID(object):
         torch.manual_seed(1)
         self.device = device
 
-        if self.device.type == "cuda":  # TODO Check
+        if self.device.type == "cuda":
             cudnn.benchmark = True
             torch.cuda.manual_seed_all(1)
         else:

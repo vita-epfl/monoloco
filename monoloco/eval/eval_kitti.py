@@ -25,7 +25,7 @@ class EvalKitti:
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
     ALP_THRESHOLDS = ('<0.5', '<1m', '<2m')
     METHODS_MONO = ['m3d', 'monodepth', '3dop', 'monoloco']
-    METHODS_STEREO = ['ml_stereo', 'pose']
+    METHODS_STEREO = ['ml_stereo', 'pose', 'reid']
     BASELINES = ['geometric', 'task_error', 'pixel_error']
     HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
     CATEGORIES = ('pedestrian',)
