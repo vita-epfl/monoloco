@@ -43,7 +43,7 @@ class GenerateKitti:
 
             # ReID Baseline
             weights_path = '/data/george-data/racing_models/model_py3.pkl'
-            self.reid_net = ReID(weights_path=weights_path, num_classes=751, height=256, width=128)
+            self.reid_net = ReID(weights_path=weights_path, device=device, num_classes=751, height=256, width=128)
             self.dir_images = os.path.join('data', 'kitti', 'images')
             self.dir_images_r = os.path.join('data', 'kitti', 'images_r')
 
@@ -89,7 +89,7 @@ class GenerateKitti:
 
             # Correct using stereo disparity and save in different folder
             if self.stereo:
-                self._run_stereo_baselines(basename, boxes, keypoints, zzs, path_calib)
+                zzs = self._run_stereo_baselines(basename, boxes, keypoints, zzs, path_calib)
                 for key in zzs:
                     path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
                     save_txts(path_txt[key], all_inputs, zzs[key], all_params, mode='baseline')
@@ -215,7 +215,7 @@ def factory_basename(dir_ann, dir_gt):
 
     # Extract pifpaf files corresponding to validation images
     list_ann = glob.glob(os.path.join(dir_ann, '*.json'))
-    set_basename = set([os.path.basename(x).split('.')[0] for x in list_ann])
+    set_basename = {os.path.basename(x).split('.')[0] for x in list_ann}
     set_val = set_basename.intersection(set_val_gt)
     assert set_val, " Missing json annotations file to create txt files for KITTI datasets"
     return set_val

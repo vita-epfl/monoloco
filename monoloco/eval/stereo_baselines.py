@@ -10,7 +10,7 @@ import numpy as np
 from ..utils import get_keypoints
 
 
-def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_features):
+def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_similarities):
     """compute stereo depth for each of the given stereo baselines"""
 
     # Initialize variables
@@ -32,18 +32,18 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
                 avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoint, keypoints_r[key])
 
                 # Extract features of the baseline
-                if key is 'reid':
-                    features = reid_features[idx]
-                elif key is 'pose':
-                    features = l2_distance(keypoints, keypoints_r)
+                if key == 'reid':
+                    similarity = reid_similarities[idx]
+                elif key == 'pose':
+                    similarity = l2_distance(keypoint, keypoints_r[key])
                 else:
-                    features = ml_stereo_features(zz_mono, avg_disparities)
+                    similarity = ml_stereo_similarity(zz_mono, avg_disparities)
 
                 # Compute the association based on features minimization and calculate depth
-                zz_stereo, idx_min = features_minimization(features, avg_disparities)
+                zz_stereo, idx_min, flag = similarity_to_depth(similarity, avg_disparities)
 
                 # Filter stereo depth
-                if verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
+                if flag and verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
                     zzs_stereo[key].append(zz_stereo)
                     cnt_stereo[key] += 1
                     keypoints_r[key].pop(idx_min)  # Update the keypoints for the next iteration
@@ -51,25 +51,26 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
                     zzs_stereo[key].append(zz_mono)
             else:
                 zzs_stereo[key].append(zz_mono)
-    return zzs_stereo
+    return zzs_stereo, cnt_stereo
 
 
-def features_minimization(features, avg_disparities):
+def similarity_to_depth(features, avg_disparities):
 
-    idx_min = int(np.argmin(features))
     try:
+        idx_min = int(np.nanargmin(features))
         zz_stereo = 0.54 * 721. / float(avg_disparities[idx_min])
-    except ZeroDivisionError:
-        print("Warning: ZeroDivisionError")
-        zz_stereo = 0
+        flag = True
+    except (ZeroDivisionError, ValueError):  # All nan-slices or zero division
+        zz_stereo = idx_min = 0
+        flag = False
 
-    return zz_stereo, idx_min
+    return zz_stereo, idx_min, flag
 
 
-def ml_stereo_features(zz_mono, avg_disparities):
+def ml_stereo_similarity(zz_mono, avg_disparities):
     """compute distance of each average disparity from the expected disparity based on monoloco distance"""
 
-    expected_disparity = np.array(0.54 * 721. / zz_mono).resize((1, 1))
+    expected_disparity = 0.54 * 721. / zz_mono
     features = np.abs(expected_disparity - avg_disparities)
     return features
 

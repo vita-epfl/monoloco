@@ -2,9 +2,10 @@
 import torch
 import torch.backends.cudnn as cudnn
 from torch import nn
+import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as T
-import torch.nn.functional as F
+
 
 from ..utils import open_image
 
@@ -25,15 +26,13 @@ def get_reid_features(reid_net, boxes, boxes_r, path_image, path_image_r):
 
 
 class ReID(object):
-    def __init__(self, weights_path=None, dropout=0.5, features=128, dim=256, num_classes=751,
-                 height=256, width=128, use_gpu=True, seed=1):
+    def __init__(self, weights_path, device, num_classes=751, height=256, width=128):
         super(ReID, self).__init__()
-        torch.manual_seed(seed)
-        self.use_gpu = use_gpu
+        torch.manual_seed(1)
 
-        if self.use_gpu:
+        if device.type == "cuda":  #TODO Check
             cudnn.benchmark = True
-            torch.cuda.manual_seed_all(seed)
+            torch.cuda.manual_seed_all(1)
         else:
             print("Currently using CPU (GPU is highly recommended)")
 
@@ -44,8 +43,8 @@ class ReID(object):
         ])
         print("ReID Baseline:")
         print("Initializing ResNet model")
-        self.model = ResNet50(num_classes=num_classes, loss={'xent'}, use_gpu=use_gpu,
-                              num_features=features, dropout=dropout,cut_at_pooling=False, FCN=True, T=T,dim=dim)
+        self.model = ResNet50(num_classes=num_classes, loss={'xent'})
+        self.model.to(device)
         num_param = sum(p.numel() for p in self.model.parameters()) / 1e+06
         print("Model size: {:.3f} M".format(num_param))
 
@@ -56,20 +55,18 @@ class ReID(object):
         model_dict.update(pretrain_dict)
         self.model.load_state_dict(model_dict)
         print("Loaded pretrained weights from '{}'".format(weights_path))
-
         self.model.eval()
-        if self.use_gpu:
-           self.model.cuda()
 
     def forward(self, images):
         image = torch.stack([self.transform_test(image) for image in images], dim=0)
 
         image = image.cuda()
         with torch.no_grad():
-            self.features = self.model(image)
-        return self.features
+            features = self.model(image)
+        return features
 
-    def calculate_distmat(self, features_1, features_2=None, use_cosine=False):
+    @staticmethod
+    def calculate_distmat(features_1, features_2=None, use_cosine=False):
         query = features_1
         if features_2:
             gallery = features_2
@@ -77,21 +74,19 @@ class ReID(object):
             gallery = features_1
         m = query.size(0)
         n = gallery.size(0)
-        if not (use_cosine):
-            self.distmat = torch.pow(query, 2).sum(dim=1, keepdim=True).expand(m, n) + \
+        if not use_cosine:
+            distmat = torch.pow(query, 2).sum(dim=1, keepdim=True).expand(m, n) + \
                       torch.pow(gallery, 2).sum(dim=1, keepdim=True).expand(n, m).t()
-            self.distmat.addmm_(1, -2, query, gallery.t())
+            distmat.addmm_(1, -2, query, gallery.t())
         else:
-            features_norm = query/query.norm(dim=1)[:,None]
-            reference_norm = gallery/gallery.norm(dim=1)[:,None]
-            #distmat = torch.addmm(1,torch.ones((m,n)).cuda(),-1,features_norm,reference_norm.transpose(0,1))
-            self.distmat = torch.mm(features_norm,reference_norm.transpose(0,1))
-
-        return self.distmat
+            features_norm = query/query.norm(dim=1)[:, None]
+            reference_norm = gallery/gallery.norm(dim=1)[:, None]
+            distmat = torch.mm(features_norm, reference_norm.transpose(0, 1))
+        return distmat
 
 
 class ResNet50(nn.Module):
-    def __init__(self, num_classes, loss, **kwargs):
+    def __init__(self, num_classes, loss):
         super(ResNet50, self).__init__()
         self.loss = loss
         resnet50 = torchvision.models.resnet50(pretrained=True)
@@ -109,7 +104,4 @@ class ResNet50(nn.Module):
 
         if self.loss == {'xent'}:
             return y
-        elif self.loss == {'xent', 'htri'}:
-            return y, f
-        else:
-            raise KeyError("Unsupported loss: {}".format(self.loss))
+        return y, f
