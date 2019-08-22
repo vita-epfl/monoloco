@@ -14,7 +14,7 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
 
     # Initialize variables
     zzs_stereo = defaultdict()
-    cnt_stereo = defaultdict(int)
+    cnt_stereo = defaultdict(lambda: defaultdict(int))
 
     features, features_r, keypoints, keypoints_r = factory_features(
         keypoints, keypoints_right, baselines, reid_features)
@@ -23,6 +23,7 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
     avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoints, keypoints_r)
 
     # Iterate over each left pose
+    cnt_while = defaultdict(int)
     for key in baselines:
 
         # Extract features of the baseline
@@ -46,10 +47,11 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
             # Filter stereo depth
             if flag and verify_stereo(zz_stereo, zz_mono, disparities_x[idx, arg_best], disparities_y[idx, arg_best]):
                 zzs_stereo[key][idx] = zz_stereo
-                cnt_stereo[key] += 1
+                cnt_stereo[key]['matched'] += 1
                 similarity[:, arg_best] = np.nan
             else:
                 zzs_stereo[key][idx] = zz_mono
+                cnt_stereo[key]['filtered'] += 1
 
             best = np.nanmin(similarity)
         indices_mono = [idx for idx, _ in enumerate(zzs) if idx not in indices_stereo]
@@ -100,6 +102,7 @@ def features_similarity(features, features_r, key, avg_disparities, zzs):
             sim_row = np.linalg.norm(feature - features_r, axis=1)
 
         similarity[idx] = sim_row
+        similarity = np.nan_to_num(similarity, nan=np.inf)  # To correctly count filters
     return similarity
 
 
@@ -110,7 +113,7 @@ def similarity_to_depth(similarity, avg_disparity):
         zz_stereo = 0.54 * 721. / float(avg_disparity[arg_best])
         flag = True
     except (ZeroDivisionError, ValueError):  # All nan-slices or zero division
-        zz_stereo = arg_best = 1000
+        zz_stereo = arg_best = np.nan
         flag = False
 
     return zz_stereo, arg_best, flag
@@ -157,10 +160,6 @@ def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
     y_max_difference = (50 / zz_mono)
     z_max_difference = 0.6 * zz_mono
 
-    # COV_MIN = 20
-    # y_max_difference = (1000 / zz_mono)
-    # z_max_difference = 3 * zz_mono
-
     cov = float(np.nanstd(disparity_x) / np.abs(np.nanmean(disparity_x)))  # Coefficient of variation
     avg_disparity_y = np.nanmedian(disparity_y)
 
@@ -168,6 +167,8 @@ def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
             avg_disparity_y < y_max_difference and \
             cov < COV_MIN:
         return True
+    # if zz_stereo < 1000:
+    #     return True
     return False
 
 

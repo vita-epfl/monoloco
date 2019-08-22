@@ -38,7 +38,7 @@ class GenerateKitti:
         self.stereo = stereo
         if stereo:
             self.baselines = ['ml_stereo', 'pose', 'reid']
-            self.cnt_disparity = defaultdict(int)
+            self.cnt_disparity = defaultdict(lambda: defaultdict(int))
             self.cnt_no_stereo = 0
 
             # ReID Baseline
@@ -99,8 +99,10 @@ class GenerateKitti:
         if self.stereo:
             print("STEREO:")
             for key in self.baselines:
-                print("Annotations corrected using {} baseline: {:.1f}%"
-                      .format(key, self.cnt_disparity[key] / cnt_ann * 100))
+                print("Annotations corrected using {} baseline: {:.1f}%. Filtered: {:.1f}%".format(
+                    key,
+                    self.cnt_disparity[key]['matched'] / cnt_ann * 100,
+                    self.cnt_disparity[key]['filtered'] / cnt_ann * 100))
             print("Not found {}/{} stereo files".format(self.cnt_no_stereo, cnt_file))
             print(cnt_no_file)
 
@@ -117,7 +119,8 @@ class GenerateKitti:
             zzs, cnt = baselines_association(self.baselines, zzs, keypoints, keypoints_r, reid_features)
 
             for key in zzs:
-                self.cnt_disparity[key] += cnt[key]
+                self.cnt_disparity[key]['matched'] += cnt[key]['matched']
+                self.cnt_disparity[key]['filtered'] += cnt[key]['filtered']
         else:
             self.cnt_no_stereo += 1
             zzs = {key: zzs for key in self.baselines}
