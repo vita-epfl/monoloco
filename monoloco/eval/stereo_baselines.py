@@ -13,9 +13,8 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
     """compute stereo depth for each of the given stereo baselines"""
 
     # Initialize variables
-    zzs_stereo = defaultdict()
+    zzs_stereo = defaultdict(list)
     cnt_stereo = defaultdict(int)
-    thresh = 1e7
 
     features, features_r, keypoints, keypoints_r = factory_features(
         keypoints, keypoints_right, baselines, reid_features)
@@ -25,34 +24,44 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
 
     # Iterate over each left pose
     for key in baselines:
-        zzs_stereo[key] = np.empty((keypoints.shape[0]))
 
         # Extract features of the baseline
         similarity = features_similarity(features[key], features_r[key], key, avg_disparities, zzs)
 
         # Compute the association based on features minimization and calculate depth
-        indices_stereo = []  # keep track of indices
-        best = np.nanmin(similarity)
-        while best < thresh:
-            args_best = np.unravel_index(np.argmin(similarity, axis=None), similarity.shape)
-            zz_stereo, flag = similarity_to_depth(avg_disparities[args_best])
-            zz_mono = zzs[args_best[0]]
-            similarity[args_best[0], :] = thresh
-            similarity[:, args_best[1]] = thresh
-            indices_stereo.append(args_best[0])
-            best = np.nanmin(similarity)
+        for idx, zz_mono in enumerate(zzs):
+            zz_stereo, arg_best, flag = similarity_to_depth(similarity[idx], avg_disparities[idx])
+            similarity[:, arg_best] = np.nan
 
-            # Filter stereo depth
-            if flag and verify_stereo(zz_stereo, zz_mono, disparities_x[args_best], disparities_y[args_best]):
-                zzs_stereo[key][args_best[0]] = zz_stereo
+            if flag and verify_stereo(zz_stereo, zz_mono, disparities_x[idx, arg_best], disparities_y[idx, arg_best]):
+                zzs_stereo[key].append(zz_stereo)
                 cnt_stereo[key] += 1
             else:
-                zzs_stereo[key][args_best[0]] = zz_mono
+                zzs_stereo[key].append(zz_mono)
 
-        indices_mono = [idx for idx, _ in enumerate(zzs) if idx not in indices_stereo]
-        for idx in indices_mono:
-            zzs_stereo[key][idx] = zzs[idx]
+        # indices_stereo = []  # keep track of indices
+        # zzs_stereo[key] = np.empty((keypoints.shape[0]))
+        # best = np.nanmin(similarity)
+        # while best < thresh:
+        #     args_best = np.unravel_index(np.argmin(similarity, axis=None), similarity.shape)
+        #     zz_stereo, flag = similarity_to_depth(avg_disparities[args_best])
+        #     zz_mono = zzs[args_best[0]]
+        #     similarity[args_best[0], :] = thresh
+        #     similarity[:, args_best[1]] = thresh
+        #     indices_stereo.append(args_best[0])
+        #     best = np.nanmin(similarity)
 
+            # Filter stereo depth
+        #     if flag and verify_stereo(zz_stereo, zz_mono, disparities_x[args_best], disparities_y[args_best]):
+        #         zzs_stereo[key][args_best[0]] = zz_stereo
+        #         cnt_stereo[key] += 1
+        #     else:
+        #         zzs_stereo[key][args_best[0]] = zz_mono
+        #
+        # indices_mono = [idx for idx, _ in enumerate(zzs) if idx not in indices_stereo]
+        # for idx in indices_mono:
+        #     zzs_stereo[key][idx] = zzs[idx]
+        # zzs_stereo[key] = zzs_stereo[key].tolist()
     return zzs_stereo, cnt_stereo
 
 
@@ -99,16 +108,17 @@ def features_similarity(features, features_r, key, avg_disparities, zzs):
     return similarity
 
 
-def similarity_to_depth(avg_disparity):
+def similarity_to_depth(similarity, avg_disparity):
 
     try:
-        zz_stereo = 0.54 * 721. / float(avg_disparity)
+        arg_best = np.nanargmin(similarity)
+        zz_stereo = 0.54 * 721. / float(avg_disparity[arg_best])
         flag = True
     except (ZeroDivisionError, ValueError):  # All nan-slices or zero division
-        zz_stereo = 0
+        zz_stereo = arg_best = 0
         flag = False
 
-    return zz_stereo, flag
+    return zz_stereo, arg_best, flag
 
 
 def mask_joint_disparity(keypoints, keypoints_r):
@@ -148,9 +158,9 @@ def mask_joint_disparity(keypoints, keypoints_r):
 def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
     """Verify disparities based on coefficient of variation, maximum y difference and z difference wrt monoloco"""
 
-    COV_MIN = 0.1
-    y_max_difference = (50 / zz_mono)
-    z_max_difference = 0.6 * zz_mono
+    COV_MIN = 0.2
+    y_max_difference = (60 / zz_mono)
+    z_max_difference = 0.7 * zz_mono
 
     # COV_MIN = 20
     # y_max_difference = (1000 / zz_mono)
