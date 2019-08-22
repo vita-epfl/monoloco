@@ -14,58 +14,65 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
     """compute stereo depth for each of the given stereo baselines"""
 
     # Initialize variables
-    zzs_stereo = defaultdict(list)
+    zzs_stereo = defaultdict()
     cnt_stereo = defaultdict(int)
+    thresh = 1e7
 
     features, features_r, keypoints, keypoints_r = factory_features(
         keypoints, keypoints_right, baselines, reid_features)
 
+    # Filter joints disparity and calculate avg disparity
+    avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoints, keypoints_r)
+
     # Iterate over each left pose
-    for idx, zz_mono in enumerate(zzs):
-        keypoint = keypoints[idx]
+    for key in baselines:
+        similarity = np.empty((keypoints.shape[0], keypoints_r.shape[0]))
+        zzs_stereo[key] = np.empty((keypoints.shape[0]))
 
-        for key in baselines:
-            if keypoints_r[key]:
+        # Extract features of the baseline
+        for idx, _ in enumerate(zzs):
+            sim_row = features_similarity(features[key][idx], features_r[key], key, avg_disparities[idx], zz_mono)
+            similarity[idx] = sim_row
 
-                # Filter joints disparity and calculate avg disparity
-                avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoint, keypoints_r[key])
+        # Compute the association based on features minimization and calculate depth
+        indices_stereo = []  # keep track of indices
+        best = np.nanmin(similarity)
+        while best < thresh:
+            args_best = np.unravel_index(np.argmin(similarity, axis=None), similarity.shape)
+            zz_stereo, flag = similarity_to_depth(avg_disparities[args_best])
+            zz_mono = zzs[args_best[0]]
+            similarity[args_best[0], :] = thresh
+            similarity[:, args_best[1]] = thresh
+            indices_stereo.append(args_best[0])
 
-                # Extract features of the baseline
-                similarity = features_similarity(features[key][idx], features_r[key], key, avg_disparities, zz_mono)
-
-                # Compute the association based on features minimization and calculate depth
-                zz_stereo, idx_min, flag = similarity_to_depth(similarity, avg_disparities)
-
-                # Filter stereo depth
-                if flag and verify_stereo(zz_stereo, zz_mono, disparities_x[idx_min], disparities_y[idx_min]):
-                    zzs_stereo[key].append(zz_stereo)
-                    cnt_stereo[key] += 1
-                    keypoints_r[key].pop(idx_min)  # Update the keypoints for the next iteration
-                    features_r[key].pop(idx_min)  # update available features for the next iteration
-                else:
-                    zzs_stereo[key].append(zz_mono)
+            # Filter stereo depth
+            if flag and verify_stereo(zz_stereo, zz_mono, disparities_x[args_best], disparities_y[args_best]):
+                zzs_stereo[key][args_best[0]] = zz_stereo
+                cnt_stereo[key] += 1
             else:
-                zzs_stereo[key].append(zz_mono)
+                zzs_stereo[key][args_best[0]] = zz_mono
+
+        indices_mono = [idx for idx in enumerate(zzs) if idx not in indices_stereo]
+        for idx in indices_mono:
+            zzs_stereo[key][idx] = zzs[idx]
+            
     return zzs_stereo, cnt_stereo
 
 
 def factory_features(keypoints, keypoints_right, baselines, reid_features):
 
     features = defaultdict()
-    keypoints_r = defaultdict(list)  # dictionaries share memory as lists!
-    features_r = defaultdict(list)
-    keypoints = np.array(keypoints)
+    features_r = defaultdict()
 
     for key in baselines:
-        keypoints_r[key] = copy.deepcopy(keypoints_right)
         if key == 'reid':
             features[key] = np.array(reid_features[0])
-            features_r[key] = reid_features[1].tolist()
+            features_r[key] = reid_features[1]
         else:
-            features[key] = copy.deepcopy(keypoints)
-            features_r[key] = copy.deepcopy(keypoints_right)
+            features[key] = np.array(keypoints)
+            features_r[key] = np.array(keypoints_right)
 
-    return features, features_r, keypoints, keypoints_r
+    return features, features_r, np.array(keypoints), np.array(keypoints_right)
 
 
 def features_similarity(feature, features_r, key, avg_disparities, zz_mono):
@@ -90,42 +97,48 @@ def features_similarity(feature, features_r, key, avg_disparities, zz_mono):
     return similarity
 
 
-def similarity_to_depth(features, avg_disparities):
+def similarity_to_depth(avg_disparity):
 
     try:
-        idx_min = int(np.nanargmin(features))
-        zz_stereo = 0.54 * 721. / float(avg_disparities[idx_min])
+        zz_stereo = 0.54 * 721. / float(avg_disparity)
         flag = True
     except (ZeroDivisionError, ValueError):  # All nan-slices or zero division
-        zz_stereo = idx_min = 0
+        zz_stereo = 0
         flag = False
 
-    return zz_stereo, idx_min, flag
+    return zz_stereo, flag
 
 
-def mask_joint_disparity(kps, keypoints_r):
+def mask_joint_disparity(keypoints, keypoints_r):
     """filter joints based on confidence and interquartile range of the distribution"""
 
     CONF_MIN = 0.3
-    keypoints_r = np.array(keypoints_r)
-
     with warnings.catch_warnings() and np.errstate(invalid='ignore'):
+        disparity_x_mask = np.empty((keypoints.shape[0], keypoints_r.shape[0], 17))
+        disparity_y_mask = np.empty((keypoints.shape[0], keypoints_r.shape[0], 17))
+        avg_disparity = np.empty((keypoints.shape[0], keypoints_r.shape[0]))
 
-        disparity_x = kps[0, :] - keypoints_r[:, 0, :]
-        disparity_y = kps[1, :] - keypoints_r[:, 1, :]
+        for idx, kps in enumerate(keypoints):
+            disparity_x = kps[0, :] - keypoints_r[:, 0, :]
+            disparity_y = kps[1, :] - keypoints_r[:, 1, :]
 
-        # Mask for low confidence
-        mask_conf_left = kps[2, :] > CONF_MIN
-        mask_conf_right = keypoints_r[:, 2, :] > CONF_MIN
-        mask_conf = mask_conf_left & mask_conf_right
-        disparity_x_conf = np.where(mask_conf, disparity_x, np.nan)
-        disparity_y_conf = np.where(mask_conf, disparity_y, np.nan)
+            # Mask for low confidence
+            mask_conf_left = kps[2, :] > CONF_MIN
+            mask_conf_right = keypoints_r[:, 2, :] > CONF_MIN
+            mask_conf = mask_conf_left & mask_conf_right
+            disparity_x_conf = np.where(mask_conf, disparity_x, np.nan)
+            disparity_y_conf = np.where(mask_conf, disparity_y, np.nan)
 
-        # Mask outliers using iqr
-        mask_outlier = interquartile_mask(disparity_x_conf)
-        disparity_x_mask = np.where(mask_outlier, disparity_x_conf, np.nan)
-        disparity_y_mask = np.where(mask_outlier, disparity_y_conf, np.nan)
-        avg_disparity = np.nanmedian(disparity_x_mask, axis=1)  # ignore the nan
+            # Mask outliers using iqr
+            mask_outlier = interquartile_mask(disparity_x_conf)
+            x_mask_row = np.where(mask_outlier, disparity_x_conf, np.nan)
+            y_mask_row = np.where(mask_outlier, disparity_y_conf, np.nan)
+            avg_row = np.nanmedian(x_mask_row, axis=1)  # ignore the nan
+
+            # Append
+            disparity_x_mask[idx] = x_mask_row
+            disparity_y_mask[idx] = y_mask_row
+            avg_disparity[idx] = avg_row
 
         return avg_disparity, disparity_x_mask, disparity_y_mask
 
