@@ -31,11 +31,11 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
         # Compute the association based on features minimization and calculate depth
         for idx, zz_mono in enumerate(zzs):
             zz_stereo, arg_best, flag = similarity_to_depth(similarity[idx], avg_disparities[idx])
-            similarity[:, arg_best] = np.nan
 
             if flag and verify_stereo(zz_stereo, zz_mono, disparities_x[idx, arg_best], disparities_y[idx, arg_best]):
                 zzs_stereo[key].append(zz_stereo)
                 cnt_stereo[key] += 1
+                similarity[:, arg_best] = np.nan
             else:
                 zzs_stereo[key].append(zz_mono)
 
@@ -115,7 +115,7 @@ def similarity_to_depth(similarity, avg_disparity):
         zz_stereo = 0.54 * 721. / float(avg_disparity[arg_best])
         flag = True
     except (ZeroDivisionError, ValueError):  # All nan-slices or zero division
-        zz_stereo = arg_best = 0
+        zz_stereo = arg_best = 1000
         flag = False
 
     return zz_stereo, arg_best, flag
@@ -158,9 +158,9 @@ def mask_joint_disparity(keypoints, keypoints_r):
 def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
     """Verify disparities based on coefficient of variation, maximum y difference and z difference wrt monoloco"""
 
-    COV_MIN = 0.2
-    y_max_difference = (60 / zz_mono)
-    z_max_difference = 0.7 * zz_mono
+    COV_MIN = 0.1
+    y_max_difference = (50 / zz_mono)
+    z_max_difference = 0.6 * zz_mono
 
     # COV_MIN = 20
     # y_max_difference = (1000 / zz_mono)
