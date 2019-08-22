@@ -37,15 +37,15 @@ class GenerateKitti:
         # Calculate stereo baselines
         self.stereo = stereo
         if stereo:
-            self.baselines = ['ml_stereo', 'pose']
+            self.baselines = ['ml_stereo', 'pose', 'reid']
             self.cnt_disparity = defaultdict(int)
             self.cnt_no_stereo = 0
 
             # ReID Baseline
-            # weights_path = '/data/george-data/racing_models/model_py3.pkl'
-            # self.reid_net = ReID(weights_path=weights_path, device=device, num_classes=751, height=256, width=128)
-            # self.dir_images = os.path.join('data', 'kitti', 'images')
-            # self.dir_images_r = os.path.join('data', 'kitti', 'images_r')
+            weights_path = '/data/george-data/racing_models/model_py3.pkl'
+            self.reid_net = ReID(weights_path=weights_path, device=device, num_classes=751, height=256, width=128)
+            self.dir_images = os.path.join('data', 'kitti', 'images')
+            self.dir_images_r = os.path.join('data', 'kitti', 'images_r')
 
     def run(self):
         """Run Monoloco and save txt files for KITTI evaluation"""
@@ -111,10 +111,9 @@ class GenerateKitti:
 
         # Stereo baselines
         if keypoints_r:
-            # path_image = os.path.join(self.dir_images, basename + '.png')
-            # path_image_r = os.path.join(self.dir_images_r, basename + '.png')
-            # reid_features = get_reid_features(self.reid_net, boxes, boxes_r, path_image, path_image_r)
-            reid_features = np.zeros((1,1))
+            path_image = os.path.join(self.dir_images, basename + '.png')
+            path_image_r = os.path.join(self.dir_images_r, basename + '.png')
+            reid_features = get_reid_features(self.reid_net, boxes, boxes_r, path_image, path_image_r)
             zzs, cnt = baselines_association(self.baselines, zzs, keypoints, keypoints_r, reid_features)
 
             for key in zzs:

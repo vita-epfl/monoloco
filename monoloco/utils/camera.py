@@ -75,7 +75,6 @@ def get_keypoints(keypoints, mode):
         keypoints = torch.tensor(keypoints)
     if len(keypoints.size()) == 2:  # add batch dim
         keypoints = keypoints.unsqueeze(0)
-
     assert len(keypoints.size()) == 3 and keypoints.size()[1] == 3, "tensor dimensions not recognized"
     assert mode in ['center', 'bottom', 'head', 'shoulder', 'hip', 'ankle']
 

@@ -1,7 +1,6 @@
 
 """"Generate stereo baselines for kitti evaluation"""
 
-import copy
 import warnings
 from collections import defaultdict
 
@@ -26,13 +25,10 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
 
     # Iterate over each left pose
     for key in baselines:
-        similarity = np.empty((keypoints.shape[0], keypoints_r.shape[0]))
         zzs_stereo[key] = np.empty((keypoints.shape[0]))
 
         # Extract features of the baseline
-        for idx, _ in enumerate(zzs):
-            sim_row = features_similarity(features[key][idx], features_r[key], key, avg_disparities[idx], zz_mono)
-            similarity[idx] = sim_row
+        similarity = features_similarity(features[key], features_r[key], key, avg_disparities, zzs)
 
         # Compute the association based on features minimization and calculate depth
         indices_stereo = []  # keep track of indices
@@ -44,6 +40,7 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
             similarity[args_best[0], :] = thresh
             similarity[:, args_best[1]] = thresh
             indices_stereo.append(args_best[0])
+            best = np.nanmin(similarity)
 
             # Filter stereo depth
             if flag and verify_stereo(zz_stereo, zz_mono, disparities_x[args_best], disparities_y[args_best]):
@@ -52,10 +49,10 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
             else:
                 zzs_stereo[key][args_best[0]] = zz_mono
 
-        indices_mono = [idx for idx in enumerate(zzs) if idx not in indices_stereo]
+        indices_mono = [idx for idx, _ in enumerate(zzs) if idx not in indices_stereo]
         for idx in indices_mono:
             zzs_stereo[key][idx] = zzs[idx]
-            
+
     return zzs_stereo, cnt_stereo
 
 
@@ -67,7 +64,7 @@ def factory_features(keypoints, keypoints_right, baselines, reid_features):
     for key in baselines:
         if key == 'reid':
             features[key] = np.array(reid_features[0])
-            features_r[key] = reid_features[1]
+            features_r[key] = np.array(reid_features[1])
         else:
             features[key] = np.array(keypoints)
             features_r[key] = np.array(keypoints_right)
@@ -75,25 +72,30 @@ def factory_features(keypoints, keypoints_right, baselines, reid_features):
     return features, features_r, np.array(keypoints), np.array(keypoints_right)
 
 
-def features_similarity(feature, features_r, key, avg_disparities, zz_mono):
+def features_similarity(features, features_r, key, avg_disparities, zzs):
 
-    if key == 'ml_stereo':
-        expected_disparity = 0.54 * 721. / zz_mono
-        similarity = np.abs(expected_disparity - avg_disparities)
-        return similarity
+    similarity = np.empty((features.shape[0], features_r.shape[0]))
+    for idx, zz_mono in enumerate(zzs):
+        feature = features[idx]
 
-    elif key == 'pose':
-        # Zero-center the keypoints
-        uv_center = np.array(get_keypoints(feature, mode='center').reshape(-1, 1))  # (1, 2) --> (2, 1)
-        uv_centers_r = np.array(get_keypoints(features_r, mode='center').unsqueeze(-1))  # (m,2) --> (m, 2, 1)
-        feature = feature[:2, :] - uv_center
-        feature = feature.reshape(1, -1)  # (1, 34)
-        features_r = np.array(features_r)[:, :2, :] - uv_centers_r
-        features_r = features_r.reshape(features_r.shape[0], -1)  # (m, 34)
-        similarity = np.linalg.norm(feature - features_r, axis=1)
+        if key == 'ml_stereo':
+            expected_disparity = 0.54 * 721. / zz_mono
+            sim_row = np.abs(expected_disparity - avg_disparities[idx])
 
-    if key == 'reid':
-        similarity = np.linalg.norm(feature - features_r, axis=1)
+        elif key == 'pose':
+            # Zero-center the keypoints
+            uv_center = np.array(get_keypoints(feature, mode='center').reshape(-1, 1))  # (1, 2) --> (2, 1)
+            uv_centers_r = np.array(get_keypoints(features_r, mode='center').unsqueeze(-1))  # (m,2) --> (m, 2, 1)
+            feature_0 = feature[:2, :] - uv_center
+            feature_0 = feature_0.reshape(1, -1)  # (1, 34)
+            features_r_0 = features_r[:, :2, :] - uv_centers_r
+            features_r_0 = features_r_0.reshape(features_r_0.shape[0], -1)  # (m, 34)
+            sim_row = np.linalg.norm(feature_0 - features_r_0, axis=1)
+
+        else:
+            sim_row = np.linalg.norm(feature - features_r, axis=1)
+
+        similarity[idx] = sim_row
     return similarity
 
 
