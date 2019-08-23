@@ -53,7 +53,7 @@ def test_package():
 
     # Training test
     val_acc, model = tst_trainer(JOINTS)
-    assert val_acc < 2
+    assert val_acc < 2.5
 
     # Prediction test
     dic_out, kk = tst_prediction(model, PIFPAF_KEYPOINTS)

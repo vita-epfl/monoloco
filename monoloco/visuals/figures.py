@@ -24,10 +24,8 @@ def show_results(dic_stats, show=False, save=False):
     x_max = 38
     xx = np.linspace(0, 60, 100)
     excl_clusters = ['all', '50', '>50', 'easy', 'moderate', 'hard']
-    clusters = tuple([clst for clst in dic_stats[phase]['our'] if clst not in excl_clusters])
-
+    clusters = tuple([clst for clst in dic_stats[phase]['monoloco'] if clst not in excl_clusters])
     yy_gender = get_task_error(xx)
-    yy_gps = np.linspace(5., 5., xx.shape[0])
 
     plt.figure(0)
     plt.grid(linewidth=0.2)
@@ -41,21 +39,22 @@ def show_results(dic_stats, show=False, save=False):
     colors = ['r', 'deepskyblue', 'grey', 'b', 'darkorange']
     lstyles = ['solid', 'solid', 'solid', 'solid', 'dashdot']
 
-    plt.plot(xx, yy_gps, '-', label="GPS Error", color='y')
-    for idx, method in enumerate(['m3d_merged', 'geom_merged', 'md_merged', 'our_merged', '3dop_merged']):
+    for idx, method in enumerate(['m3d_merged', 'geometric_merged', 'monodepth_merged', 'monoloco_merged',
+                                  '3dop_merged']):
         errs = [dic_stats[phase][method][clst]['mean'] for clst in clusters]
+        assert errs, "method %s empty" % method
         xxs = get_distances(clusters)
 
         plt.plot(xxs, errs, marker=mks[idx], markersize=mksizes[idx], linewidth=lws[idx], label=labels[idx],
                  linestyle=lstyles[idx], color=colors[idx])
     plt.plot(xx, yy_gender, '--', label="Task error", color='lightgreen', linewidth=2.5)
     plt.legend(loc='upper left')
-    if show:
-        plt.show()
     if save:
         path_fig = os.path.join(dir_out, 'results.png')
         plt.savefig(path_fig)
         print("Figure of results saved in {}".format(path_fig))
+    if show:
+        plt.show()
     plt.close()
 
 
@@ -103,12 +102,12 @@ def show_spread(dic_stats, show=False, save=False):
     fig.subplots_adjust(hspace=0.1)
     plt.setp([aa.get_yticklabels() for aa in fig.axes[:-1]], visible=False)
     plt.legend()
-    if show:
-        plt.show()
     if save:
         path_fig = os.path.join(dir_out, 'spread.png')
         plt.savefig(path_fig)
         print("Figure of confidence intervals saved in {}".format(path_fig))
+    if show:
+        plt.show()
     plt.close()
 
 
@@ -129,9 +128,7 @@ def show_task_error(show, save):
     yy_young_male = target_error(xx, mm_young_male)
     yy_young_female = target_error(xx, mm_young_female)
     yy_gender = target_error(xx, mm_gmm)
-    yy_gps = np.linspace(5., 5., xx.shape[0])
     plt.grid(linewidth=0.3)
-    plt.plot(xx, yy_gps, color='y', label='GPS')
     plt.plot(xx, yy_young_male, linestyle='dotted', linewidth=2.1, color='b', label='Adult/young male')
     plt.plot(xx, yy_young_female, linestyle='dotted', linewidth=2.1, color='darkorange', label='Adult/young female')
     plt.plot(xx, yy_gender, '--', color='lightgreen', linewidth=2.8, label='Generic adult (task error)')
@@ -141,12 +138,12 @@ def show_task_error(show, save):
     plt.xlabel("Ground-truth distance from the camera $d_{gt}$ [m]")
     plt.ylabel("Localization error $\hat{e}$  due to human height variation [m]")  # pylint: disable=W1401
     plt.legend(loc=(0.01, 0.55))  # Location from 0 to 1 from lower left
-    if show:
-        plt.show()
     if save:
         path_fig = os.path.join(dir_out, 'task_error.png')
         plt.savefig(path_fig)
         print("Figure of task error saved in {}".format(path_fig))
+    if show:
+        plt.show()
     plt.close()
 
 
