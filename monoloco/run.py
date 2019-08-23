@@ -128,6 +128,7 @@ def main():
 
     elif args.command == 'eval':
         if args.geometric:
+            assert args.joints,  "joints argument not provided"
             from .eval import geometric_baseline
             geometric_baseline(args.joints)
 

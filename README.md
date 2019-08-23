@@ -188,14 +188,7 @@ Random search in log space is provided. An example: `python3 -m monoloco.run tra
 One iteration of the multiplier includes 6 runs.
 
 
-# Evaluation
-Evaluate performances of the trained model on KITTI or Nuscenes Dataset.
-### 1) nuScenes
-Evaluation on nuScenes is already provided during training. It is also possible to evaluate an existing model running
-`python3 -m monoloco.run eval --dataset nuscenes --model <model to evaluate>`
-
-### 2) KITTI
-### Baselines
+# Evaluation (KITTI Dataset)
 We provide evaluation on KITTI for models trained on nuScenes or KITTI. We compare them with other monocular 
 and stereo Baselines: 
 
@@ -212,16 +205,14 @@ and save them into `data/kitti/3dop`
 [here](https://github.com/Parrotlife/pedestrianDepth-baseline/tree/master/MonoDepth-PyTorch) 
 and save them into `data/kitti/monodepth`
 * **GeometricalBaseline**: A geometrical baseline comparison is provided. 
-The best average value for comparison can be created running `python3 -m monoloco.run eval --geometric`
+The average geometrical value for comparison can be obtained running;
+`python3 -m monoloco.run eval --geometric 
+--model data/models/monoloco-190719-0923.pkl --joints data/arrays/joints-nuscenes_teaser-190717-1424.json`
 
-#### Evaluation
-First the model preprocess the joints starting from json annotations predicted from pifpaf, 
-runs the model and save the results
-in txt file with format comparable to other baseline. 
-Then the model performs evaluation.
 
-The following graph is obtained running:
-`python3 -m monoloco.run eval --dataset kitti --generate --model data/models/monoloco-190513-1437.pkl 
+The following results are obtained running:
+`python3 -m monoloco.run eval --model data/models/monoloco-190719-0923.pkl --generate
 --dir_ann <folder containing pifpaf annotations of KITTI images>`
 ![kitti_evaluation](docs/results.png)
+![kitti_evaluation_table](docs/results_table.png)
 
