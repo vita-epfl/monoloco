@@ -18,7 +18,7 @@ We further share insights on our model of uncertainty in case of limited observa
   year={2019}
 }
 ```
-
+* **Paper on [ArXiv](https://arxiv.org/abs/1906.06059)**
 * **Check our video with method description and qualitative results on [YouTube](https://www.youtube.com/watch?v=ii0fqerQrec)**
 
 * **Live demo available! (more info in the webcam section)**
