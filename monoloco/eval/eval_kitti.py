@@ -64,7 +64,6 @@ class EvalKitti:
         self.dic_stds = None
         self.dic_stats = None
         self.dic_cnt = None
-        self.cnt_stereo_error = None
         self.cnt_gt = 0
 
     def run(self):
@@ -78,7 +77,6 @@ class EvalKitti:
             self.dic_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(float))))
             self.dic_cnt = defaultdict(int)
             self.cnt_gt = 0
-            self.cnt_stereo_error = 0
 
             # Iterate over each ground truth file in the training set
             for name in self.set_val:
@@ -331,9 +329,6 @@ class EvalKitti:
                   .format(self.dic_stats['test']['monoloco']['all']['interval']))
             print("precision 1: {:.2f}".format(self.dic_stats['test']['monoloco']['all']['prec_1']))
             print("precision 2: {:.2f}".format(self.dic_stats['test']['monoloco']['all']['prec_2']))
-            if self.stereo:
-                print("Stereo error greater than mono: {:.1f} %"
-                      .format(100 * self.cnt_stereo_error / self.dic_cnt['monoloco_merged']))
 
     def summary_table(self, all_methods):
         """Tabulate table for ALP and ALE metrics"""
@@ -414,7 +409,4 @@ def extract_indices(idx_to_check, *args):
 
 def average(my_list):
     """calculate mean of a list"""
-    try:
-        return sum(my_list) / len(my_list)
-    except ZeroDivisionError:
-        aa =5
+    return sum(my_list) / len(my_list)

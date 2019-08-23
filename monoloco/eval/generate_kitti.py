@@ -42,7 +42,7 @@ class GenerateKitti:
             self.cnt_no_stereo = 0
 
             # ReID Baseline
-            weights_path = '/data/george-data/racing_models/model_py3.pkl'
+            weights_path = 'data/models/reid_model_market.pkl'
             self.reid_net = ReID(weights_path=weights_path, device=device, num_classes=751, height=256, width=128)
             self.dir_images = os.path.join('data', 'kitti', 'images')
             self.dir_images_r = os.path.join('data', 'kitti', 'images_r')
@@ -100,7 +100,7 @@ class GenerateKitti:
             print("STEREO:")
             for key in self.baselines:
                 print("Annotations corrected using {} baseline: {:.1f}%".format(
-                    key, self.cnt_disparity[key] / cnt_ann * 100, self.cnt_disparity[key] / cnt_ann * 100))
+                    key, self.cnt_disparity[key] / cnt_ann * 100))
             print("Maximum possible stereo associations: {:.1f}%".format(self.cnt_disparity['max'] / cnt_ann * 100))
             print("Not found {}/{} stereo files".format(self.cnt_no_stereo, cnt_file))
 
