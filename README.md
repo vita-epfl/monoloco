@@ -205,7 +205,7 @@ and save them into `data/kitti/3dop`
 [here](https://github.com/Parrotlife/pedestrianDepth-baseline/tree/master/MonoDepth-PyTorch) 
 and save them into `data/kitti/monodepth`
 * **GeometricalBaseline**: A geometrical baseline comparison is provided. 
-The average geometrical value for comparison can be obtained running;
+The average geometrical value for comparison can be obtained running:
 `python3 -m monoloco.run eval --geometric 
 --model data/models/monoloco-190719-0923.pkl --joints data/arrays/joints-nuscenes_teaser-190717-1424.json`
 
@@ -213,6 +213,7 @@ The average geometrical value for comparison can be obtained running;
 The following results are obtained running:
 `python3 -m monoloco.run eval --model data/models/monoloco-190719-0923.pkl --generate
 --dir_ann <folder containing pifpaf annotations of KITTI images>`
-![kitti_evaluation](docs/results.png)
 ![kitti_evaluation_table](docs/results_table.png)
+![kitti_evaluation](docs/results.png)
+
 
