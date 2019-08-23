@@ -84,7 +84,7 @@ To check all the commands for the parser and the subparsers (including openpifpa
 
 or check the file `monoloco/run.py`
               
-# Predict
+# Prediction
 The predict script receives an image (or an entire folder using glob expressions), 
 calls PifPaf for 2d human pose detection over the image
 and runs Monoloco for 3d location of the detected poses.
@@ -140,7 +140,7 @@ The above gif has been obtained running on a Macbook the command:
 python3 -m monoloco.run predict --webcam --scale 0.2 --output_types combined --z_max 10 --checkpoint resnet50 --model data/models/monoloco-190513-1437.pkl
 ```
 
-# Preprocess
+# Preprocessing
 
 ### Datasets
 
@@ -176,7 +176,7 @@ by the image name to easily access ground truth files for evaluation and predict
 
 
 
-# Train
+# Training
 Provide the json file containing the preprocess joints as argument. 
 
 As simple as `python3 -m monoloco.run --train --joints <json file path>`
@@ -213,7 +213,8 @@ The average geometrical value for comparison can be obtained running:
 The following results are obtained running:
 `python3 -m monoloco.run eval --model data/models/monoloco-190719-0923.pkl --generate
 --dir_ann <folder containing pifpaf annotations of KITTI images>`
-![kitti_evaluation_table](docs/results_table.png)
+
 ![kitti_evaluation](docs/results.png)
+![kitti_evaluation_table](docs/results_table.png)
 
 
