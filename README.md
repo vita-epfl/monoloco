@@ -1,14 +1,6 @@
 # Monoloco
 
-> We tackle the fundamentally ill-posed problem of 3D human localization from monocular RGB images. 
-Driven by the limitation of neural networks outputting point estimates, 
-we address the ambiguity in the task with a new neural network  predicting confidence intervals through a 
-loss function based on the Laplace distribution. 
-Our architecture  is a  light-weight feed-forward  neural network which  predicts the 3D  coordinates given 2D human pose.  
-The design is particularly well suited for small training data and cross-dataset generalization. 
-Our experiments show that (i) we outperform state-of-the art results on KITTI and nuScenes datasets, 
-(ii) even outperform stereo for far-away pedestrians,  and (iii) estimate meaningful confidence intervals. 
-We further share insights on our model of uncertainty in case of limited observation and out-of-distribution samples.
+> We tackle the fundamentally ill-posed problem of 3D human localization from monocular RGB images. Driven by the limitation of neural networks outputting point estimates, we address the ambiguity in the task by predicting confidence intervals through a loss function based on the Laplace distribution. Our architecture is a light-weight feed-forward neural network that predicts 3D locations and corresponding confidence intervals given 2D human poses. The design is particularly well suited for small training data, cross-dataset generalization, and real-time applications. Our experiments show that we (i) outperform state-of-the-art results on KITTI and nuScenes datasets, (ii) even outperform a stereo-based method for far-away pedestrians, and (iii) estimate meaningful confidence intervals. We further share insights on our model of uncertainty in cases of limited observations and out-of-distribution samples.
 
 ```
 @article{bertoni2019monoloco,
