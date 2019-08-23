@@ -34,14 +34,11 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
         # Compute the association based on features minimization and calculate depth
         zzs_stereo[key] = np.empty((keypoints.shape[0]))
 
-        # for idx, zz_mono in enumerate(zzs):
-        #     zz_stereo, arg_best, flag = similarity_to_depth(similarity[idx], avg_disparities[idx])
-
         indices_stereo = []  # keep track of indices
         best = np.nanmin(similarity)
         while not np.isnan(best):
-            (idx, _) = np.unravel_index(np.nanargmin(similarity, axis=None), similarity.shape)
-            zz_stereo, arg_best, flag = similarity_to_depth(similarity[idx], avg_disparities[idx])
+            idx, arg_best = np.unravel_index(np.nanargmin(similarity), similarity.shape)  # pylint: disable=W0632
+            zz_stereo, flag = similarity_to_depth(avg_disparities[idx, arg_best])
             zz_mono = zzs[idx]
             similarity[idx, :] = np.nan
             indices_stereo.append(idx)
@@ -106,17 +103,16 @@ def features_similarity(features, features_r, key, avg_disparities, zzs):
     return similarity
 
 
-def similarity_to_depth(similarity, avg_disparity):
+def similarity_to_depth(avg_disparity):
 
     try:
-        arg_best = np.nanargmin(similarity)
-        zz_stereo = 0.54 * 721. / float(avg_disparity[arg_best])
+        zz_stereo = 0.54 * 721. / float(avg_disparity)
         flag = True
     except (ZeroDivisionError, ValueError):  # All nan-slices or zero division
-        zz_stereo = arg_best = np.nan
+        zz_stereo = np.nan
         flag = False
 
-    return zz_stereo, arg_best, flag
+    return zz_stereo, flag
 
 
 def mask_joint_disparity(keypoints, keypoints_r):
