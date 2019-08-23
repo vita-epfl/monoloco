@@ -23,7 +23,7 @@ class EvalKitti:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '6', '10', '15', '20', '25', '30', '40', '50', '>50')
-    ALP_THRESHOLDS = ('<0.5', '<1m', '<2m')
+    ALP_THRESHOLDS = ('<0.5m', '<1m', '<2m')
     METHODS_MONO = ['m3d', 'monodepth', '3dop', 'monoloco']
     METHODS_STEREO = ['ml_stereo', 'pose', 'reid']
     BASELINES = ['geometric', 'task_error', 'pixel_error']
@@ -59,7 +59,12 @@ class EvalKitti:
         _, self.set_val = split_training(names_gt, path_train, path_val)
 
         # Define variables to save statistics
-        self.dic_methods = self.errors = self.dic_stds = self.dic_stats = self.dic_cnt = self.cnt_stereo_error = None
+        self.dic_methods = None
+        self.errors = None
+        self.dic_stds = None
+        self.dic_stats = None
+        self.dic_cnt = None
+        self.cnt_stereo_error = None
         self.cnt_gt = 0
 
     def run(self):
@@ -68,10 +73,12 @@ class EvalKitti:
         for category in self.CATEGORIES:
 
             # Initialize variables
-            self.errors = self.dic_stds = defaultdict(lambda: defaultdict(list))
+            self.errors = defaultdict(lambda: defaultdict(list))
+            self.dic_stds = defaultdict(lambda: defaultdict(list))
             self.dic_stats = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(float))))
             self.dic_cnt = defaultdict(int)
-            self.cnt_gt = self.cnt_stereo_error = 0
+            self.cnt_gt = 0
+            self.cnt_stereo_error = 0
 
             # Iterate over each ground truth file in the training set
             for name in self.set_val:
@@ -348,14 +355,9 @@ class EvalKitti:
 def get_statistics(dic_stats, errors, dic_stds, key):
     """Update statistics of a cluster"""
 
-    try:
-        dic_stats['mean'] = average(errors)
-        dic_stats['max'] = max(errors)
-        dic_stats['cnt'] = len(errors)
-    except (ZeroDivisionError, ValueError):
-        dic_stats['mean'] = 0.
-        dic_stats['max'] = 0.
-        dic_stats['cnt'] = 0.
+    dic_stats['mean'] = average(errors)
+    dic_stats['max'] = max(errors)
+    dic_stats['cnt'] = len(errors)
 
     if key == 'monoloco':
         dic_stats['std_ale'] = average(dic_stds['ale'])
@@ -412,4 +414,7 @@ def extract_indices(idx_to_check, *args):
 
 def average(my_list):
     """calculate mean of a list"""
-    return sum(my_list) / len(my_list)
+    try:
+        return sum(my_list) / len(my_list)
+    except ZeroDivisionError:
+        aa =5
