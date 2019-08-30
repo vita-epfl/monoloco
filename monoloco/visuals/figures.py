@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
-from ..utils import get_task_error
+from ..utils import get_task_error, get_pixel_error
 
 
 def show_results(dic_stats, show=False, save=False):
@@ -115,7 +115,7 @@ def show_task_error(show, save):
     """Task error figure"""
     plt.figure(2)
     dir_out = 'docs'
-    xx = np.linspace(0, 40, 100)
+    xx = np.linspace(0.1, 50, 100)
     mu_men = 178
     mu_women = 165
     mu_child_m = 164
@@ -128,12 +128,14 @@ def show_task_error(show, save):
     yy_young_male = target_error(xx, mm_young_male)
     yy_young_female = target_error(xx, mm_young_female)
     yy_gender = target_error(xx, mm_gmm)
+    yy_stereo = get_pixel_error(xx)
     plt.grid(linewidth=0.3)
     plt.plot(xx, yy_young_male, linestyle='dotted', linewidth=2.1, color='b', label='Adult/young male')
     plt.plot(xx, yy_young_female, linestyle='dotted', linewidth=2.1, color='darkorange', label='Adult/young female')
     plt.plot(xx, yy_gender, '--', color='lightgreen', linewidth=2.8, label='Generic adult (task error)')
     plt.plot(xx, yy_female, '-.', linewidth=1.7, color='darkorange', label='Adult female')
     plt.plot(xx, yy_male, '-.', linewidth=1.7, color='b', label='Adult male')
+    plt.plot(xx, yy_stereo, linewidth=1.7, color='k', label='Stereo error')
     plt.xlim(np.min(xx), np.max(xx))
     plt.xlabel("Ground-truth distance from the camera $d_{gt}$ [m]")
     plt.ylabel("Localization error $\hat{e}$  due to human height variation [m]")  # pylint: disable=W1401

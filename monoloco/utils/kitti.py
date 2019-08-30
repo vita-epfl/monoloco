@@ -93,8 +93,9 @@ def check_conditions(line, category, method, thresh=0.3):
         check = True
 
     else:
+        zz = float(line[13])
         conf = float(line[15])
-        if conf >= thresh:
+        if conf >= thresh and 1 < zz < 50:
             check = True
 
     return check
