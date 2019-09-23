@@ -1,4 +1,3 @@
-
 # pylint: disable=R0915
 
 import math
@@ -12,8 +11,7 @@ from matplotlib.patches import Ellipse
 from ..utils import get_task_error, get_pixel_error
 
 
-def show_results(dic_stats, show=False, save=False):
-
+def show_results(dic_stats, show=False, save=False, stereo=False):
     """
     Visualize error as function of the distance and compare it with target errors based on human height analyses
     """
@@ -27,30 +25,24 @@ def show_results(dic_stats, show=False, save=False):
     clusters = tuple([clst for clst in dic_stats[phase]['monoloco'] if clst not in excl_clusters])
     yy_gender = get_task_error(xx)
 
-    plt.figure(0)
-    plt.grid(linewidth=0.2)
-    plt.xlabel("Ground-truth distance [m]")
-    plt.ylabel("Average localization error [m]")
-    plt.xlim(x_min, x_max)
-    labels = ['Mono3D', 'Geometric Baseline', 'MonoDepth', 'Our MonoLoco', '3DOP (stereo)']
-    mks = ['*', '^', 'p', 's', 'o']
-    mksizes = [6, 6, 6, 6, 6]
-    lws = [1.5, 1.5, 1.5, 2.2, 1.6]
-    colors = ['r', 'deepskyblue', 'grey', 'b', 'darkorange']
-    lstyles = ['solid', 'solid', 'solid', 'solid', 'dashdot']
+    styles = printing_styles(stereo)
+    for idx_style, (key, style) in enumerate(styles.items()):
+        plt.figure(idx_style)
+        plt.grid(linewidth=0.2)
+        plt.xlim(x_min, x_max)
+        plt.xlabel("Ground-truth distance [m]")
+        plt.ylabel("Average localization error [m]")
+        for idx, method in enumerate(style['methods']):
+            errs = [dic_stats[phase][method][clst]['mean'] for clst in clusters]
+            assert errs, "method %s empty" % method
+            xxs = get_distances(clusters)
 
-    for idx, method in enumerate(['m3d_merged', 'geometric_merged', 'monodepth_merged', 'monoloco_merged',
-                                  '3dop_merged']):
-        errs = [dic_stats[phase][method][clst]['mean'] for clst in clusters]
-        assert errs, "method %s empty" % method
-        xxs = get_distances(clusters)
-
-        plt.plot(xxs, errs, marker=mks[idx], markersize=mksizes[idx], linewidth=lws[idx], label=labels[idx],
-                 linestyle=lstyles[idx], color=colors[idx])
-    plt.plot(xx, yy_gender, '--', label="Task error", color='lightgreen', linewidth=2.5)
-    plt.legend(loc='upper left')
+            plt.plot(xxs, errs, marker=style['mks'][idx], markersize=style['mksizes'][idx], linewidth=style['lws'][idx],
+                     label=style['labels'][idx], linestyle=style['lstyles'][idx], color=style['colors'][idx])
+        plt.plot(xx, yy_gender, '--', label="Task error", color='lightgreen', linewidth=2.5)
+        plt.legend(loc='upper left')
     if save:
-        path_fig = os.path.join(dir_out, 'results.png')
+        path_fig = os.path.join(dir_out, 'results_' + key + '.png')
         plt.savefig(path_fig)
         print("Figure of results saved in {}".format(path_fig))
     if show:
@@ -66,7 +58,7 @@ def show_spread(dic_stats, show=False, save=False):
     excl_clusters = ['all', '50', '>50', 'easy', 'moderate', 'hard']
     clusters = tuple([clst for clst in dic_stats[phase]['our'] if clst not in excl_clusters])
 
-    plt.figure(1)
+    plt.figure(2)
     fig, ax = plt.subplots(2, sharex=True)
     plt.xlabel("Distance [m]")
     plt.ylabel("Aleatoric uncertainty [m]")
@@ -80,10 +72,10 @@ def show_spread(dic_stats, show=False, save=False):
     yys = get_task_error(np.array(xxs))
     ax[1].plot(xxs, bbs, marker='s', color='b', label="Spread b")
     ax[1].plot(xxs, yys, '--', color='lightgreen', label="Task error", linewidth=2.5)
-    yys_up = [rec_c + ar/2 * scale * yy for yy in yys]
-    bbs_up = [rec_c + ar/2 * scale * bb for bb in bbs]
-    yys_down = [rec_c - ar/2 * scale * yy for yy in yys]
-    bbs_down = [rec_c - ar/2 * scale * bb for bb in bbs]
+    yys_up = [rec_c + ar / 2 * scale * yy for yy in yys]
+    bbs_up = [rec_c + ar / 2 * scale * bb for bb in bbs]
+    yys_down = [rec_c - ar / 2 * scale * yy for yy in yys]
+    bbs_down = [rec_c - ar / 2 * scale * bb for bb in bbs]
 
     if plots_line:
         ax[0].plot(xxs, yys_up, '--', color='lightgreen', markersize=5, linewidth=1.4)
@@ -92,8 +84,8 @@ def show_spread(dic_stats, show=False, save=False):
         ax[0].plot(xxs, bbs_down, marker='s', color='b', markersize=5, linewidth=0.7)
 
     for idx, xx in enumerate(xxs):
-        te = Ellipse((xx, rec_c), width=yys[idx]*ar*scale, height=scale, angle=90, color='lightgreen', fill=True)
-        bi = Ellipse((xx, rec_c), width=bbs[idx]*ar*scale, height=scale, angle=90, color='b', linewidth=1.8,
+        te = Ellipse((xx, rec_c), width=yys[idx] * ar * scale, height=scale, angle=90, color='lightgreen', fill=True)
+        bi = Ellipse((xx, rec_c), width=bbs[idx] * ar * scale, height=scale, angle=90, color='b', linewidth=1.8,
                      fill=False)
 
         ax[0].add_patch(te)
@@ -113,7 +105,7 @@ def show_spread(dic_stats, show=False, save=False):
 
 def show_task_error(show, save):
     """Task error figure"""
-    plt.figure(2)
+    plt.figure(3)
     dir_out = 'docs'
     xx = np.linspace(0.1, 50, 100)
     mu_men = 178
@@ -195,7 +187,6 @@ def calculate_gmm():
 
 
 def get_confidence(xx, zz, std):
-
     theta = math.atan2(zz, xx)
 
     delta_x = std * math.cos(theta)
@@ -217,11 +208,9 @@ def get_distances(clusters):
 
 
 def get_confidence_points(confidences, distances, errors):
-
     confidence_points = []
     distance_points = []
     for idx, dd in enumerate(distances):
-
         conf_perc = confidences[idx]
         confidence_points.append(errors[idx] + conf_perc)
         confidence_points.append(errors[idx] - conf_perc)
@@ -232,7 +221,6 @@ def get_confidence_points(confidences, distances, errors):
 
 
 def height_distributions():
-
     mu_men = 178
     std_men = 7
     mu_women = 165
@@ -275,9 +263,28 @@ def get_percentile(dist_gmm):
     dd_gt = 1000
     mu_gmm = np.mean(dist_gmm)
     dist_d = dd_gt * mu_gmm / dist_gmm
-    perc_d, _ = np.nanpercentile(dist_d, [18.5, 81.5]) # Laplace bi => 63%
+    perc_d, _ = np.nanpercentile(dist_d, [18.5, 81.5])  # Laplace bi => 63%
     perc_d2, _ = np.nanpercentile(dist_d, [23, 77])
     mu_d = np.mean(dist_d)
     # mm_bi = (mu_d - perc_d) / mu_d
     # mm_test = (mu_d - perc_d2) / mu_d
     # mad_d = np.mean(np.abs(dist_d - mu_d))
+
+
+def printing_styles(stereo):
+    style = {'mono': {"labels": ['Mono3D', 'Geometric Baseline', 'MonoDepth', 'Our MonoLoco', '3DOP (stereo)'],
+                      "methods": ['m3d_merged', 'geometric_merged', 'monodepth_merged', 'monoloco_merged',
+                                  '3dop_merged'],
+                      "mks": ['*', '^', 'p', 's', 'o'],
+                      "mksizes": [6, 6, 6, 6, 6], "lws": [1.5, 1.5, 1.5, 2.2, 1.6],
+                      "colors": ['r', 'deepskyblue', 'grey', 'b', 'darkorange'],
+                      "lstyles": ['solid', 'solid', 'solid', 'solid', 'dashdot']}}
+    if stereo:
+        style['stereo'] = {"labels": ['3DOP (stereo)', 'Pose Baseline', 'ReiD Baseline', 'Our Stereo Baseline'],
+                           "methods": ['3dop_merged', 'pose_merged', 'reid_merged','ml_stereo_merged'],
+                           "mks": ['o', '^', 'p', 's'],
+                           "mksizes": [6, 6, 6, 6], "lws": [1.5, 1.5, 1.5, 1.5],
+                           "colors": ['darkorange', 'lightblue', 'darkgrey', 'b'],
+                           "lstyles": ['solid', 'solid', 'solid', 'solid']}
+
+    return style

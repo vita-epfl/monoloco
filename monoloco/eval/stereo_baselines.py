@@ -159,10 +159,10 @@ def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
     cov = float(np.nanstd(disparity_x) / np.abs(np.nanmean(disparity_x)))  # Coefficient of variation
     avg_disparity_y = np.nanmedian(disparity_y)
 
-    if abs(zz_stereo - zz_mono) < z_max_difference and \
+    if abs(zz_stereo - zz_mono)     < z_max_difference and \
             avg_disparity_y < y_max_difference and \
             cov < COV_MIN\
-            and 2 < zz_stereo < 40:
+            and 4 < zz_stereo < 40:
         return True
     # if not np.isnan(zz_stereo):
     #     return True
