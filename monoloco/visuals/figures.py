@@ -20,6 +20,8 @@ def show_results(dic_stats, show=False, save=False, stereo=False):
     phase = 'test'
     x_min = 0
     x_max = 38
+    y_min = 0
+    y_max = 4.7
     xx = np.linspace(0, 60, 100)
     excl_clusters = ['all', '50', '>50', 'easy', 'moderate', 'hard']
     clusters = tuple([clst for clst in dic_stats[phase]['monoloco'] if clst not in excl_clusters])
@@ -30,6 +32,7 @@ def show_results(dic_stats, show=False, save=False, stereo=False):
         plt.figure(idx_style)
         plt.grid(linewidth=0.2)
         plt.xlim(x_min, x_max)
+        plt.ylim(y_min, y_max)
         plt.xlabel("Ground-truth distance [m]")
         plt.ylabel("Average localization error [m]")
         for idx, method in enumerate(style['methods']):
@@ -40,14 +43,18 @@ def show_results(dic_stats, show=False, save=False, stereo=False):
             plt.plot(xxs, errs, marker=style['mks'][idx], markersize=style['mksizes'][idx], linewidth=style['lws'][idx],
                      label=style['labels'][idx], linestyle=style['lstyles'][idx], color=style['colors'][idx])
         plt.plot(xx, yy_gender, '--', label="Task error", color='lightgreen', linewidth=2.5)
+        if key == 'stereo':
+            yy_stereo = get_pixel_error(xx)
+            plt.plot(xx, yy_stereo, linewidth=1.7, color='k', label='Pixel error')
+
         plt.legend(loc='upper left')
-    if save:
-        path_fig = os.path.join(dir_out, 'results_' + key + '.png')
-        plt.savefig(path_fig)
-        print("Figure of results saved in {}".format(path_fig))
-    if show:
-        plt.show()
-    plt.close()
+        if save:
+            path_fig = os.path.join(dir_out, 'results_' + key + '.png')
+            plt.savefig(path_fig)
+            print("Figure of results " + key + " saved in {}".format(path_fig))
+        if show:
+            plt.show()
+        plt.close()
 
 
 def show_spread(dic_stats, show=False, save=False):
@@ -280,11 +287,13 @@ def printing_styles(stereo):
                       "colors": ['r', 'deepskyblue', 'grey', 'b', 'darkorange'],
                       "lstyles": ['solid', 'solid', 'solid', 'solid', 'dashdot']}}
     if stereo:
-        style['stereo'] = {"labels": ['3DOP (stereo)', 'Pose Baseline', 'ReiD Baseline', 'Our Stereo Baseline'],
-                           "methods": ['3dop_merged', 'pose_merged', 'reid_merged','ml_stereo_merged'],
-                           "mks": ['o', '^', 'p', 's'],
-                           "mksizes": [6, 6, 6, 6], "lws": [1.5, 1.5, 1.5, 1.5],
-                           "colors": ['darkorange', 'lightblue', 'darkgrey', 'b'],
-                           "lstyles": ['solid', 'solid', 'solid', 'solid']}
+        style['stereo'] = {"labels": ['3DOP', 'Pose Baseline', 'ReiD Baseline', 'Our MonoLoco (monocular)',
+                                      'Our Stereo Baseline'],
+                           "methods": ['3dop_merged', 'pose_merged', 'reid_merged', 'monoloco_merged',
+                                       'ml_stereo_merged'],
+                           "mks": ['o', '^', 'p', 's', 's'],
+                           "mksizes": [6, 6, 6, 4, 6], "lws": [1.5, 1.5, 1.5, 1.2, 1.5],
+                           "colors": ['darkorange', 'lightblue', 'red', 'b', 'b'],
+                           "lstyles": ['solid', 'solid', 'solid', 'dashed', 'solid']}
 
     return style
