@@ -6,7 +6,7 @@
 @article{bertoni2019monoloco,
   title={MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation},
   author={Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
-  journal={arXiv preprint arXiv:1906.06059},
+  journal={The IEEE Conference on Computer Vision and Pattern Recognition (ICCV)},
   year={2019}
 }
 ```
