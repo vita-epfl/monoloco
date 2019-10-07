@@ -30,12 +30,12 @@ def get_task_error(dd):
     return dd * mm
 
 
-def get_pixel_error(dd_gt, zz_gt):
+def get_pixel_error(zz_gt):
     """calculate error in stereo distance due to 1 pixel mismatch (function of depth)"""
 
     disp = 0.54 * 721 / zz_gt
-    delta_z = zz_gt - 0.54 * 721 / (disp - 1)
-    return dd_gt + delta_z
+    error = abs(zz_gt - 0.54 * 721 / (disp - 1))
+    return error
 
 
 def open_annotations(path_ann):

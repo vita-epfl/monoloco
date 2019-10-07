@@ -231,7 +231,7 @@ class Trainer:
                 # Debug plot for input-output distributions
                 if debug:
                     debug_plots(inputs, labels)
-                    exit()
+                    sys.exit()
 
                 # Forward pass
                 outputs = self.model(inputs)

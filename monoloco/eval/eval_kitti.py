@@ -113,7 +113,7 @@ class EvalKitti:
 
     def printer(self, show, save):
         if save or show:
-            show_results(self.dic_stats, show, save)
+            show_results(self.dic_stats, show, save, stereo=self.stereo)
             show_spread(self.dic_stats, show, save)
             show_task_error(show, save)
 
@@ -178,7 +178,7 @@ class EvalKitti:
                 self.update_uncertainty(stds_ale[idx], stds_epi[idx], dds[idx], dds_gt[idx_gt], cat)
                 dd_task_error = dds_gt[idx_gt] + (get_task_error(dds_gt[idx_gt]))**2
                 self.update_errors(dd_task_error, dds_gt[idx_gt], cat, self.errors['task_error'])
-                dd_pixel_error = get_pixel_error(dds_gt[idx_gt], zzs_gt[idx_gt])
+                dd_pixel_error = dds_gt[idx_gt] + get_pixel_error(zzs_gt[idx_gt])
                 self.update_errors(dd_pixel_error, dds_gt[idx_gt], cat, self.errors['pixel_error'])
 
     def _compare_error(self, out_gt, methods_out):
@@ -211,7 +211,7 @@ class EvalKitti:
                 self.update_errors(dd_monoloco, dd_gt, cat, self.errors['monoloco_merged'])
                 self.update_errors(dd_geometric, dd_gt, cat, self.errors['geometric_merged'])
                 self.update_errors(dd_gt + get_task_error(dd_gt), dd_gt, cat, self.errors['task_error_merged'])
-                dd_pixel = get_pixel_error(dd_gt, zzs_gt[idx_gt])
+                dd_pixel = dd_gt + get_pixel_error(zzs_gt[idx_gt])
                 self.update_errors(dd_pixel, dd_gt, cat, self.errors['pixel_error_merged'])
 
                 for key in self.methods:
