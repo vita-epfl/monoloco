@@ -253,7 +253,7 @@ def expandgrid(*itrs):
 
 def plot_dist(dist_gmm, dist_men, dist_women):
     try:
-        import seaborn as sns
+        import seaborn as sns  # pylint: disable=C0415
         sns.distplot(dist_men, hist=False, rug=False, label="Men")
         sns.distplot(dist_women, hist=False, rug=False, label="Women")
         sns.distplot(dist_gmm, hist=False, rug=False, label="GMM")

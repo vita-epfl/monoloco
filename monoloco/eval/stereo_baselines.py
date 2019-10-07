@@ -20,7 +20,7 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
         keypoints, keypoints_right, baselines, reid_features)
 
     # count maximum possible associations
-    cnt_stereo['max'] = min(keypoints.shape[0], keypoints_r.shape[0])
+    cnt_stereo['max'] = min(keypoints.shape[0], keypoints_r.shape[0])  # pylint: disable=E1136
 
     # Filter joints disparity and calculate avg disparity
     avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoints, keypoints_r)
