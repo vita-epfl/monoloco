@@ -57,7 +57,7 @@ class EvalKitti:
         # Extract validation images for evaluation
         names_gt = tuple(os.listdir(self.dir_gt))
         _, self.set_val = split_training(names_gt, path_train, path_val)
-        # self.set_val = ('001782.txt',)
+
         # Define variables to save statistics
         self.dic_methods = None
         self.errors = None
