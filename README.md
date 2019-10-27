@@ -3,11 +3,12 @@
 > We tackle the fundamentally ill-posed problem of 3D human localization from monocular RGB images. Driven by the limitation of neural networks outputting point estimates, we address the ambiguity in the task by predicting confidence intervals through a loss function based on the Laplace distribution. Our architecture is a light-weight feed-forward neural network that predicts 3D locations and corresponding confidence intervals given 2D human poses. The design is particularly well suited for small training data, cross-dataset generalization, and real-time applications. Our experiments show that we (i) outperform state-of-the-art results on KITTI and nuScenes datasets, (ii) even outperform a stereo-based method for far-away pedestrians, and (iii) estimate meaningful confidence intervals. We further share insights on our model of uncertainty in cases of limited observations and out-of-distribution samples.
 
 ```
-@article{bertoni2019monoloco,
-  title={MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation},
-  author={Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
-  journal={The IEEE Conference on Computer Vision and Pattern Recognition (ICCV)},
-  year={2019}
+@InProceedings{Bertoni_2019_ICCV,
+author = {Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
+title = {MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation},
+booktitle = {The IEEE International Conference on Computer Vision (ICCV)},
+month = {October},
+year = {2019}
 }
 ```
 * **Paper on [ArXiv](https://arxiv.org/abs/1906.06059)**
