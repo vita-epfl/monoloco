@@ -16,7 +16,7 @@ year = {2019}
 
 * **Live demo available! (more info in the webcam section)**
 
-* **Continuously tested on Linux, MacOS and Windows: [![Build Status](https://travis-ci.org/vita-epfl/monoloco.svg?branch=master)](https://travis-ci.org/vita-epfl/monoloco)<br />**
+* **Continuously tested with Travis CI: [![Build Status](https://travis-ci.org/vita-epfl/monoloco.svg?branch=master)](https://travis-ci.org/vita-epfl/monoloco)<br />**
 
 <img src="docs/pull.png" height="600">
 

@@ -28,7 +28,7 @@ setup(
 
     install_requires=[
         'openpifpaf==0.8.0',
-        'tabulate==0.8.4',   # For evaluation
+        'tabulate==0.8.3',   # For evaluation
     ],
     extras_require={
         'test': [
