@@ -11,10 +11,12 @@ month = {October},
 year = {2019}
 }
 ```
-* **Paper on [ArXiv](https://arxiv.org/abs/1906.06059)**
+* **Paper [ICCV 2019](http://openaccess.thecvf.com/content_ICCV_2019/html/Bertoni_MonoLoco_Monocular_3D_Pedestrian_Localization_and_Uncertainty_Estimation_ICCV_2019_paper.html) [ArXiv](https://arxiv.org/abs/1906.06059)**
 * **Check our video with method description and qualitative results on [YouTube](https://www.youtube.com/watch?v=ii0fqerQrec)**
 
 * **Live demo available! (more info in the webcam section)**
+
+* **Continuously tested on Linux, MacOS and Windows: [![Build Status](https://travis-ci.org/vita-epfl/monoloco.svg?branch=master)](https://travis-ci.org/vita-epfl/monoloco)<br />**
 
 <img src="docs/pull.png" height="600">
 
