@@ -29,7 +29,7 @@ setup(
     install_requires=[
         'torch==1.0.0'
         'torchvision==0.3.0'
-        'openpifpaf==0.9.0',
+        'openpifpaf==0.8.0',
         'tabulate==0.8.3',   # For evaluation
     ],
     extras_require={
