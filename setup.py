@@ -27,7 +27,7 @@ setup(
     zip_safe=False,
 
     install_requires=[
-        'openpifpaf',
+        'openpifpaf==0.8.0',
         'tabulate',   # For evaluation
     ],
     extras_require={
@@ -36,7 +36,7 @@ setup(
             'pytest',
         ],
         'prep': [
-            'nuscenes-devkit',
+            'nuscenes-devkit==1.0.2',
         ],
     },
 )
