@@ -27,8 +27,8 @@ setup(
     zip_safe=False,
 
     install_requires=[
-        'torch==1.0.1.post2'
-        'torchvision==0.3.0'
+        'torch==1.0.1.post2',
+        'torchvision==0.3.0',
         'openpifpaf==0.8.0',
         'tabulate==0.8.3',   # For evaluation
     ],
