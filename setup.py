@@ -28,12 +28,12 @@ setup(
 
     install_requires=[
         'openpifpaf==0.8.0',
-        'tabulate',   # For evaluation
+        'tabulate==0.8.4',   # For evaluation
     ],
     extras_require={
         'test': [
-            'pylint',
-            'pytest',
+            'pylint==2.4.0',
+            'pytest==5.2.0',
         ],
         'prep': [
             'nuscenes-devkit==1.0.2',
