@@ -32,8 +32,8 @@ setup(
     ],
     extras_require={
         'test': [
-            'pylint==2.4.0',
-            'pytest==5.2.0',
+            'pylint==2.4.2',
+            'pytest==4.6.3',
         ],
         'prep': [
             'nuscenes-devkit==1.0.2',
