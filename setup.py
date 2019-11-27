@@ -27,18 +27,18 @@ setup(
     zip_safe=False,
 
     install_requires=[
-        'torch==1.1.0',
-        'torchvision==0.3.0',
-        'openpifpaf==0.8.0',
-        'tabulate==0.8.3',   # For evaluation
+        'torch<=1.2.0',
+        'torchvision<=0.3.0',
+        'openpifpaf<=0.9.0',
+        'tabulate<=0.8.3',   # For evaluation
     ],
     extras_require={
         'test': [
-            'pylint==2.4.2',
-            'pytest==4.6.3',
+            'pylint<=2.4.2',
+            'pytest<=4.6.3',
         ],
         'prep': [
-            'nuscenes-devkit==1.0.2',
+            'nuscenes-devkit<=1.0.2',
         ],
     },
 )
