@@ -66,7 +66,7 @@ def webcam(args):
             outputs, varss = monoloco.forward(keypoints, kk)
             dic_out = monoloco.post_process(outputs, varss, boxes, keypoints, kk, dict_gt)
             visualizer_monoloco.send((pil_image, dic_out))
-            end = time.time()
+        end = time.time()
         print("run-time: {:.2f} ms".format((end-start)*1000))
 
     cam.release()
