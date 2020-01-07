@@ -28,6 +28,7 @@ setup(
 
     install_requires=[
         'torch<=1.1.0',
+        'Pillow<=6.1',
         'torchvision<=0.3.0',
         'openpifpaf<=0.9.0',
         'tabulate<=0.8.3',   # For evaluation
