@@ -57,15 +57,16 @@ def webcam(args):
         pil_image = Image.fromarray(image)
         intrinsic_size = [xx * 1.3 for xx in pil_image.size]
         kk, dict_gt = factory_for_gt(intrinsic_size)  # better intrinsics for mac camera
-        if visualizer_monoloco is None:
-            visualizer_monoloco = VisualizerMonoloco(kk, args)(pil_image)
+        if visualizer_monoloco is None:  # it is, at the beginning
+            visualizer_monoloco = VisualizerMonoloco(kk, args)(pil_image)  # create it with the first image
             visualizer_monoloco.send(None)
 
-        if pifpaf_out:
-            boxes, keypoints = preprocess_pifpaf(pifpaf_out, (width, height))
-            outputs, varss = monoloco.forward(keypoints, kk)
-            dic_out = monoloco.post_process(outputs, varss, boxes, keypoints, kk, dict_gt)
-            visualizer_monoloco.send((pil_image, dic_out))
+        boxes, keypoints = preprocess_pifpaf(pifpaf_out, (width, height))
+        outputs, varss = monoloco.forward(keypoints, kk)
+        dic_out = monoloco.post_process(outputs, varss, boxes, keypoints, kk, dict_gt)
+        print(dic_out)
+        visualizer_monoloco.send((pil_image, dic_out))
+
         end = time.time()
         print("run-time: {:.2f} ms".format((end-start)*1000))
 
