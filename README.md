@@ -11,6 +11,7 @@ month = {October},
 year = {2019}
 }
 ```
+* **New! MonoLoco for social distancing available on the social-distance [branch](https://github.com/vita-epfl/monoloco/tree/social-distance). More info: [Video](https://www.youtube.com/watch?v=r32UxHFAJ2M) and [project page](https://www.epfl.ch/labs/vita/research/perception/monoloco/).**
 * **Paper on [ICCV'19](http://openaccess.thecvf.com/content_ICCV_2019/html/Bertoni_MonoLoco_Monocular_3D_Pedestrian_Localization_and_Uncertainty_Estimation_ICCV_2019_paper.html) website or [ArXiv](https://arxiv.org/abs/1906.06059)**
 * **Check our video with method description and qualitative results on [YouTube](https://www.youtube.com/watch?v=ii0fqerQrec)**
 
