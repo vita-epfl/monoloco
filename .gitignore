@@ -1,0 +1,14 @@
+.idea/
+data/
+.DS_store
+__pycache__
+Monoloco/*.pyc
+.pytest*
+build/
+dist/
+*.egg-info
+tests/*.png
+kitti-eval/build
+kitti-eval/cmake-build-debug
+figures/
+visual_tests/
