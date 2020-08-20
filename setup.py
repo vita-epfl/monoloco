@@ -18,10 +18,12 @@ setup(
         'monstereo.utils'
     ],
     license='GNU AGPLv3',
-    description='MonStereo',
+    description='MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='None',
+    author='Lorenzo Bertoni',
+    author_email='lorenzo.bertoni@epfl.ch',
+    url='https://github.com/vita-epfl/monstereo',
     zip_safe=False,
 
     install_requires=[
