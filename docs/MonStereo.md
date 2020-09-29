@@ -74,7 +74,7 @@ mkdir arrays models kitti logs output
 
 ### Pre-trained Models
 * Download Monstereo pre-trained model from 
-[Google Drive](https://drive.google.com/file/d/1vrfkOl15Hpwp2YoALCojD7xlVCt8BQDB/view?usp=sharing),
+[Google Drive](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing),
 and save them in `data/models` 
 (default) or in any folder and call it through the command line option `--model <model path>`
 * Pifpaf pre-trained model will be automatically downloaded at the first run. 
