@@ -212,10 +212,15 @@ class Loco:
             dic_out['uv_shoulders'].append(uv_shoulder)
             dic_out['uv_heads'].append(uv_head)
 
+            # For MonStereo / MonoLoco++
+            try:
+                dic_out['angles'].append(float(dic_in['yaw'][0][idx]))  # Predicted angle
+                dic_out['angles_egocentric'].append(float(dic_in['yaw'][1][idx]))  # Egocentric angle
+            except KeyError:
+                continue
+
             # Only for MonStereo
             try:
-                angle = float(dic_in['yaw'][0][idx])  # Predicted angle
-                dic_out['angles'].append(angle)
                 dic_out['aux'].append(float(dic_in['aux'][idx]))
             except KeyError:
                 continue
