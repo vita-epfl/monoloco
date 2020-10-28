@@ -229,7 +229,7 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco', ca
                 conf_scale = 0.033
             else:
                 conf_scale = 0.055
-            conf = conf_scale * (uv_box[-1]) / (bi / math.sqrt(xx ** 2 + yy * 2 + zz ** 2))
+            conf = conf_scale * (uv_box[-1]) / (bi / math.sqrt(xx ** 2 + yy ** 2 + zz ** 2))
 
             output_list = [alpha] + uv_box[:-1] + hwl + cam_0 + [ry, conf, bi, epi]
             category = cat[idx]
