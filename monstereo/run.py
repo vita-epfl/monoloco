@@ -5,7 +5,6 @@ try:
     from openpifpaf.network.nets import cli as openpifpaf_cli
 except ImportError:
     from openpifpaf.network.factory import cli as openpifpaf_cli
-from openpifpaf.network import nets
 from openpifpaf import decoder
 
 

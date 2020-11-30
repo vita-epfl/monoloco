@@ -59,7 +59,7 @@ class Trainer:
         self.lr = lr
         self.sched_step = sched_step
         self.sched_gamma = sched_gamma
-        self.clusters = ['10', '20', '30', '50', '>50']
+        self.clusters = ['10', '20', '30', '40']
         self.hidden_size = hidden_size
         self.n_stage = n_stage
         self.dir_out = dir_out

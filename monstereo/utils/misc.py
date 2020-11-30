@@ -20,14 +20,14 @@ def append_cluster(dic_jo, phase, xx, ys, kps):
         dic_jo[phase]['clst']['30']['kps'].append(kps)
         dic_jo[phase]['clst']['30']['X'].append(xx)
         dic_jo[phase]['clst']['30']['Y'].append(ys)
-    elif ys[3] < 50:
-        dic_jo[phase]['clst']['50']['kps'].append(kps)
-        dic_jo[phase]['clst']['50']['X'].append(xx)
-        dic_jo[phase]['clst']['50']['Y'].append(ys)
+    elif ys[3] <= 40:
+        dic_jo[phase]['clst']['40']['kps'].append(kps)
+        dic_jo[phase]['clst']['40']['X'].append(xx)
+        dic_jo[phase]['clst']['40']['Y'].append(ys)
     else:
-        dic_jo[phase]['clst']['>50']['kps'].append(kps)
-        dic_jo[phase]['clst']['>50']['X'].append(xx)
-        dic_jo[phase]['clst']['>50']['Y'].append(ys)
+        dic_jo[phase]['clst']['>40']['kps'].append(kps)
+        dic_jo[phase]['clst']['>40']['X'].append(xx)
+        dic_jo[phase]['clst']['>40']['Y'].append(ys)
 
 
 def get_task_error(dd):
