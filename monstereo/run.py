@@ -1,8 +1,10 @@
 # pylint: disable=too-many-branches, too-many-statements
 
 import argparse
-
-from openpifpaf.network.factory import cli as openpifpaf_cli
+try:
+    from openpifpaf.network.nets import cli as openpifpaf_cli
+except ModuleNotFoundError:
+    from openpifpaf.network.factory import cli as openpifpaf_cli
 from openpifpaf.network import nets
 from openpifpaf import decoder
 
