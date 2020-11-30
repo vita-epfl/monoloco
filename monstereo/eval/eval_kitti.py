@@ -126,10 +126,10 @@ class EvalKitti:
 
     def printer(self, show, save):
         if save or show:
-            show_results(self.dic_stats, self.CLUSTERS, show, save)
-            show_spread(self.dic_stats, self.CLUSTERS, show, save)
-            show_box_plot(self.errors, self.CLUSTERS, show, save)
-            show_task_error(show, save)
+            show_results(self.dic_stats, self.CLUSTERS, show=show, save=save)
+            show_spread(self.dic_stats, self.CLUSTERS, show=show, save=save)
+            show_box_plot(self.errors, self.CLUSTERS, show=show, save=save)
+            show_task_error(show=show, save=save)
 
     def _parse_txts(self, path, method):
 

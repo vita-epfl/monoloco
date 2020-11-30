@@ -104,7 +104,7 @@ and runs MonStereo for 3d location of the detected poses.
 
 
 Output options include json files and/or visualization of the predictions on the image in *frontal mode*, 
-*birds-eye-view mode* or *combined mode* and can be specified with `--output_types`
+*birds-eye-view mode* or *multi mode* and can be specified with `--output_types`
 
 
 ### Ground truth matching
@@ -121,13 +121,13 @@ show all the prediction for the image
 
 After downloading model and ground-truth file, a demo can be tested with the following commands:
 
-`python3 -m monstereo.run predict --glob docs/000840*.png --output_types combined --scale 2
+`python3 -m monstereo.run predict --glob docs/000840*.png --output_types multi --scale 2
  --model data/models/ms-200710-1511.pkl --z_max 30 --checkpoint resnet152 --path_gt data/arrays/names-kitti-200615-1022.json
  -o data/output`
  
 ![Crowded scene](out_000840.png)
 
-`python3 -m monstereo.run predict --glob docs/005523*.png --output_types combined --scale 2
+`python3 -m monstereo.run predict --glob docs/005523*.png --output_types multi --scale 2
  --model data/models/ms-200710-1511.pkl --z_max 30 --checkpoint resnet152 --path_gt data/arrays/names-kitti-200615-1022.json
  -o data/output`
 
@@ -138,8 +138,7 @@ Preprocessing and training step are already fully supported by the code provided
 but require first to run a pose detector over
 all the training images and collect the annotations. 
 The code supports this option (by running the predict script and using `--mode pifpaf`).
-Once the code will be made publicly available, we will add 
-links to download annotations.
+
 
 ### Datasets
 Download KITTI ground truth files and camera calibration matrices for training

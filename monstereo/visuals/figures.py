@@ -11,31 +11,34 @@ from matplotlib.patches import Ellipse
 from ..utils import get_task_error, get_pixel_error
 
 
-def show_results(dic_stats, clusters, show=False, save=False, stereo=True):
+FONTSIZE = 15
+FIGSIZE = (9.6, 7.2)
+DPI = 200
+GRID_WIDTH = 0.5
+
+
+def show_results(dic_stats, clusters, dir_out='data/figures', show=False, save=False, stereo=True):
     """
     Visualize error as function of the distance and compare it with target errors based on human height analyses
     """
 
-    dir_out = 'docs'
     phase = 'test'
     x_min = 3
     x_max = 42
     y_min = 0
     # y_max = 2.2
     y_max = 3.5 if stereo else 5.2
-
     xx = np.linspace(x_min, x_max, 100)
     excl_clusters = ['all', 'easy', 'moderate', 'hard']
     clusters = [clst for clst in clusters if clst not in excl_clusters]
-    plt.figure(0)
     styles = printing_styles(stereo)
     for idx_style, style in enumerate(styles.items()):
-        plt.figure(idx_style)
-        plt.grid(linewidth=0.2)
+        plt.figure(idx_style, figsize=FIGSIZE)
+        plt.grid(linewidth=GRID_WIDTH)
         plt.xlim(x_min, x_max)
         plt.ylim(y_min, y_max)
-        plt.xlabel("Ground-truth distance [m]")
-        plt.ylabel("Average localization error (ALE) [m]")
+        plt.xlabel("Ground-truth distance [m]", fontsize=FONTSIZE)
+        plt.ylabel("Average localization error (ALE) [m]", fontsize=FONTSIZE)
         for idx, method in enumerate(styles['methods']):
             errs = [dic_stats[phase][method][clst]['mean'] for clst in clusters[:-1]]  # last cluster only a bound
             cnts = [dic_stats[phase][method][clst]['cnt'] for clst in clusters[:-1]]  # last cluster only a bound
@@ -47,30 +50,31 @@ def show_results(dic_stats, clusters, show=False, save=False, stereo=True):
                      label=styles['labels'][idx], linestyle=styles['lstyles'][idx], color=styles['colors'][idx])
             if method in ('monstereo', 'pseudo-lidar'):
                 for i, x in enumerate(xxs):
-                    plt.text(x, errs[i], str(cnts[i]), fontsize=10)
+                    plt.text(x, errs[i], str(cnts[i]), fontsize=FONTSIZE)
     if not stereo:
         plt.plot(xx, get_task_error(xx), '--', label="Task error", color='lightgreen', linewidth=2.5)
     # if stereo:
     #     yy_stereo = get_pixel_error(xx)
     #     plt.plot(xx, yy_stereo, linewidth=1.4, color='k', label='Pixel error')
 
-    plt.legend(loc='upper left')
+    plt.legend(loc='upper left', prop={'size': FONTSIZE})
+    plt.xticks(fontsize=FONTSIZE)
+    plt.yticks(fontsize=FONTSIZE)
     if save:
         plt.tight_layout()
         mode = 'stereo' if stereo else 'mono'
         path_fig = os.path.join(dir_out, 'results_' + mode + '.png')
-        plt.savefig(path_fig)
+        plt.savefig(path_fig, dpi=DPI)
         print("Figure of results " + mode + " saved in {}".format(path_fig))
     if show:
         plt.show()
     plt.close('all')
 
 
-def show_spread(dic_stats, clusters, show=False, save=False):
+def show_spread(dic_stats, clusters, dir_out='data/figures', show=False, save=False):
     """Predicted confidence intervals and task error as a function of ground-truth distance"""
 
     phase = 'test'
-    dir_out = 'docs'
     excl_clusters = ['all', 'easy', 'moderate', 'hard']
     clusters = [clst for clst in clusters if clst not in excl_clusters]
     x_min = 3
@@ -78,7 +82,7 @@ def show_spread(dic_stats, clusters, show=False, save=False):
     y_min = 0
 
     for method in ('monoloco_pp', 'monstereo'):
-        plt.figure(2)
+        plt.figure(2, figsize=FIGSIZE)
         xxs = get_distances(clusters)
         bbs = np.array([dic_stats[phase][method][key]['std_ale'] for key in clusters[:-1]])
         if method == 'monoloco_pp':
@@ -89,31 +93,32 @@ def show_spread(dic_stats, clusters, show=False, save=False):
         else:
             y_max = 3.5
             color = 'b'
-            plt.plot(xx, get_pixel_error(xx), linewidth=1.4, color='k', label='Pixel error')
-        plt.plot(xxs, bbs, marker='s', color=color, label="Aleatoric uncertainty (b)")
+            plt.plot(xx, get_pixel_error(xx), linewidth=2.5, color='k', label='Pixel error')
+        plt.plot(xxs, bbs, marker='s', color=color, label="Aleatoric uncertainty (b)", linewidth=4, markersize=8)
         xx = np.linspace(x_min, x_max, 100)
-        plt.plot(xx, get_task_error(xx), '--', label="Task error (monocular bound)", color='lightgreen', linewidth=2.5)
+        plt.plot(xx, get_task_error(xx), '--', label="Task error (monocular bound)", color='lightgreen', linewidth=4)
 
-        plt.xlabel("Ground-truth distance [m]")
-        plt.ylabel("Uncertainty [m]")
+        plt.xlabel("Ground-truth distance [m]", fontsize=FONTSIZE)
+        plt.ylabel("Uncertainty [m]", fontsize=FONTSIZE)
         plt.xlim(x_min, x_max)
         plt.ylim(y_min, y_max)
-        plt.grid(linewidth=0.2)
-        plt.legend()
+        plt.grid(linewidth=GRID_WIDTH)
+        plt.legend(prop={'size': FONTSIZE})
+        plt.xticks(fontsize=FONTSIZE)
+        plt.yticks(fontsize=FONTSIZE)
         if save:
             plt.tight_layout()
             path_fig = os.path.join(dir_out, 'spread_' + method + '.png')
-            plt.savefig(path_fig)
+            plt.savefig(path_fig, dpi=DPI)
             print("Figure of confidence intervals saved in {}".format(path_fig))
         if show:
             plt.show()
         plt.close('all')
 
 
-def show_task_error(show, save):
+def show_task_error(show, save, dir_out='data/figures'):
     """Task error figure"""
-    plt.figure(3)
-    dir_out = 'docs'
+    plt.figure(3, figsize=FIGSIZE)
     xx = np.linspace(0.1, 50, 100)
     mu_men = 178
     mu_women = 165
@@ -128,7 +133,7 @@ def show_task_error(show, save):
     yy_young_female = target_error(xx, mm_young_female)
     yy_gender = target_error(xx, mm_gmm)
     yy_stereo = get_pixel_error(xx)
-    plt.grid(linewidth=0.3)
+    plt.grid(linewidth=GRID_WIDTH)
     plt.plot(xx, yy_young_male, linestyle='dotted', linewidth=2.1, color='b', label='Adult/young male')
     plt.plot(xx, yy_young_female, linestyle='dotted', linewidth=2.1, color='darkorange', label='Adult/young female')
     plt.plot(xx, yy_gender, '--', color='lightgreen', linewidth=2.8, label='Generic adult (task error)')
@@ -139,20 +144,21 @@ def show_task_error(show, save):
     plt.xlabel("Ground-truth distance from the camera $d_{gt}$ [m]")
     plt.ylabel("Localization error $\hat{e}$  due to human height variation [m]")  # pylint: disable=W1401
     plt.legend(loc=(0.01, 0.55))  # Location from 0 to 1 from lower left
+    plt.xticks(fontsize=FONTSIZE)
+    plt.yticks(fontsize=FONTSIZE)
     if save:
         path_fig = os.path.join(dir_out, 'task_error.png')
-        plt.savefig(path_fig)
+        plt.savefig(path_fig, dpi=DPI)
         print("Figure of task error saved in {}".format(path_fig))
     if show:
         plt.show()
     plt.close('all')
 
 
-def show_method(save):
+def show_method(save, dir_out='data/figures'):
     """ method figure"""
-    dir_out = 'docs'
     std_1 = 0.75
-    fig = plt.figure(1)
+    fig = plt.figure(4, figsize=FIGSIZE)
     ax = fig.add_subplot(1, 1, 1)
     ell_3 = Ellipse((0, 2), width=std_1 * 2, height=0.3, angle=-90, color='b', fill=False, linewidth=2.5)
     ell_4 = Ellipse((0, 2), width=std_1 * 3, height=0.3, angle=-90, color='r', fill=False,
@@ -164,42 +170,44 @@ def show_method(save):
     plt.plot([0, -3], [0, 4], 'k--')
     plt.xlim(-3, 3)
     plt.ylim(0, 3.5)
-    plt.xticks([])
-    plt.yticks([])
+    plt.xticks(fontsize=FONTSIZE)
+    plt.yticks(fontsize=FONTSIZE)
     plt.xlabel('X [m]')
     plt.ylabel('Z [m]')
     if save:
         path_fig = os.path.join(dir_out, 'output_method.png')
-        plt.savefig(path_fig)
+        plt.savefig(path_fig, dpi=DPI)
         print("Figure of method saved in {}".format(path_fig))
+    plt.close('all')
 
 
-def show_box_plot(dic_errors, clusters, show=False, save=False):
+def show_box_plot(dic_errors, clusters, dir_out='data/figures', show=False, save=False):
     import pandas as pd
-    dir_out = 'docs'
     excl_clusters = ['all', 'easy', 'moderate', 'hard']
     clusters = [int(clst) for clst in clusters if clst not in excl_clusters]
     methods = ('monstereo', 'pseudo-lidar', '3dop', 'monoloco')
     y_min = 0
-    y_max = 25  # 18 for the other
+    y_max = 16  # 18 for the other
     xxs = get_distances(clusters)
     labels = [str(xx) for xx in xxs]
     for idx, method in enumerate(methods):
         df = pd.DataFrame([dic_errors[method][str(clst)] for clst in clusters[:-1]]).T
         df.columns = labels
 
-        plt.figure(idx)
+        plt.figure(idx, figsize=FIGSIZE)  # with 200 dpi it becomes 1920x1440
         _ = df.boxplot()
         name = 'MonStereo' if method == 'monstereo' else method
-        plt.title(name)
-        plt.ylabel('Average localization error (ALE) [m]')
-        plt.xlabel('Ground-truth distance [m]')
+        plt.title(name, fontsize=FONTSIZE)
+        plt.ylabel('Average localization error (ALE) [m]', fontsize=FONTSIZE)
+        plt.xlabel('Ground-truth distance [m]', fontsize=FONTSIZE)
+        plt.xticks(fontsize=FONTSIZE)
+        plt.yticks(fontsize=FONTSIZE)
         plt.ylim(y_min, y_max)
 
         if save:
             path_fig = os.path.join(dir_out, 'box_plot_' + name + '.png')
             plt.tight_layout()
-            plt.savefig(path_fig)
+            plt.savefig(path_fig, dpi=DPI)
             print("Figure of box plot saved in {}".format(path_fig))
         if show:
             plt.show()
@@ -297,7 +305,7 @@ def printing_styles(stereo):
         style = {"labels": ['3DOP', 'PSF', 'MonoLoco', 'MonoPSR', 'Pseudo-Lidar', 'Our MonStereo'],
                  "methods": ['3dop', 'psf', 'monoloco', 'monopsr', 'pseudo-lidar', 'monstereo'],
                  "mks": ['s', 'p', 'o', 'v', '*', '^'],
-                 "mksizes": [6, 6, 6, 6, 6, 6], "lws": [1.2, 1.2, 1.2, 1.2, 1.3, 1.5],
+                 "mksizes": [6, 6, 6, 6, 6, 6], "lws": [2, 2, 2, 2, 2, 2.2],
                  "colors": ['gold', 'skyblue', 'darkgreen', 'pink', 'darkorange', 'b'],
                  "lstyles": ['solid', 'solid', 'dashed', 'dashed', 'solid', 'solid']}
     else:

@@ -44,7 +44,7 @@ def tst_printer(dic_out, kk, image_path):
     """Draw a fake figure"""
     with open(image_path, 'rb') as f:
         pil_image = Image.open(f).convert('RGB')
-    printer = Printer(image=pil_image, output_path='tests/test_image', kk=kk, output_types=['combined'], z_max=15)
+    printer = Printer(image=pil_image, output_path='tests/test_image', kk=kk, output_types=['multi'], z_max=15)
     figures, axes = printer.factory_axes()
     printer.draw(figures, axes, dic_out, pil_image, save=True)
 

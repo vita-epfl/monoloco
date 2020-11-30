@@ -35,8 +35,10 @@ def cli():
     predict_parser.add_argument('-o', '--output-directory', help='Output directory')
     predict_parser.add_argument('--output_types', nargs='+', default=['json'],
                                 help='what to output: json keypoints skeleton for Pifpaf'
-                                     'json bird front combined for Monoloco')
+                                     'json bird front or multi for MonStereo')
+    predict_parser.add_argument('--no_save', help='to show images', action='store_true')
     predict_parser.add_argument('--show', help='to show images', action='store_true')
+    predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=100)
 
     # Pifpaf
     nets.cli(predict_parser)
@@ -49,8 +51,7 @@ def cli():
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
                                 default='data/arrays/names-kitti-200615-1022.json')
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')
-    predict_parser.add_argument('--draw_box', help='to draw box in the images', action='store_true')
-    predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=22)
+    predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=100)
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
     predict_parser.add_argument('--dropout', type=float, help='dropout parameter', default=0.2)
     predict_parser.add_argument('--show_all', help='only predict ground-truth matches or all', action='store_true')
@@ -116,7 +117,6 @@ def main():
         predict(args)
 
     elif args.command == 'prep':
-
         if 'nuscenes' in args.dataset:
             from .prep.preprocess_nu import PreprocessNuscenes
             prep = PreprocessNuscenes(args.dir_ann, args.dir_nuscenes, args.dataset, args.iou_min)

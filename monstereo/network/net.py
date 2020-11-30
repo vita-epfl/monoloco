@@ -14,7 +14,7 @@ import torch
 from ..utils import get_iou_matches, reorder_matches, get_keypoints, pixel_to_camera, xyz_from_distance
 from .process import preprocess_monstereo, preprocess_monoloco, extract_outputs, extract_outputs_mono,\
     filter_outputs, cluster_outputs, unnormalize_bi
-from .architectures import MonolocoModel, SimpleModel
+from .architectures import MonolocoModel, MonStereoModel
 
 
 class Loco:
@@ -55,7 +55,7 @@ class Loco:
                 self.model = MonolocoModel(p_dropout=p_dropout, input_size=input_size, linear_size=linear_size,
                                            output_size=output_size)
             else:
-                self.model = SimpleModel(p_dropout=p_dropout, input_size=input_size, output_size=output_size,
+                self.model = MonStereoModel(p_dropout=p_dropout, input_size=input_size, output_size=output_size,
                                          linear_size=linear_size, device=self.device)
 
             self.model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))

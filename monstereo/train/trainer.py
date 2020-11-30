@@ -23,7 +23,7 @@ from torch.optim import lr_scheduler
 from .datasets import KeypointsDataset
 from .losses import CompositeLoss, MultiTaskLoss, AutoTuneMultiTaskLoss
 from ..network import extract_outputs, extract_labels
-from ..network.architectures import SimpleModel
+from ..network.architectures import MonStereoModel
 from ..utils import set_logger
 
 
@@ -97,7 +97,7 @@ class Trainer:
 
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
-        name_out = 'ms-' + now_time
+        name_out = 'monstereo-' + now_time
         if self.save:
             self.path_model = os.path.join(dir_out, name_out + '.pkl')
             self.logger = set_logger(os.path.join(dir_logs, name_out))
@@ -122,8 +122,8 @@ class Trainer:
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
         print(">>> creating model")
 
-        self.model = SimpleModel(input_size=input_size, output_size=output_size, linear_size=hidden_size,
-                                 p_dropout=dropout, num_stage=self.n_stage, device=self.device)
+        self.model = MonStereoModel(input_size=input_size, output_size=output_size, linear_size=hidden_size,
+                                    p_dropout=dropout, num_stage=self.n_stage, device=self.device)
         self.model.to(self.device)
         print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model.parameters()) / 1000000.0))
         print(">>> loss params: {}".format(sum(p.numel() for p in self.mt_loss.parameters())))

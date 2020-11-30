@@ -53,10 +53,11 @@ def predict(args):
                 image_paths, images, processed_images_cpu, fields_batch)):
 
             if args.output_directory is None:
-                output_path = image_paths[0]
+                splits = os.path.split(image_paths[0])
+                output_path = os.path.join(splits[0], 'out_' + splits[1])
             else:
                 file_name = os.path.basename(image_paths[0])
-                output_path = os.path.join(args.output_directory, file_name)
+                output_path = os.path.join(args.output_directory, 'out_' + file_name)
             print('image', idx, image_path, output_path)
             keypoint_sets, scores, pifpaf_out = pifpaf.forward(image, processed_image_cpu, fields)
 
@@ -133,17 +134,12 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, dic_out=N
                 skeleton_painter.keypoints(ax, keypoint_sets, scores=scores)
 
     else:
-        if any((xx in args.output_types for xx in ['front', 'bird', 'combined'])):
-            epistemic = False
-            if args.n_dropout > 0:
-                epistemic = True
-
+        if any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
+            print(output_path)
             if dic_out['boxes']:  # Only print in case of detections
-                printer = Printer(images_outputs[1], output_path, kk, output_types=args.output_types
-                                  , z_max=args.z_max, epistemic=epistemic)
+                printer = Printer(images_outputs[1], output_path, kk, args)
                 figures, axes = printer.factory_axes()
-                printer.draw(figures, axes, dic_out, images_outputs[1], show_all=args.show_all, draw_box=args.draw_box,
-                             save=True, show=args.show)
+                printer.draw(figures, axes, dic_out, images_outputs[1])
 
         if 'json' in args.output_types:
             with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:
