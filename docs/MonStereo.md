@@ -24,53 +24,15 @@ month = {August},
 year = {2020}
 }
 ```
+              
+# Prediction
+The predict script receives an image (or an entire folder using glob expressions), 
+calls PifPaf for 2d human pose detection over the image
+and runs MonStereo for 3d location of the detected poses.
 
-# Features
-The code has been built upon the ICCV'19 project [MonoLoco](https://github.com/vita-epfl/monoloco).
-This repository supports
+Output options include json files and/or visualization of the predictions on the image in *frontal mode*, 
+*birds-eye-view mode* or *multi mode* and can be specified with `--output_types`
 
-* the original MonoLoco
-* An improved Monocular version (MonoLoco++) for x,y,z coordinates, orientation, and dimensions
-* MonStereo
-
-# Setup
-
-### Install
-The installation has been tested on OSX and Linux operating systems, with Python 3.6 or Python 3.7. 
-Packages have been installed with pip and virtual environments.
-For quick installation, do not clone this repository, 
-and make sure there is no folder named monstereo in your current directory.
-A GPU is not required, yet highly recommended for real-time performances. 
-MonStereo can be installed as a package, by:
-
-```
-pip3 install monstereo
-```
-
-For development of the monstereo source code itself, you need to clone this repository and then:
-```
-pip3 install sdist
-cd monstereo
-python3 setup.py sdist bdist_wheel
-pip3 install -e .
-```
-
-### Data structure
-
-    Data         
-    ├── arrays                 
-    ├── models
-    ├── kitti
-    ├── logs
-    ├── output
-    
-
-Run the following to create the folders:
-```
-mkdir data
-cd data
-mkdir arrays models kitti logs output
-```
 
 ### Pre-trained Models
 * Download Monstereo pre-trained model from 
@@ -84,27 +46,6 @@ Alternatively, you can download a Pifpaf pre-trained model from [openpifpaf](htt
  and call it with `--checkpoint  <pifpaf model path>`. All experiments have been run with v0.8 of pifpaf.
   If you'd like to use an updated version, we suggest to re-train the MonStereo model as well.
 * The model for the experiments is provided in *data/models/ms-200710-1511.pkl*
-
-# Interfaces
-All the commands are run through a main file called `main.py` using subparsers.
-To check all the commands for the parser and the subparsers (including openpifpaf ones) run:
-
-* `python3 -m monstereo.run --help`
-* `python3 -m monstereo.run predict --help`
-* `python3 -m monstereo.run train --help`
-* `python3 -m monstereo.run eval --help`
-* `python3 -m monstereo.run prep --help`
-
-or check the file `monstereo/run.py`
-              
-# Prediction
-The predict script receives an image (or an entire folder using glob expressions), 
-calls PifPaf for 2d human pose detection over the image
-and runs MonStereo for 3d location of the detected poses.
-
-
-Output options include json files and/or visualization of the predictions on the image in *frontal mode*, 
-*birds-eye-view mode* or *multi mode* and can be specified with `--output_types`
 
 
 ### Ground truth matching
@@ -138,6 +79,22 @@ Preprocessing and training step are already fully supported by the code provided
 but require first to run a pose detector over
 all the training images and collect the annotations. 
 The code supports this option (by running the predict script and using `--mode pifpaf`).
+
+### Data structure
+
+    Data         
+    ├── arrays                 
+    ├── models
+    ├── kitti
+    ├── logs
+    ├── output
+    
+Run the following to create the folders:
+```
+mkdir data
+cd data
+mkdir arrays models kitti logs output
+```
 
 
 ### Datasets
