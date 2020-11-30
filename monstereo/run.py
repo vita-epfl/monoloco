@@ -2,6 +2,7 @@
 
 import argparse
 
+from openpifpaf.network.factory import cli as openpifpaf_cli
 from openpifpaf.network import nets
 from openpifpaf import decoder
 
@@ -41,8 +42,8 @@ def cli():
     predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=100)
 
     # Pifpaf
-    nets.cli(predict_parser)
-    decoder.cli(predict_parser, force_complete_pose=True, instance_threshold=0.15)
+    openpifpaf_cli(predict_parser)
+    decoder.cli(predict_parser)
     predict_parser.add_argument('--scale', default=1.0, type=float, help='change the scale of the image to preprocess')
 
     # Monoloco

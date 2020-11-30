@@ -149,13 +149,20 @@ data/kitti/images`
 
 
 ### Annotations to preprocess
-MonStereo is trained using 2D human pose joints. To create them run pifaf over KITTI training images. 
-You can create them running the predict script and using `--mode pifpaf`.
+MonStereo is trained using 2D human pose joints. To obtain the joints the first step is to run 
+pifaf over KITTI training images, by either running the predict script and using `--mode pifpaf`,
+ or by using pifpaf code directly.
+MonStereo preprocess script expects annotations from left and right images in 2 different folders 
+with the same path apart from the suffix `_right`  for the ``right" folder. 
+For example `data/annotations` and `data/annotations_right`. 
+ Do not change name of json files created by pifpaf. For each left annotation, 
+ the code will look for the corresponding right annotation.
 
 ### Inputs joints for training
 MonoStereo is trained using 2D human pose joints matched with the ground truth location provided by
 KITTI Dataset. To create the joints run: `python3 -m monstereo.run prep` specifying:
-1. `--dir_ann` annotation directory containing Pifpaf joints of KITTI. 
+
+`--dir_ann` annotation directory containing Pifpaf joints of KITTI for the left images.
 
 
 ### Ground truth file for evaluation
