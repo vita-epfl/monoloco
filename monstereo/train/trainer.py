@@ -36,7 +36,7 @@ class Trainer:
     lambdas = (1, 1, 1, 1, 1, 1, 1, 1)
 
     def __init__(self, joints, epochs=100, bs=256, dropout=0.2, lr=0.002,
-                 sched_step=20, sched_gamma=1, hidden_size=256, n_stage=3, r_seed=1, n_samples=100,
+                 sched_step=20, sched_gamma=1, hidden_size=256, n_stage=3, r_seed=0, n_samples=100,
                  monocular=False, save=False, print_loss=True):
         """
         Initialize directories, load the data and parameters for the training
@@ -131,6 +131,7 @@ class Trainer:
         # Optimizer and scheduler
         all_params = chain(self.model.parameters(), self.mt_loss.parameters())
         self.optimizer = torch.optim.Adam(params=all_params, lr=lr)
+        self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
 
     def train(self):
@@ -155,11 +156,11 @@ class Trainer:
                     labels = labels.to(self.device)
                     with torch.set_grad_enabled(phase == 'train'):
                         if phase == 'train':
+                            self.optimizer.zero_grad()
                             outputs = self.model(inputs)
                             loss, loss_values = self.mt_loss(outputs, labels, phase=phase)
-                            self.optimizer.zero_grad()
                             loss.backward()
-                            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 2)
+                            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3)
                             self.optimizer.step()
                             self.scheduler.step()
 

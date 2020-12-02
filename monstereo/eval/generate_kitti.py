@@ -26,6 +26,9 @@ class GenerateKitti:
 
     def __init__(self, model, dir_ann, p_dropout=0.2, n_dropout=0, hidden_size=1024):
 
+        self.dir_ann = dir_ann
+        assert os.listdir(self.dir_ann), "Annotation directory is empty"
+
         # Load monoloco
         use_cuda = torch.cuda.is_available()
         device = torch.device("cuda" if use_cuda else "cpu")
@@ -47,7 +50,6 @@ class GenerateKitti:
             # model_mono = 'data/models/monoloco-190719-0923.pkl'  # NuScenes
             self.monoloco = Loco(model=model_mono, net='monoloco', device=device, n_dropout=n_dropout,
                                  p_dropout=p_dropout, linear_size=256)
-        self.dir_ann = dir_ann
 
         # Extract list of pifpaf files in validation images
         self.dir_gt = os.path.join('data', 'kitti', 'gt')
