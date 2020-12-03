@@ -73,3 +73,13 @@ python -m monstereo.run eval --activity \
 --model <MonoLoco++ model path>  --dir_ann <pifpaf annotations directory>
 ```
 
+## Training
+We train on KITTI or nuScenes dataset specifying the path of the input joints.
+
+Our results are obtained with: 
+
+`python -m monstereo.run train --lr 0.001 --joints data/arrays/joints-kitti-201202-1743.json --save --monocular`
+
+For a more extensive list of available parameters, run:
+
+`python -m monstereo.run train --help`

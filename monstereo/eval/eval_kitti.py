@@ -25,7 +25,7 @@ class EvalKitti:
                 '27', '29', '31', '49')
     ALP_THRESHOLDS = ('<0.5m', '<1m', '<2m')
     OUR_METHODS = ['geometric', 'monoloco', 'monoloco_pp', 'pose', 'reid', 'monstereo']
-    METHODS_MONO = ['m3d', 'monopsr']
+    METHODS_MONO = ['m3d', 'monopsr', 'monodis', 'smoke']
     METHODS_STEREO = ['3dop', 'psf', 'pseudo-lidar', 'e2e', 'oc-stereo']
     BASELINES = ['task_error', 'pixel_error']
     HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
@@ -56,6 +56,8 @@ class EvalKitti:
         self.dic_thresh_conf['monopsr'] += 0.3
         self.dic_thresh_conf['e2e-pl'] = -100  # They don't have enough detections
         self.dic_thresh_conf['oc-stereo'] = -100
+        self.dic_thresh_conf['smoke'] = -100
+        self.dic_thresh_conf['monodis'] = -100
 
         # Extract validation images for evaluation
         names_gt = tuple(os.listdir(self.dir_gt))

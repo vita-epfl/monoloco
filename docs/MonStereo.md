@@ -129,7 +129,7 @@ by the image name to easily access ground truth files for evaluation and predict
 
 # Training
 Provide the json file containing the preprocess joints as argument. 
-As simple as `python3 -m monstereo.run train --joints <json file path>`
+As simple as `python3 -m monstereo.run train --joints <json file path> `
 All the hyperparameters options can be checked at `python3 -m monstereo.run train --help`.
 
 # Evaluation (KITTI Dataset)

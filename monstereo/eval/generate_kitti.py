@@ -1,9 +1,10 @@
 
-#pylint: disable=too-many-branches
+# pylint: disable=too-many-branches
 
 """
 Run MonoLoco/MonStereo and converts annotations into KITTI format
 """
+from typing import Dict, List
 
 import os
 import math
@@ -22,42 +23,35 @@ from .reid_baseline import get_reid_features, ReID
 
 class GenerateKitti:
 
-    METHODS = ['monstereo', 'monoloco_pp', 'monoloco', 'geometric']
+    dir_gt = os.path.join('data', 'kitti', 'gt')
+    dir_gt_new = os.path.join('data', 'kitti', 'gt_new')
+    dir_kk = os.path.join('data', 'kitti', 'calib')
+    dir_byc = '/data/lorenzo-data/kitti/object_detection/left'
+    monoloco_checkpoint = 'data/models/monoloco-190717-0952.pkl'
+    baselines = {'mono': [], 'stereo': []}
 
-    def __init__(self, model, dir_ann, p_dropout=0.2, n_dropout=0, hidden_size=1024):
+    def __init__(self, args):
 
-        self.dir_ann = dir_ann
-        assert os.listdir(self.dir_ann), "Annotation directory is empty"
+        # Load Network
+        self.net = args.net
+        assert args.net in ('monstereo', 'monoloco_pp'), "net not recognized"
 
-        # Load monoloco
         use_cuda = torch.cuda.is_available()
         device = torch.device("cuda" if use_cuda else "cpu")
-
-        if 'monstereo' in self.METHODS:
-            self.monstereo = Loco(model=model, net='monstereo', device=device, n_dropout=n_dropout, p_dropout=p_dropout,
-                                  linear_size=hidden_size)
-        # model_mono_pp = 'data/models/monoloco-191122-1122.pkl'  # KITTI_p
-        # model_mono_pp = 'data/models/monoloco-191018-1459.pkl'  # nuScenes_p
-        # model_mono_pp = 'data/models/stereoloco-200604-0949.pkl'  # KITTI_pp
-        model_mono_pp = 'data/models/monstereo-201202-1745.pkl'
-        # model_mono_pp = 'data/models/stereoloco-200608-1550.pkl'  # nuScenes_pp
-
-        if 'monoloco_pp' in self.METHODS:
-            self.monoloco_pp = Loco(model=model_mono_pp, net='monoloco_pp', device=device, n_dropout=n_dropout,
-                                    p_dropout=p_dropout)
-
-        if 'monoloco' in self.METHODS:
-            model_mono = 'data/models/monoloco-190717-0952.pkl'  # KITTI
-            # model_mono = 'data/models/monoloco-190719-0923.pkl'  # NuScenes
-            self.monoloco = Loco(model=model_mono, net='monoloco', device=device, n_dropout=n_dropout,
-                                 p_dropout=p_dropout, linear_size=256)
+        self.model = Loco(
+            model=args.model,
+            net=args.net,
+            device=device,
+            n_dropout=args.n_dropout,
+            p_dropout=args.dropout,
+            linear_size=args.hidden_size
+            )
 
         # Extract list of pifpaf files in validation images
-        self.dir_gt = os.path.join('data', 'kitti', 'gt')
-        self.dir_gt_new = os.path.join('data', 'kitti', 'gt_new')
-        self.set_basename = factory_basename(dir_ann, self.dir_gt)
-        self.dir_kk = os.path.join('data', 'kitti', 'calib')
-        self.dir_byc = '/data/lorenzo-data/kitti/object_detection/left'
+        self.dir_ann = args.dir_ann
+        self.generate_official = args.generate_official
+        assert os.listdir(self.dir_ann), "Annotation directory is empty"
+        self.set_basename = factory_basename(args.dir_ann, self.dir_gt)
 
         # For quick testing
         # ------------------------------------------------------------------------------------------------------------
@@ -65,33 +59,48 @@ class GenerateKitti:
         # self.set_basename = ('002282',)
         # ------------------------------------------------------------------------------------------------------------
 
-        # Calculate stereo baselines
-        # self.baselines = ['pose', 'reid']
-        self.baselines = []
-        self.cnt_disparity = defaultdict(int)
-        self.cnt_no_stereo = 0
-        self.dir_images = os.path.join('data', 'kitti', 'images')
-        self.dir_images_r = os.path.join('data', 'kitti', 'images_r')
-        # ReID Baseline
-        if 'reid' in self.baselines:
-            weights_path = 'data/models/reid_model_market.pkl'
-            self.reid_net = ReID(weights_path=weights_path, device=device, num_classes=751, height=256, width=128)
+        # Add monocular and stereo baselines (they require monoloco as backbone)
+        if args.baselines:
+
+            # Load MonoLoco
+            self.baselines['mono'] = ['monoloco', 'geometric']
+            self.monoloco = Loco(
+                model=self.monoloco_checkpoint,
+                net='monoloco',
+                device=device,
+                n_dropout=args.n_dropout,
+                p_dropout=args.dropout,
+                linear_size=256
+            )
+            # Stereo baselines
+            if args.net == 'monstereo':
+                self.baselines['stereo'] = ['pose', 'reid']
+                self.cnt_disparity = defaultdict(int)
+                self.cnt_no_stereo = 0
+                self.dir_images = os.path.join('data', 'kitti', 'images')
+                self.dir_images_r = os.path.join('data', 'kitti', 'images_r')
+
+                # ReID Baseline
+                weights_path = 'data/models/reid_model_market.pkl'
+                self.reid_net = ReID(weights_path=weights_path, device=device, num_classes=751, height=256, width=128)
 
     def run(self):
         """Run Monoloco and save txt files for KITTI evaluation"""
 
         cnt_ann = cnt_file = cnt_no_file = 0
-        dir_out = {key: os.path.join('data', 'kitti', key) for key in self.METHODS}
-        print("\n")
-        for key in self.METHODS:
-            make_new_directory(dir_out[key])
 
-        for key in self.baselines:
-            dir_out[key] = os.path.join('data', 'kitti', key)
-            make_new_directory(dir_out[key])
-            print("Created empty output directory for {}".format(key))
+        # Prepare empty folder
+        di = os.path.join('data', 'kitti', self.net)
+        make_new_directory(di)
+        dir_out = {self.net: di}
 
-        # Run monoloco over the list of images
+        for mode, names in self.baselines.items():
+            for name in names:
+                di = os.path.join('data', 'kitti', name)
+                make_new_directory(di)
+                dir_out[name] = di
+
+        # Run the model
         for basename in self.set_basename:
             path_calib = os.path.join(self.dir_kk, basename + '.txt')
             annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
@@ -101,58 +110,58 @@ class GenerateKitti:
                 annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, mode='right')
                 _, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
 
+                if self.net == 'monstereo':
+                    dic_out = self.model.forward(keypoints, kk, keypoints_r=keypoints_r)
+                elif self.net == 'monoloco_pp':
+                    dic_out = self.model.forward(keypoints, kk)
+
+                all_outputs = {self.net: [dic_out['xyzd'], dic_out['bi'], dic_out['epi'],
+                                          dic_out['yaw'], dic_out['h'], dic_out['w'], dic_out['l']]}
+                zzs = [float(el[2]) for el in dic_out['xyzd']]
+
+                # Save txt files
+                params = [kk, tt]
+                path_txt = os.path.join(dir_out[self.net], basename + '.txt')
+                save_txts(path_txt, boxes, all_outputs[self.net], params, mode=self.net, cat=cat)
                 cnt_ann += len(boxes)
                 cnt_file += 1
-                all_inputs, all_outputs = {}, {}
 
-                # STEREOLOCO
-                dic_out = self.monstereo.forward(keypoints, kk, keypoints_r=keypoints_r)
-                all_outputs['monstereo'] = [dic_out['xyzd'], dic_out['bi'], dic_out['epi'],
-                                            dic_out['yaw'], dic_out['h'], dic_out['w'], dic_out['l']]
-
-                # MONOLOCO++
-                if 'monoloco_pp' in self.METHODS:
-                    dic_out = self.monoloco_pp.forward(keypoints, kk)
-                    all_outputs['monoloco_pp'] = [dic_out['xyzd'], dic_out['bi'], dic_out['epi'],
-                                                  dic_out['yaw'], dic_out['h'], dic_out['w'], dic_out['l']]
-                    zzs = [float(el[2]) for el in dic_out['xyzd']]
-
-                # MONOLOCO
-                if 'monoloco' in self.METHODS:
+                # MONO  (+ STEREO BASELINES)
+                if self.baselines['mono']:
+                    # MONOLOCO
                     dic_out = self.monoloco.forward(keypoints, kk)
                     zzs_geom, xy_centers = geometric_coordinates(keypoints, kk, average_y=0.48)
                     all_outputs['monoloco'] = [dic_out['d'], dic_out['bi'], dic_out['epi']] + [zzs_geom, xy_centers]
                     all_outputs['geometric'] = all_outputs['monoloco']
 
-                params = [kk, tt]
+                    # monocular baselines
+                    for key in self.baselines['mono']:
+                        path_txt = {key: os.path.join(dir_out[key], basename + '.txt')}
+                        save_txts(path_txt[key], boxes, all_outputs[key], params, mode=key, cat=cat)
 
-                for key in self.METHODS:
-                    path_txt = {key: os.path.join(dir_out[key], basename + '.txt')}
-                    save_txts(path_txt[key], boxes, all_outputs[key], params, mode=key, cat=cat)
-
-                # STEREO BASELINES
-                if self.baselines:
-                    dic_xyz = self._run_stereo_baselines(basename, boxes, keypoints, zzs, path_calib)
-
-                    for key in dic_xyz:
-                        all_outputs[key] = all_outputs['monoloco'].copy()
-                        all_outputs[key][0] = dic_xyz[key]
-                        all_inputs[key] = boxes
+                    # stereo baselines
+                    if self.baselines['stereo']:
+                        all_inputs = {}
+                        dic_xyz = self._run_stereo_baselines(basename, boxes, keypoints, zzs, path_calib)
+                        for key in dic_xyz:
+                            all_outputs[key] = all_outputs['monoloco'].copy()
+                            all_outputs[key][0] = dic_xyz[key]
+                            all_inputs[key] = boxes
 
                         path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
-                        save_txts(path_txt[key], all_inputs[key], all_outputs[key], params, mode='baseline', cat=cat)
+                        save_txts(path_txt[key], all_inputs[key], all_outputs[key], params, mode='baseline', cat='cat')
 
         print("\nSaved in {} txt {} annotations. Not found {} images".format(cnt_file, cnt_ann, cnt_no_file))
 
-        if 'monstereo' in self.METHODS:
+        if self.net == 'monstereo':
             print("STEREO:")
-            for key in self.baselines:
+            for key in self.baselines['stereo']:
                 print("Annotations corrected using {} baseline: {:.1f}%".format(
                     key, self.cnt_disparity[key] / cnt_ann * 100))
-            print("Maximum possible stereo associations: {:.1f}%".format(self.cnt_disparity['max'] / cnt_ann * 100))
             print("Not found {}/{} stereo files".format(self.cnt_no_stereo, cnt_file))
 
-        create_empty_files(dir_out)  # Create empty files for official evaluation
+        if self.generate_official:
+            create_empty_files(dir_out, self.net)  # Create empty files for official evaluation
 
     def _run_stereo_baselines(self, basename, boxes, keypoints, zzs, path_calib):
 
@@ -247,11 +256,10 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco', ca
             ff.write("\n")
 
 
-def create_empty_files(dir_out):
+def create_empty_files(dir_out, net):
     """Create empty txt files to run official kitti metrics on MonStereo and all other methods"""
 
-    methods = ['pseudo-lidar', 'monopsr', '3dop', 'm3d', 'oc-stereo', 'e2e']
-    methods = []
+    methods = ['pseudo-lidar', 'monopsr', '3dop', 'm3d', 'oc-stereo', 'e2e', 'monodis', 'smoke']
     dirs = [os.path.join('data', 'kitti', method) for method in methods]
     dirs_orig = [os.path.join('data', 'kitti', method + '-orig') for method in methods]
 
@@ -266,8 +274,7 @@ def create_empty_files(dir_out):
             # If the file exits, rewrite in new folder, otherwise create empty file
             read_and_rewrite(path_orig, path)
 
-    for method in ('monoloco_pp', 'monstereo'):
-        for i in range(7481):
-            name = "0" * (6 - len(str(i))) + str(i) + '.txt'
-            ff = open(os.path.join(dir_out[method], name), "a+")
-            ff.close()
+    for i in range(7481):
+        name = "0" * (6 - len(str(i))) + str(i) + '.txt'
+        ff = open(os.path.join(dir_out[net], name), "a+")
+        ff.close()

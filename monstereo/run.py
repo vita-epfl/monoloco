@@ -70,7 +70,7 @@ def cli():
     # Training
     training_parser.add_argument('--joints', help='Json file with input joints',
                                  default='data/arrays/joints-nuscenes_teaser-190513-1846.json')
-    training_parser.add_argument('--save', help='whether to not save model and log file', action='store_true')
+    training_parser.add_argument('--no_save', help='to not save model and log file', action='store_true')
     training_parser.add_argument('-e', '--epochs', type=int, help='number of epochs to train for', default=500)
     training_parser.add_argument('--bs', type=int, default=512, help='input batch size')
     training_parser.add_argument('--monocular', help='whether to train monoloco', action='store_true')
@@ -83,7 +83,9 @@ def cli():
     training_parser.add_argument('--hyp', help='run hyperparameters tuning', action='store_true')
     training_parser.add_argument('--multiplier', type=int, help='Size of the grid of hyp search', default=1)
     training_parser.add_argument('--r_seed', type=int, help='specify the seed for training and hyp tuning', default=1)
-    training_parser.add_argument('--activity', help='new', action='store_true')
+    training_parser.add_argument('--print_loss', help='print training and validation losses', action='store_true')
+    training_parser.add_argument('--auto_tune_mtl', help='whether to use uncertainty to autotune losses',
+                                 action='store_true')
 
     # Evaluation
     eval_parser.add_argument('--dataset', help='datasets to evaluate, kitti or nuscenes', default='kitti')
@@ -104,6 +106,9 @@ def cli():
     eval_parser.add_argument('--variance', help='evaluate keypoints variance', action='store_true')
     eval_parser.add_argument('--activity', help='evaluate activities', action='store_true')
     eval_parser.add_argument('--net', help='Choose network: monoloco, monoloco_p, monoloco_pp, monstereo')
+    eval_parser.add_argument('--baselines', help='whether to evaluate stereo baselines', action='store_true')
+    eval_parser.add_argument('--generate_official', help='whether to add empty txt files for official evaluation',
+                             action='store_true')
 
     args = parser.parse_args()
     return args
@@ -141,10 +146,7 @@ def main():
         else:
 
             from .train import Trainer
-            training = Trainer(joints=args.joints, epochs=args.epochs, bs=args.bs,
-                               monocular=args.monocular, dropout=args.dropout, lr=args.lr, sched_step=args.sched_step,
-                               n_stage=args.n_stage, sched_gamma=args.sched_gamma, hidden_size=args.hidden_size,
-                               r_seed=args.r_seed, save=args.save)
+            training = Trainer(args)
 
             _ = training.train()
             _ = training.evaluate()
@@ -171,8 +173,7 @@ def main():
         else:
             if args.generate:
                 from .eval.generate_kitti import GenerateKitti
-                kitti_txt = GenerateKitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout,
-                                          hidden_size=args.hidden_size)
+                kitti_txt = GenerateKitti(args)
                 kitti_txt.run()
 
             if args.dataset == 'kitti':
@@ -183,7 +184,7 @@ def main():
 
             elif 'nuscenes' in args.dataset:
                 from .train import Trainer
-                training = Trainer(joints=args.joints, hidden_size=args.hidden_size)
+                training = Trainer(args)
                 _ = training.evaluate(load=True, model=args.model, debug=False)
 
             else:

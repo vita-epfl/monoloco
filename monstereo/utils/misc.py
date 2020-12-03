@@ -58,7 +58,7 @@ def make_new_directory(dir_out):
     if os.path.exists(dir_out):
         shutil.rmtree(dir_out)
     os.makedirs(dir_out)
-    print("Created empty output directory for {} txt files".format(dir_out))
+    print("Created empty output directory {} ".format(dir_out))
 
 
 def normalize_hwl(lab):
