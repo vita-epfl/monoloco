@@ -166,7 +166,7 @@ class PreprocessKitti:
                                 self.dic_jo[phase]['X'].append(inp)
                                 self.dic_jo[phase]['Y'].append(lab)
                                 self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
-                                append_cluster(self.dic_jo, phase, inp, lab, keypoint)
+                                append_cluster(self.dic_jo, phase, inp, lab, keypoint.tolist())
                                 cnt_mono[phase] += 1
                                 cnt_tot += 1
 

@@ -38,7 +38,8 @@ class GenerateKitti:
                                   linear_size=hidden_size)
         # model_mono_pp = 'data/models/monoloco-191122-1122.pkl'  # KITTI_p
         # model_mono_pp = 'data/models/monoloco-191018-1459.pkl'  # nuScenes_p
-        model_mono_pp = 'data/models/stereoloco-200604-0949.pkl'  # KITTI_pp
+        # model_mono_pp = 'data/models/stereoloco-200604-0949.pkl'  # KITTI_pp
+        model_mono_pp = 'data/models/monstereo-201202-1745.pkl'
         # model_mono_pp = 'data/models/stereoloco-200608-1550.pkl'  # nuScenes_pp
 
         if 'monoloco_pp' in self.METHODS:
