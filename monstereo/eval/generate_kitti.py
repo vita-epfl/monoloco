@@ -148,8 +148,10 @@ class GenerateKitti:
                             all_outputs[key][0] = dic_xyz[key]
                             all_inputs[key] = boxes
 
-                        path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
-                        save_txts(path_txt[key], all_inputs[key], all_outputs[key], params, mode='baseline', cat='cat')
+                            path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
+                            save_txts(path_txt[key], all_inputs[key], all_outputs[key], params,
+                                      mode='baseline',
+                                      cat=cat)
 
         print("\nSaved in {} txt {} annotations. Not found {} images".format(cnt_file, cnt_ann, cnt_no_file))
 
@@ -177,14 +179,14 @@ class GenerateKitti:
             path_image = os.path.join(self.dir_images, basename + '.png')
             path_image_r = os.path.join(self.dir_images_r, basename + '.png')
             reid_features = get_reid_features(self.reid_net, boxes, boxes_r, path_image, path_image_r)
-            dic_zzs, cnt = baselines_association(self.baselines, zzs, keypoints, keypoints_r, reid_features)
+            dic_zzs, cnt = baselines_association(self.baselines['stereo'], zzs, keypoints, keypoints_r, reid_features)
 
             for key in cnt:
                 self.cnt_disparity[key] += cnt[key]
 
         else:
             self.cnt_no_stereo += 1
-            dic_zzs = {key: zzs for key in self.baselines}
+            dic_zzs = {key: zzs for key in self.baselines['stereo']}
 
         # Combine the stereo zz with x, y from 2D detection (no MonoLoco involved)
         dic_xyz = defaultdict(list)
