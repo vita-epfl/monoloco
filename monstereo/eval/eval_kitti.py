@@ -53,8 +53,10 @@ class EvalKitti:
         self.dic_thresh_conf = {method: (thresh_conf_monoloco if method in self.OUR_METHODS
                                          else thresh_conf_base)
                                 for method in self.methods}
+
+        # Set thresholds to obtain comparable recall
         self.dic_thresh_conf['monopsr'] += 0.3
-        self.dic_thresh_conf['e2e-pl'] = -100  # They don't have enough detections
+        self.dic_thresh_conf['e2e-pl'] = -100
         self.dic_thresh_conf['oc-stereo'] = -100
         self.dic_thresh_conf['smoke'] = -100
         self.dic_thresh_conf['monodis'] = -100
@@ -70,10 +72,13 @@ class EvalKitti:
             = None
         self.cnt = 0
 
+        # Filter methods with empty or non existent directory
+        filter_directories(self.main_dir, self.methods)
+
     def run(self):
         """Evaluate Monoloco performances on ALP and ALE metrics"""
-        for self.category in self.CATEGORIES:
 
+        for self.category in self.CATEGORIES:
             # Initialize variables
             self.errors = defaultdict(lambda: defaultdict(list))
             self.dic_stds = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -102,7 +107,6 @@ class EvalKitti:
                     for method in self.methods:
                         # Extract annotations
                         dir_method = os.path.join(self.main_dir, method)
-                        assert os.path.exists(dir_method), "directory of the method %s does not exists" % method
                         path_method = os.path.join(dir_method, name)
                         methods_out[method] = self._parse_txts(path_method, method=method)
 
@@ -432,3 +436,14 @@ def extract_indices(idx_to_check, *args):
 def average(my_list):
     """calculate mean of a list"""
     return sum(my_list) / len(my_list)
+
+
+def filter_directories(main_dir, methods):
+    for method in methods:
+        dir_method = os.path.join(main_dir, method)
+        if not os.path.exists(dir_method):
+            methods.remove(method)
+            print(f"\nMethod {method}. No directory found. Skipping it..")
+        elif not os.listdir(dir_method):
+            methods.remove(method)
+            print(f"\nMethod {method}. Directory is empty. Skipping it..")
