@@ -87,7 +87,7 @@ class PreprocessNuscenes:
             while not current_token == "":
                 sample_dic = self.nusc.get('sample', current_token)
                 cnt_samples += 1
-
+                # if (cnt_samples % 4 == 0) and (cnt_ann < 3000):
                 # Extract all the sample_data tokens for each sample
                 for cam in self.CAMERAS:
                     sd_token = sample_dic['data'][cam]
@@ -105,7 +105,7 @@ class PreprocessNuscenes:
                     self.dic_names[basename + '.jpg']['K'] = copy.deepcopy(kk)
 
                     # Run IoU with pifpaf detections and save
-                    path_pif = os.path.join(self.dir_ann, name + '.pifpaf.json')
+                    path_pif = os.path.join(self.dir_ann, name + '.predictions.json')
                     exists = os.path.isfile(path_pif)
 
                     if exists:
@@ -114,7 +114,6 @@ class PreprocessNuscenes:
                             boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1600, 900))
                     else:
                         continue
-
                     if keypoints:
                         matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
                         for (idx, idx_gt) in matches:
@@ -130,7 +129,6 @@ class PreprocessNuscenes:
                             append_cluster(self.dic_jo, phase, inp, lab, keypoint)
                             cnt_ann += 1
                             sys.stdout.write('\r' + 'Saved annotations {}'.format(cnt_ann) + '\t')
-
                 current_token = sample_dic['next']
 
         with open(os.path.join(self.path_joints), 'w') as f:
@@ -139,7 +137,7 @@ class PreprocessNuscenes:
             json.dump(self.dic_names, f)
         end = time.time()
 
-        extract_box_average(self.dic_jo['train']['boxes_3d'])
+        # extract_box_average(self.dic_jo['train']['boxes_3d'])
         print("\nSaved {} annotations for {} samples in {} scenes. Total time: {:.1f} minutes"
               .format(cnt_ann, cnt_samples, cnt_scenes, (end-start)/60))
         print("\nOutput files:\n{}\n{}\n".format(self.path_names, self.path_joints))

@@ -32,10 +32,10 @@ class ActivityEvaluator:
             self.sequences = ['seq02', 'seq14', 'seq12', 'seq13', 'seq11', 'seq36']
             # folders_collective = ['seq02']
             self.dir_data = 'data/activity/dataset'
-            self.THRESHOLD_PROB = 0.25  # Concordance for samples
+            self.THRESHOLD_PROB = 0.2  # Concordance for samples
             self.THRESHOLD_DIST = 2  # Threshold to check distance of people
             self.RADII = (0.3, 0.5)  # expected radii of the o-space
-            self.PIFPAF_CONF = 0.4
+            self.PIFPAF_CONF = 0.3
             self.SOCIAL_DISTANCE = False
         # -------------------------------------------------------------------------------------------------------------
 
@@ -76,7 +76,7 @@ class ActivityEvaluator:
 
                 # Collect PifPaf files and calibration
                 basename = os.path.basename(im_path)
-                extension = '.pifpaf.json'
+                extension = '.predictions.json'
                 path_pif = os.path.join(self.dir_ann, basename + extension)
                 annotations = open_annotations(path_pif)
                 kk, _ = factory_for_gt(im_size, verbose=False)

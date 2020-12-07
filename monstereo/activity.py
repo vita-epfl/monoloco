@@ -16,7 +16,7 @@ from matplotlib.patches import Circle, FancyArrow
 from PIL import Image
 
 from .network.process import laplace_sampling
-from .utils import open_annotations
+from .utils import open_annotations, get_task_error
 from .visuals.pifpaf_show import KeypointPainter, image_canvas
 from .network import Loco
 from .network.process import factory_for_gt, preprocess_pifpaf
@@ -37,7 +37,7 @@ def social_interactions(idx, centers, angles, dds, stds=None, social_distance=Fa
     if n_samples < 2:
         for idx_t in indices:
             if check_f_formations(idx, idx_t, centers, angles,
-                                  radii=radii, # Binary value
+                                  radii=radii,  # Binary value
                                   social_distance=social_distance):
                 return True
 
@@ -46,7 +46,7 @@ def social_interactions(idx, centers, angles, dds, stds=None, social_distance=Fa
         # Samples distance
         dds = torch.tensor(dds).view(-1, 1)
         stds = torch.tensor(stds).view(-1, 1)
-        # stds_te = get_task_error(dds)  # similar results to MonoLoco but lower true positive
+        # stds = get_task_error(dds)  # similar results to MonoLoco but lower true positive
         laplace_d = torch.cat((dds, stds), dim=1)
         samples_d = laplace_sampling(laplace_d, n_samples=n_samples)
 
@@ -72,8 +72,8 @@ def social_interactions(idx, centers, angles, dds, stds=None, social_distance=Fa
 
 def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False):
     """
-    Check F-formations for people close together:
-    1) Empty space of 0.4 + meters (no other people or themselves inside)
+    Check F-formations for people close together (this function do not expect far away people):
+    1) Empty space of a certain radius (no other people or themselves inside)
     2) People looking inward
     """
 

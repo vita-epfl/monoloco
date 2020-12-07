@@ -83,3 +83,52 @@ Our results are obtained with:
 For a more extensive list of available parameters, run:
 
 `python -m monstereo.run train --help`
+
+## Evaluation
+
+### 3D Localization
+We provide evaluation on KITTI for models trained on nuScenes or KITTI. We compare them with other monocular 
+and stereo Baselines: 
+
+[MonoLoco](TODO), 
+[Mono3D](https://www.cs.toronto.edu/~urtasun/publications/chen_etal_cvpr16.pdf), 
+[3DOP](https://xiaozhichen.github.io/papers/nips15chen.pdf), 
+[MonoDepth](https://arxiv.org/abs/1609.03677) 
+[MonoPSR](TODO) and our 
+[MonoDIS](TODO) and our 
+[Geometrical Baseline](monoloco/eval/geom_baseline.py).
+
+* **Mono3D**: download validation files from [here](http://3dimage.ee.tsinghua.edu.cn/cxz/mono3d) 
+and save them into `data/kitti/m3d`
+* **3DOP**: download validation files from [here](https://xiaozhichen.github.io/) 
+and save them into `data/kitti/3dop`
+* **MonoDepth**: compute an average depth for every instance using the following script 
+[here](https://github.com/Parrotlife/pedestrianDepth-baseline/tree/master/MonoDepth-PyTorch) 
+and save them into `data/kitti/monodepth`
+* **GeometricalBaseline**: A geometrical baseline comparison is provided. 
+
+Download the model for monoloco
+
+The average geometrical value for comparison can be obtained running:
+```
+python -m monstereo.run eval 
+--dir_ann <annotation directory> 
+--model <model path> 
+--net monoloco_pp 
+--generate
+````
+
+To include also geometric baselines and MonoLoco, add the flag ``--baselines``
+
+### Activity Estimation (Talking)
+Please follow preprocessing steps for Collective activity dataset and run pifpaf over the dataset images.
+Evaluation on this dataset is done with models trained on either KITTI or nuScenes. 
+For optimal performances, we suggest the model trained on nuScenes teaser (TODO add link)
+```
+python -m monstereo.run eval 
+--activity 
+--dataset collective
+--net monoloco_pp
+--model <path to the model>   
+--dir_ann <annotation directory>
+```

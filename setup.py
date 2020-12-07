@@ -27,9 +27,7 @@ setup(
     zip_safe=False,
 
     install_requires=[
-        'openpifpaf==0.8.0',
-        'torch==1.1.0',
-        'torchvision==0.3.0'
+        'openpifpaf>=0.11'
     ],
     extras_require={
         'eval': [
