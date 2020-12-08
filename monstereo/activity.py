@@ -46,7 +46,9 @@ def social_interactions(idx, centers, angles, dds, stds=None, social_distance=Fa
         # Samples distance
         dds = torch.tensor(dds).view(-1, 1)
         stds = torch.tensor(stds).view(-1, 1)
-        # stds = get_task_error(dds)  # similar results to MonoLoco but lower true positive
+        # stds_te = get_task_error(dds)  # similar results to MonoLoco but lower true positive
+        # print(f'ML : {float(torch.mean(stds))}\n')
+        # print(f'Task Error: {float(torch.mean(stds_te))}')
         laplace_d = torch.cat((dds, stds), dim=1)
         samples_d = laplace_sampling(laplace_d, n_samples=n_samples)
 

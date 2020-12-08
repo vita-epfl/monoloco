@@ -24,6 +24,8 @@ class ActivityEvaluator:
     def __init__(self, args):
 
         self.dir_ann = args.dir_ann
+        assert self.dir_ann is not None and os.path.exists(self.dir_ann), \
+            "Annotation directory not provided / does not exist"
         assert os.listdir(self.dir_ann), "Annotation directory is empty"
 
         # COLLECTIVE ACTIVITY DATASET (talking)
@@ -32,7 +34,7 @@ class ActivityEvaluator:
             self.sequences = ['seq02', 'seq14', 'seq12', 'seq13', 'seq11', 'seq36']
             # folders_collective = ['seq02']
             self.dir_data = 'data/activity/dataset'
-            self.THRESHOLD_PROB = 0.2  # Concordance for samples
+            self.THRESHOLD_PROB = 0.25  # Concordance for samples
             self.THRESHOLD_DIST = 2  # Threshold to check distance of people
             self.RADII = (0.3, 0.5)  # expected radii of the o-space
             self.PIFPAF_CONF = 0.3
@@ -95,6 +97,8 @@ class ActivityEvaluator:
                 self.estimate_activity(dic_out, matches, ys_gt, categories=categories)
 
         # Print Results
+            acc = accuracy_score(self.all_gt[seq], self.all_pred[seq])
+            print(f"Accuracy of category {seq}: {100*acc:.2f}%")
         cout_results(self.cnt, self.all_gt, self.all_pred, categories=self.sequences)
 
     def eval_kitti(self):
@@ -225,8 +229,9 @@ def cout_results(cnt, all_gt, all_pred, categories=()):
 
     # Final Accuracy
     acc = accuracy_score(all_gt['all'], all_pred['all'])
+    recall = cnt['pred']['all'] / cnt['gt']['all'] * 100  # only predictions that match a ground-truth are included
     print('-' * 80)
-    print("Final Accuracy: {:.2f}%".format(acc * 100))
+    print(f"Final Accuracy: {acc * 100:.2f}      Final Recall:{recall:.2f}")
     print('-' * 80)
 
 

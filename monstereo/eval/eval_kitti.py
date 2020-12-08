@@ -55,7 +55,7 @@ class EvalKitti:
                                 for method in self.methods}
 
         # Set thresholds to obtain comparable recall
-        self.dic_thresh_conf['monopsr'] += 0.3
+        self.dic_thresh_conf['monopsr'] += 0.4
         self.dic_thresh_conf['e2e-pl'] = -100
         self.dic_thresh_conf['oc-stereo'] = -100
         self.dic_thresh_conf['smoke'] = -100
