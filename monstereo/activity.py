@@ -27,12 +27,15 @@ def social_interactions(idx, centers, angles, dds, stds=None, social_distance=Fa
     """
     return flag of alert if social distancing is violated
     """
+
+    # A) Check whether people are close together
     xx = centers[idx][0]
     zz = centers[idx][1]
     distances = [math.sqrt((xx - centers[i][0]) ** 2 + (zz - centers[i][1]) ** 2) for i, _ in enumerate(centers)]
     sorted_idxs = np.argsort(distances)
     indices = [idx_t for idx_t in sorted_idxs[1:] if distances[idx_t] <= threshold_dist]
 
+    # B) Check whether people are looking inwards and whether there are no intrusions
     # Deterministic
     if n_samples < 2:
         for idx_t in indices:
@@ -47,8 +50,6 @@ def social_interactions(idx, centers, angles, dds, stds=None, social_distance=Fa
         dds = torch.tensor(dds).view(-1, 1)
         stds = torch.tensor(stds).view(-1, 1)
         # stds_te = get_task_error(dds)  # similar results to MonoLoco but lower true positive
-        # print(f'ML : {float(torch.mean(stds))}\n')
-        # print(f'Task Error: {float(torch.mean(stds_te))}')
         laplace_d = torch.cat((dds, stds), dim=1)
         samples_d = laplace_sampling(laplace_d, n_samples=n_samples)
 
@@ -93,19 +94,20 @@ def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False
         mu_1 = np.array([centers[idx_t][0] + radius * math.cos(theta1), centers[idx_t][1] - radius * math.sin(theta1)])
         o_c = (mu_0 + mu_1) / 2
 
-        # Verify they are looking inwards.
+        # 1) Verify they are looking inwards.
         # The distance between mus and the center should be less wrt the original position and the center
         d_new = np.linalg.norm(mu_0 - mu_1) / 2 if social_distance else np.linalg.norm(mu_0 - mu_1)
         d_0 = np.linalg.norm(x_0 - o_c)
         d_1 = np.linalg.norm(x_1 - o_c)
 
-        # Verify no intrusion for third parties
+        # 2) Verify no intrusion for third parties
         if other_centers.size:
             other_distances = np.linalg.norm(other_centers - o_c.reshape(1, -1), axis=1)
         else:
             other_distances = 100 * np.ones((1, 1))  # Condition verified if no other people
 
         # Binary Classification
+        # if np.min(other_distances) > radius:  # Ablation without orientation
         if d_new <= min(d_0, d_1) and np.min(other_distances) > radius:
             return True
     return False

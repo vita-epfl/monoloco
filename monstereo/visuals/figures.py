@@ -17,21 +17,22 @@ DPI = 200
 GRID_WIDTH = 0.5
 
 
-def show_results(dic_stats, clusters, dir_out='data/figures', show=False, save=False, stereo=True):
+def show_results(dic_stats, clusters, net, dir_fig, show=False, save=False):
     """
     Visualize error as function of the distance and compare it with target errors based on human height analyses
     """
 
     phase = 'test'
     x_min = 3
-    x_max = 42
+    # x_max = 42
+    x_max = 31
     y_min = 0
     # y_max = 2.2
-    y_max = 3.5 if stereo else 5.2
+    y_max = 3.5 if net == 'monstereo' else 2.6
     xx = np.linspace(x_min, x_max, 100)
-    excl_clusters = ['all', 'easy', 'moderate', 'hard']
+    excl_clusters = ['all', 'easy', 'moderate', 'hard', '49']
     clusters = [clst for clst in clusters if clst not in excl_clusters]
-    styles = printing_styles(stereo)
+    styles = printing_styles(net)
     for idx_style, style in enumerate(styles.items()):
         plt.figure(idx_style, figsize=FIGSIZE)
         plt.grid(linewidth=GRID_WIDTH)
@@ -51,7 +52,7 @@ def show_results(dic_stats, clusters, dir_out='data/figures', show=False, save=F
             if method in ('monstereo', 'pseudo-lidar'):
                 for i, x in enumerate(xxs):
                     plt.text(x, errs[i], str(cnts[i]), fontsize=FONTSIZE)
-    if not stereo:
+    if net == 'monoloco_pp':
         plt.plot(xx, get_task_error(xx), '--', label="Task error", color='lightgreen', linewidth=2.5)
     # if stereo:
     #     yy_stereo = get_pixel_error(xx)
@@ -62,18 +63,18 @@ def show_results(dic_stats, clusters, dir_out='data/figures', show=False, save=F
     plt.yticks(fontsize=FONTSIZE)
     if save:
         plt.tight_layout()
-        mode = 'stereo' if stereo else 'mono'
-        path_fig = os.path.join(dir_out, 'results_' + mode + '.png')
+        path_fig = os.path.join(dir_fig, 'results_' + net + '.png')
         plt.savefig(path_fig, dpi=DPI)
-        print("Figure of results " + mode + " saved in {}".format(path_fig))
+        print("Figure of results " + net + " saved in {}".format(path_fig))
     if show:
         plt.show()
     plt.close('all')
 
 
-def show_spread(dic_stats, clusters, dir_out='data/figures', show=False, save=False):
+def show_spread(dic_stats, clusters, net, dir_fig, show=False, save=False):
     """Predicted confidence intervals and task error as a function of ground-truth distance"""
 
+    assert net in ('monoloco_pp', 'monstereo'), "network not recognized"
     phase = 'test'
     excl_clusters = ['all', 'easy', 'moderate', 'hard']
     clusters = [clst for clst in clusters if clst not in excl_clusters]
@@ -81,42 +82,42 @@ def show_spread(dic_stats, clusters, dir_out='data/figures', show=False, save=Fa
     x_max = 42
     y_min = 0
 
-    for method in ('monoloco_pp', 'monstereo'):
-        plt.figure(2, figsize=FIGSIZE)
-        xxs = get_distances(clusters)
-        bbs = np.array([dic_stats[phase][method][key]['std_ale'] for key in clusters[:-1]])
-        if method == 'monoloco_pp':
-            y_max = 5
-            color = 'deepskyblue'
-            epis = np.array([dic_stats[phase][method][key]['std_epi'] for key in clusters[:-1]])
-            plt.plot(xxs, epis, marker='o', color='coral', label="Combined uncertainty (\u03C3)")
-        else:
-            y_max = 3.5
-            color = 'b'
-            plt.plot(xx, get_pixel_error(xx), linewidth=2.5, color='k', label='Pixel error')
-        plt.plot(xxs, bbs, marker='s', color=color, label="Aleatoric uncertainty (b)", linewidth=4, markersize=8)
-        xx = np.linspace(x_min, x_max, 100)
-        plt.plot(xx, get_task_error(xx), '--', label="Task error (monocular bound)", color='lightgreen', linewidth=4)
+    plt.figure(2, figsize=FIGSIZE)
+    xxs = get_distances(clusters)
+    bbs = np.array([dic_stats[phase][net][key]['std_ale'] for key in clusters[:-1]])
+    xx = np.linspace(x_min, x_max, 100)
+    if net == 'monoloco_pp':
+        y_max = 5
+        color = 'deepskyblue'
+        epis = np.array([dic_stats[phase][net][key]['std_epi'] for key in clusters[:-1]])
+        plt.plot(xxs, epis, marker='o', color='coral', label="Combined uncertainty (\u03C3)")
+    else:
+        y_max = 3.5
+        color = 'b'
+        plt.plot(xx, get_pixel_error(xx), linewidth=2.5, color='k', label='Pixel error')
+    plt.plot(xxs, bbs, marker='s', color=color, label="Aleatoric uncertainty (b)", linewidth=4, markersize=8)
+    plt.plot(xx, get_task_error(xx), '--', label="Task error (monocular bound)", color='lightgreen', linewidth=4)
 
-        plt.xlabel("Ground-truth distance [m]", fontsize=FONTSIZE)
-        plt.ylabel("Uncertainty [m]", fontsize=FONTSIZE)
-        plt.xlim(x_min, x_max)
-        plt.ylim(y_min, y_max)
-        plt.grid(linewidth=GRID_WIDTH)
-        plt.legend(prop={'size': FONTSIZE})
-        plt.xticks(fontsize=FONTSIZE)
-        plt.yticks(fontsize=FONTSIZE)
-        if save:
-            plt.tight_layout()
-            path_fig = os.path.join(dir_out, 'spread_' + method + '.png')
-            plt.savefig(path_fig, dpi=DPI)
-            print("Figure of confidence intervals saved in {}".format(path_fig))
-        if show:
-            plt.show()
-        plt.close('all')
+    plt.xlabel("Ground-truth distance [m]", fontsize=FONTSIZE)
+    plt.ylabel("Uncertainty [m]", fontsize=FONTSIZE)
+    plt.xlim(x_min, x_max)
+    plt.ylim(y_min, y_max)
+    plt.grid(linewidth=GRID_WIDTH)
+    plt.legend(prop={'size': FONTSIZE})
+    plt.xticks(fontsize=FONTSIZE)
+    plt.yticks(fontsize=FONTSIZE)
+
+    if save:
+        plt.tight_layout()
+        path_fig = os.path.join(dir_fig, 'spread_' + net + '.png')
+        plt.savefig(path_fig, dpi=DPI)
+        print("Figure of confidence intervals saved in {}".format(path_fig))
+    if show:
+        plt.show()
+    plt.close('all')
 
 
-def show_task_error(show, save, dir_out='data/figures'):
+def show_task_error(dir_fig, show, save):
     """Task error figure"""
     plt.figure(3, figsize=FIGSIZE)
     xx = np.linspace(0.1, 50, 100)
@@ -147,7 +148,7 @@ def show_task_error(show, save, dir_out='data/figures'):
     plt.xticks(fontsize=FONTSIZE)
     plt.yticks(fontsize=FONTSIZE)
     if save:
-        path_fig = os.path.join(dir_out, 'task_error.png')
+        path_fig = os.path.join(dir_fig, 'task_error.png')
         plt.savefig(path_fig, dpi=DPI)
         print("Figure of task error saved in {}".format(path_fig))
     if show:
@@ -181,7 +182,7 @@ def show_method(save, dir_out='data/figures'):
     plt.close('all')
 
 
-def show_box_plot(dic_errors, clusters, dir_out='data/figures', show=False, save=False):
+def show_box_plot(dic_errors, clusters, dir_fig, show=False, save=False):
     import pandas as pd
     excl_clusters = ['all', 'easy', 'moderate', 'hard']
     clusters = [int(clst) for clst in clusters if clst not in excl_clusters]
@@ -205,7 +206,7 @@ def show_box_plot(dic_errors, clusters, dir_out='data/figures', show=False, save
         plt.ylim(y_min, y_max)
 
         if save:
-            path_fig = os.path.join(dir_out, 'box_plot_' + name + '.png')
+            path_fig = os.path.join(dir_fig, 'box_plot_' + name + '.png')
             plt.tight_layout()
             plt.savefig(path_fig, dpi=DPI)
             print("Figure of box plot saved in {}".format(path_fig))
@@ -300,8 +301,8 @@ def get_percentile(dist_gmm):
     # mad_d = np.mean(np.abs(dist_d - mu_d))
 
 
-def printing_styles(stereo):
-    if stereo:
+def printing_styles(net):
+    if net == 'monstereo':
         style = {"labels": ['3DOP', 'PSF', 'MonoLoco', 'MonoPSR', 'Pseudo-Lidar', 'Our MonStereo'],
                  "methods": ['3dop', 'psf', 'monoloco', 'monopsr', 'pseudo-lidar', 'monstereo'],
                  "mks": ['s', 'p', 'o', 'v', '*', '^'],
@@ -309,11 +310,12 @@ def printing_styles(stereo):
                  "colors": ['gold', 'skyblue', 'darkgreen', 'pink', 'darkorange', 'b'],
                  "lstyles": ['solid', 'solid', 'dashed', 'dashed', 'solid', 'solid']}
     else:
-        style = {"labels": ['Mono3D', 'Geometric Baseline', 'MonoPSR', '3DOP (stereo)', 'MonoLoco', 'Monoloco++'],
-                 "methods": ['m3d', 'geometric', 'monopsr', '3dop', 'monoloco', 'monoloco_pp'],
+        style = {"labels": ['Geometric Baseline', 'MonoPSR', 'MonoDIS', '3DOP (stereo)',
+                            'MonoLoco', 'Monoloco++'],
+                 "methods": ['geometric', 'monopsr', 'monodis', '3dop', 'monoloco', 'monoloco_pp'],
                  "mks": ['*', '^', 'p', '.', 's', 'o', 'o'],
                  "mksizes": [6, 6, 6, 6, 6, 6], "lws": [1.5, 1.5, 1.5, 1.5, 1.5, 2.2],
-                 "colors": ['r', 'purple', 'olive', 'darkorange', 'b', 'darkblue'],
+                 "colors": ['purple', 'olive', 'r', 'darkorange', 'b', 'darkblue'],
                  "lstyles": ['solid', 'solid', 'solid', 'dashdot', 'solid', 'solid', ]}
 
     return style

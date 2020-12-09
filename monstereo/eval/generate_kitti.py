@@ -240,10 +240,10 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco', ca
             if mode == 'monstereo':
                 conf_scale = 0.03
             elif mode == 'monoloco_pp':
-                # conf_scale = 0.033
-                conf_scale = 0.035  # nuScenes for having same recall
+                conf_scale = 0.033
+                # conf_scale = 0.035  # nuScenes for having same recall
             else:
-                conf_scale = 0.055
+                conf_scale = 0.05
             conf = conf_scale * (uv_box[-1]) / (bi / math.sqrt(xx ** 2 + yy ** 2 + zz ** 2))
 
             output_list = [alpha] + uv_box[:-1] + hwl + cam_0 + [ry, conf, bi, epi]

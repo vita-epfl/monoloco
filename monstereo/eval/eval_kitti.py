@@ -25,34 +25,45 @@ class EvalKitti:
                 '27', '29', '31', '49')
     ALP_THRESHOLDS = ('<0.5m', '<1m', '<2m')
     OUR_METHODS = ['geometric', 'monoloco', 'monoloco_pp', 'pose', 'reid', 'monstereo']
-    METHODS_MONO = ['m3d', 'monopsr', 'monodis', 'smoke']
+    METHODS_MONO = ['m3d', 'monopsr', 'smoke', 'monodis']
     METHODS_STEREO = ['3dop', 'psf', 'pseudo-lidar', 'e2e', 'oc-stereo']
     BASELINES = ['task_error', 'pixel_error']
     HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
     CATEGORIES = ('pedestrian',)
+    methods = OUR_METHODS + METHODS_MONO + METHODS_STEREO
 
-    def __init__(self, thresh_iou_monoloco=0.3, thresh_iou_base=0.3, thresh_conf_monoloco=0.2, thresh_conf_base=0.5,
-                 verbose=False):
+    # Set directories
+    main_dir = os.path.join('data', 'kitti')
+    dir_gt = os.path.join(main_dir, 'gt')
+    path_train = os.path.join('splits', 'kitti_train.txt')
+    path_val = os.path.join('splits', 'kitti_val.txt')
+    dir_logs = os.path.join('data', 'logs')
+    assert os.path.exists(dir_logs), "No directory to save final statistics"
+    dir_fig = os.path.join('data', 'figures')
+    assert os.path.exists(dir_logs), "No directory to save figures"
 
-        self.main_dir = os.path.join('data', 'kitti')
-        self.dir_gt = os.path.join(self.main_dir, 'gt')
-        self.methods = self.OUR_METHODS + self.METHODS_MONO + self.METHODS_STEREO
-        path_train = os.path.join('splits', 'kitti_train.txt')
-        path_val = os.path.join('splits', 'kitti_val.txt')
-        dir_logs = os.path.join('data', 'logs')
-        assert dir_logs, "No directory to save final statistics"
+    # Set thresholds to obtain comparable recalls
+    thresh_iou_monoloco = 0.3
+    thresh_iou_base = 0.3
+    thresh_conf_monoloco = 0.2
+    thresh_conf_base = 0.5
+
+    def __init__(self, args):
+
+        self.verbose = args.verbose
+        self.net = args.net
+        self.save = args.save
+        self.show = args.show
 
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
-        self.path_results = os.path.join(dir_logs, 'eval-' + now_time + '.json')
-        self.verbose = verbose
+        self.path_results = os.path.join(self.dir_logs, 'eval-' + now_time + '.json')
 
-        self.dic_thresh_iou = {method: (thresh_iou_monoloco if method in self.OUR_METHODS
-                                        else thresh_iou_base)
-                               for method in self.methods}
-        self.dic_thresh_conf = {method: (thresh_conf_monoloco if method in self.OUR_METHODS
-                                         else thresh_conf_base)
-                                for method in self.methods}
+        # Set thresholds for comparable recalls
+        self.dic_thresh_iou = {method: (self.thresh_iou_monoloco if method in self.OUR_METHODS else self.thresh_iou_base)
+                          for method in self.methods}
+        self.dic_thresh_conf = {method: (self.thresh_conf_monoloco if method in self.OUR_METHODS else self.thresh_conf_base)
+                           for method in self.methods}
 
         # Set thresholds to obtain comparable recall
         self.dic_thresh_conf['monopsr'] += 0.4
@@ -63,7 +74,7 @@ class EvalKitti:
 
         # Extract validation images for evaluation
         names_gt = tuple(os.listdir(self.dir_gt))
-        _, self.set_val = split_training(names_gt, path_train, path_val)
+        _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
 
         # self.set_val = ('002282.txt', )
 
@@ -130,12 +141,14 @@ class EvalKitti:
             print('\n' + self.category.upper() + ':')
             self.show_statistics()
 
-    def printer(self, show, save):
-        if save or show:
-            show_results(self.dic_stats, self.CLUSTERS, show=show, save=save)
-            show_spread(self.dic_stats, self.CLUSTERS, show=show, save=save)
-            show_box_plot(self.errors, self.CLUSTERS, show=show, save=save)
-            show_task_error(show=show, save=save)
+    def printer(self):
+        if self.save or self.show:
+            show_results(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)
+            show_spread(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)
+            if self.net == 'monstero':
+                show_box_plot(self.errors, self.CLUSTERS, self.dir_fig, show=self.show, save=self.save)
+            else:
+                show_task_error(self.dir_fig, show=self.show, save=self.save)
 
     def _parse_txts(self, path, method):
 

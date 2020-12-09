@@ -179,9 +179,9 @@ def main():
 
             if args.dataset == 'kitti':
                 from .eval import EvalKitti
-                kitti_eval = EvalKitti(verbose=args.verbose)
+                kitti_eval = EvalKitti(args)
                 kitti_eval.run()
-                kitti_eval.printer(show=args.show, save=args.save)
+                kitti_eval.printer()
 
             elif 'nuscenes' in args.dataset:
                 from .train import Trainer
