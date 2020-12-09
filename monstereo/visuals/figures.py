@@ -28,7 +28,7 @@ def show_results(dic_stats, clusters, net, dir_fig, show=False, save=False):
     x_max = 31
     y_min = 0
     # y_max = 2.2
-    y_max = 3.5 if net == 'monstereo' else 2.6
+    y_max = 3.5 if net == 'monstereo' else 2.7
     xx = np.linspace(x_min, x_max, 100)
     excl_clusters = ['all', 'easy', 'moderate', 'hard', '49']
     clusters = [clst for clst in clusters if clst not in excl_clusters]
@@ -76,10 +76,10 @@ def show_spread(dic_stats, clusters, net, dir_fig, show=False, save=False):
 
     assert net in ('monoloco_pp', 'monstereo'), "network not recognized"
     phase = 'test'
-    excl_clusters = ['all', 'easy', 'moderate', 'hard']
+    excl_clusters = ['all', 'easy', 'moderate', 'hard', '49']
     clusters = [clst for clst in clusters if clst not in excl_clusters]
     x_min = 3
-    x_max = 42
+    x_max = 31
     y_min = 0
 
     plt.figure(2, figsize=FIGSIZE)
@@ -87,10 +87,10 @@ def show_spread(dic_stats, clusters, net, dir_fig, show=False, save=False):
     bbs = np.array([dic_stats[phase][net][key]['std_ale'] for key in clusters[:-1]])
     xx = np.linspace(x_min, x_max, 100)
     if net == 'monoloco_pp':
-        y_max = 5
+        y_max = 2.7
         color = 'deepskyblue'
         epis = np.array([dic_stats[phase][net][key]['std_epi'] for key in clusters[:-1]])
-        plt.plot(xxs, epis, marker='o', color='coral', label="Combined uncertainty (\u03C3)")
+        plt.plot(xxs, epis, marker='o', color='coral', linewidth=4, markersize=8, label="Combined uncertainty (\u03C3)")
     else:
         y_max = 3.5
         color = 'b'

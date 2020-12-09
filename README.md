@@ -5,14 +5,14 @@ This repository contains the code for two research projects:
 1. **MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization**   
 [README](https://github.com/vita-epfl/monstereo/tree/master/docs/MonStereo.md) & [Article](https://arxiv.org/abs/2008.10913)
      
-     ![monstereo 1](docs/000840_multi.png)
+     ![monstereo 1](docs/000840_multi.jpg)
     
 2.  **Perceiving Humans: from Monocular 3D Localization to Social Distancing (MonoLoco++)**         
  [README](https://github.com/vita-epfl/monstereo/tree/master/docs/MonoLoco_pp.md) & [Article](https://arxiv.org/abs/2009.00984)
  
-    ![social distancing](docs/pull_sd.png)
+    ![social distancing](docs/social_distancing.jpg)
  
-    ![monoloco_pp](docs/truck.png)
+    ![monoloco_pp](docs/truck.jpg)
 
 Both projects has been built upon the CVPR'19 project [Openpifpaf](https://github.com/vita-epfl/openpifpaf) 
 for 2D pose estimation and the ICCV'19 project [MonoLoco](https://github.com/vita-epfl/monoloco) for monocular 3D localization. 

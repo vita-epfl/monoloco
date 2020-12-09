@@ -66,13 +66,13 @@ After downloading model and ground-truth file, a demo can be tested with the fol
  --model data/models/ms-200710-1511.pkl --z_max 30 --checkpoint resnet152 --path_gt data/arrays/names-kitti-200615-1022.json
  -o data/output`
  
-![Crowded scene](out_000840.png)
+![Crowded scene](out_000840.jpg)
 
 `python3 -m monstereo.run predict --glob docs/005523*.png --output_types multi --scale 2
  --model data/models/ms-200710-1511.pkl --z_max 30 --checkpoint resnet152 --path_gt data/arrays/names-kitti-200615-1022.json
  -o data/output`
 
-![Occluded hard example](out_005523.png)
+![Occluded hard example](out_005523.jpg)
 
 # Preprocessing
 Preprocessing and training step are already fully supported by the code provided, 
