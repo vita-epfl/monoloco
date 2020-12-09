@@ -49,9 +49,9 @@ def show_results(dic_stats, clusters, net, dir_fig, show=False, save=False):
             plt.plot(xxs, errs, marker=styles['mks'][idx], markersize=styles['mksizes'][idx],
                      linewidth=styles['lws'][idx],
                      label=styles['labels'][idx], linestyle=styles['lstyles'][idx], color=styles['colors'][idx])
-            if method in ('monstereo', 'pseudo-lidar'):
+            if method in ('monstereo', 'monoloco_pp', 'pseudo-lidar'):
                 for i, x in enumerate(xxs):
-                    plt.text(x, errs[i], str(cnts[i]), fontsize=FONTSIZE)
+                    plt.text(x, errs[i] - 0.1, str(cnts[i]), fontsize=FONTSIZE)
     if net == 'monoloco_pp':
         plt.plot(xx, get_task_error(xx), '--', label="Task error", color='lightgreen', linewidth=2.5)
     # if stereo:
