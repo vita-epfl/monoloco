@@ -85,7 +85,6 @@ class ActivityEvaluator:
 
                 # Collect corresponding gt files (ys_gt: 1 or 0)
                 boxes_gt, ys_gt = parse_gt_collective(self.dir_data, seq, path_pif)
-
                 # Run Monoloco
                 dic_out, boxes = self.run_monoloco(annotations, kk, im_size=im_size)
 
@@ -140,7 +139,7 @@ class ActivityEvaluator:
         stds = dic_out['stds_ale']
         xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
 
-        # Count gt statistics
+        # Count gt statistics. (One element each gt)
         for key in categories:
             self.cnt['gt'][key] += 1
             self.cnt['gt']['all'] += 1
@@ -220,12 +219,15 @@ def cout_results(cnt, all_gt, all_pred, categories=()):
     # Split by folders for collective activity
     for key in categories:
         acc = accuracy_score(all_gt[key], all_pred[key])
-        print("Accuracy of category {}: {:.2f}% , Recall: {:.2f}%, #: {}, Predicted positive: {:.2f}%"
+        print("Accuracy of category {}: {:.2f}% , Recall: {:.2f}%, #: {}, Pred/Real positive: {:.1f}% / {:.1f}%"
               .format(key,
                       acc * 100,
                       cnt['pred'][key] / cnt['gt'][key]*100,
                       cnt['pred'][key],
-                      sum(all_gt[key]) / len(all_gt[key]) * 100))
+                      sum(all_pred[key]) / len(all_pred[key]) * 100,
+                      sum(all_gt[key]) / len(all_gt[key]) * 100
+                      )
+              )
 
     # Final Accuracy
     acc = accuracy_score(all_gt['all'], all_pred['all'])
