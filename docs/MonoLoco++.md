@@ -16,6 +16,8 @@ Our vision-based system (i) is privacy-safe, (ii) works with any fixed or moving
  Indeed, we show that we can rethink the concept of “social distancing” as a form of social interaction 
  in contrast to a simple location-based rule. We publicly share the source code towards an open science mission.
 
+This readme is in Beta version and is currently under development.
+
 ## Preprocessing
 
 # Kitti
@@ -132,3 +134,6 @@ python -m monstereo.run eval
 --model <path to the model>   
 --dir_ann <annotation directory>
 ```
+
+###  Predictions
+Currently under development. For the moment, please refer to the master branch
