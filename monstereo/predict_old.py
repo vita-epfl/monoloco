@@ -2,137 +2,96 @@
 # pylint: disable=too-many-statements, too-many-branches, undefined-loop-variable
 
 import os
-import glob
 import json
-import logging
 from collections import defaultdict
 
 
 import torch
-import PIL
 from PIL import Image
-import openpifpaf
-import openpifpaf.datasets as datasets
-from openpifpaf.predict import processor_factory, preprocess_factory
 
 from .visuals.printer import Printer
 from .visuals.pifpaf_show import KeypointPainter, image_canvas
 from .network import PifPaf, ImageList, Loco
 from .network.process import factory_for_gt, preprocess_pifpaf
 
-LOG = logging.getLogger(__name__)
-
-
-def factory_from_args(args):
-
-    # Merge the model_pifpaf argument
-    if not args.checkpoint:
-        args.checkpoint = 'shufflenetv2k30'  # Default model
-    # glob
-    if args.glob:
-        args.images += glob.glob(args.glob)
-    if not args.images:
-        raise Exception("no image files given")
-
-    # add args.device
-    args.device = torch.device('cpu')
-    args.disable_cuda = False
-    args.pin_memory = False
-    if torch.cuda.is_available():
-        args.device = torch.device('cuda')
-        args.pin_memory = True
-
-    # Add num_workers
-    args.loader_workers = 8
-
-    # Add visualization defaults
-    args.figure_width = 10
-    args.dpi_factor = 1.0
-
-    # TODO
-    args.long_edge = None
-    if args.net == 'monstereo':
-        args.batch_size = 2
-    else:
-        args.batch_size = 1
-
-    return args
-
 
 def predict(args):
 
     cnt = 0
-    args = factory_from_args(args)
 
     # Load Models
-    assert args.net in ('monoloco_pp', 'monstereo', 'pifpaf')
+    pifpaf = PifPaf(args)
+    assert args.mode in ('mono', 'stereo', 'pifpaf')
 
-    if args.net in ('monoloco_pp', 'monstereo'):
-        net = Loco(model=args.model, net=args.net, device=args.device, n_dropout=args.n_dropout, p_dropout=args.dropout)
+    if 'mono' in args.mode:
+        monoloco = Loco(model=args.model, net='monoloco_pp',
+                        device=args.device, n_dropout=args.n_dropout, p_dropout=args.dropout)
+
+    if 'stereo' in args.mode:
+        monstereo = Loco(model=args.model, net='monstereo',
+                         device=args.device, n_dropout=args.n_dropout, p_dropout=args.dropout)
 
     # data
-
-    processor, model = processor_factory(args)
-    preprocess = preprocess_factory(args)
-
-    # data
-    data = datasets.ImageList(args.images, preprocess=preprocess)
-    if args.net == 'monstereo':
+    data = ImageList(args.images, scale=args.scale)
+    if args.mode == 'stereo':
         assert len(data.image_paths) % 2 == 0, "Odd number of images in a stereo setting"
-
+        bs = 2
+    else:
+        bs = 1
     data_loader = torch.utils.data.DataLoader(
-        data, batch_size=args.batch_size, shuffle=False,
-        pin_memory=False, collate_fn=datasets.collate_images_anns_meta)
+        data, batch_size=bs, shuffle=False,
+        pin_memory=args.pin_memory, num_workers=args.loader_workers)
 
-    # visualizers
-    annotation_painter = openpifpaf.show.AnnotationPainter()
+    for idx, (image_paths, image_tensors, processed_images_cpu) in enumerate(data_loader):
+        images = image_tensors.permute(0, 2, 3, 1)
 
-    for batch_i, (image_tensors_batch, _, meta_batch) in enumerate(data_loader):
-        pred_batch = processor.batch(model, image_tensors_batch, device=args.device)
+        processed_images = processed_images_cpu.to(args.device, non_blocking=True)
+        fields_batch = pifpaf.fields(processed_images)
 
-        # unbatch
-        for pred, meta in zip(pred_batch, meta_batch):
-            LOG.info('batch %d: %s', batch_i, meta['file_name'])
-            pred = preprocess.annotations_inverse(pred, meta)
+        # unbatch stereo pair
+        for ii, (image_path, image, processed_image_cpu, fields) in enumerate(zip(
+                image_paths, images, processed_images_cpu, fields_batch)):
 
             if args.output_directory is None:
-                splits = os.path.split(meta['file_name'])
+                splits = os.path.split(image_paths[0])
                 output_path = os.path.join(splits[0], 'out_' + splits[1])
             else:
-                file_name = os.path.basename(meta['file_name'])
+                file_name = os.path.basename(image_paths[0])
                 output_path = os.path.join(args.output_directory, 'out_' + file_name)
-            print('image', batch_i, meta['file_name'], output_path)
-            pifpaf_out = [ann.json_data() for ann in pred]
+            print('image', idx, image_path, output_path)
+            keypoint_sets, scores, pifpaf_out = pifpaf.forward(image, processed_image_cpu, fields)
 
-            if batch_i == 0:
+            if ii == 0:
                 pifpaf_outputs = [keypoint_sets, scores, pifpaf_out]  # keypoints_sets and scores for pifpaf printing
-                images_outputs = [cpu_image]  # List of 1 or 2 elements with pifpaf tensor and monoloco original image
+                images_outputs = [image]  # List of 1 or 2 elements with pifpaf tensor and monoloco original image
                 pifpaf_outs = {'left': pifpaf_out}
+                image_path_l = image_path
             else:
                 pifpaf_outs['right'] = pifpaf_out
 
-        # Load the original image
-        if args.net in ('monoloco_pp', 'monstereo'):
-            with open(meta['file_name'], 'rb') as f:
-                cpu_image = PIL.Image.open(f).convert('RGB')
+        if args.mode in ('stereo', 'mono'):
+            # Extract calibration matrix and ground truth file if present
+            with open(image_path_l, 'rb') as f:
+                pil_image = Image.open(f).convert('RGB')
+                images_outputs.append(pil_image)
 
-            im_name = os.path.basename(meta['file_name'])
-            im_size = (cpu_image.size()[1], cpu_image.size()[0]) # Original
+            im_name = os.path.basename(image_path_l)
+            im_size = (float(image.size()[1] / args.scale), float(image.size()[0] / args.scale))  # Original
             kk, dic_gt = factory_for_gt(im_size, name=im_name, path_gt=args.path_gt)
 
             # Preprocess pifpaf outputs and run monoloco
             boxes, keypoints = preprocess_pifpaf(pifpaf_outs['left'], im_size, enlarge_boxes=False)
 
-            if args.net == 'monoloco_pp':
+            if args.mode == 'mono':
                 print("Prediction with MonoLoco++")
-                dic_out = net.forward(keypoints, kk)
-                dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt)
+                dic_out = monoloco.forward(keypoints, kk)
+                dic_out = monoloco.post_process(dic_out, boxes, keypoints, kk, dic_gt)
 
             else:
                 print("Prediction with MonStereo")
                 boxes_r, keypoints_r = preprocess_pifpaf(pifpaf_outs['right'], im_size)
-                dic_out = net.forward(keypoints, kk, keypoints_r=keypoints_r)
-                dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt)
+                dic_out = monstereo.forward(keypoints, kk, keypoints_r=keypoints_r)
+                dic_out = monstereo.post_process(dic_out, boxes, keypoints, kk, dic_gt)
 
         else:
             dic_out = defaultdict(list)
@@ -148,10 +107,6 @@ def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, dic_out=N
 
     # Save json file
     if args.mode == 'pifpaf':
-        with show.image_canvas(cpu_image, image_out_name) as ax:
-            annotation_painter.annotations(ax, pred)
-
-
         keypoint_sets, scores, pifpaf_out = pifpaf_outputs[:]
 
         # Visualizer

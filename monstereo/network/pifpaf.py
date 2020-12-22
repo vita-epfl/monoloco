@@ -24,11 +24,6 @@ class ImageList(torch.utils.data.Dataset):
         with open(image_path, 'rb') as f:
             image = Image.open(f).convert('RGB')
 
-        if self.scale > 1.01 or self.scale < 0.99:
-            image = torchvision.transforms.functional.resize(image,
-                                                             (round(self.scale * image.size[1]),
-                                                              round(self.scale * image.size[0])),
-                                                             interpolation=Image.BICUBIC)
         # PIL images are not iterables
         original_image = torchvision.transforms.functional.to_tensor(image)  # 0-255 --> 0-1
         image = image_transform(image)
