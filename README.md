@@ -3,7 +3,7 @@
 This repository contains the code for two research projects:
    
 1.  **Perceiving Humans: from Monocular 3D Localization to Social Distancing (MonoLoco++)**         
- [README](https://github.com/vita-epfl/monstereo/tree/update/docs/MonoLoco_pp.md) & [Article](https://arxiv.org/abs/2009.00984)
+ [README](https://github.com/vita-epfl/monstereo/blob/update/docs/MonoLoco%2B%2B.md) & [Article](https://arxiv.org/abs/2009.00984)
  
     ![social distancing](docs/social_distancing.jpg)
  
@@ -11,7 +11,7 @@ This repository contains the code for two research projects:
  
  
 2.  **MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization**   
-[README](https://github.com/vita-epfl/monstereo/tree/update/docs/MonStereo.md) & [Article](https://arxiv.org/abs/2008.10913)
+[README](https://github.com/vita-epfl/monstereo/blob/update/docs/MonStereo.md) & [Article](https://arxiv.org/abs/2008.10913)
      
      ![monstereo 1](docs/000840_multi.jpg)
 
