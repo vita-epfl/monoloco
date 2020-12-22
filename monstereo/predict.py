@@ -105,19 +105,18 @@ def predict(args):
             pifpaf_out = [ann.json_data() for ann in pred]
 
             if batch_i == 0:
-                pifpaf_outputs = [keypoint_sets, scores, pifpaf_out]  # keypoints_sets and scores for pifpaf printing
-                images_outputs = [cpu_image]  # List of 1 or 2 elements with pifpaf tensor and monoloco original image
+                pifpaf_outputs = pred  # to only print left image for stereo
                 pifpaf_outs = {'left': pifpaf_out}
+                with open(meta_batch[0]['file_name'], 'rb') as f:
+                    cpu_image = PIL.Image.open(f).convert('RGB')
             else:
                 pifpaf_outs['right'] = pifpaf_out
 
         # Load the original image
         if args.net in ('monoloco_pp', 'monstereo'):
-            with open(meta['file_name'], 'rb') as f:
-                cpu_image = PIL.Image.open(f).convert('RGB')
 
             im_name = os.path.basename(meta['file_name'])
-            im_size = (cpu_image.size()[1], cpu_image.size()[0]) # Original
+            im_size = (cpu_image.size[0], cpu_image.size[1])  # Original
             kk, dic_gt = factory_for_gt(im_size, name=im_name, path_gt=args.path_gt)
 
             # Preprocess pifpaf outputs and run monoloco
@@ -138,53 +137,52 @@ def predict(args):
             dic_out = defaultdict(list)
             kk = None
 
-        factory_outputs(args, images_outputs, output_path, pifpaf_outputs, dic_out=dic_out, kk=kk)
+        # TODO Clean
+        factory_outputs(args, annotation_painter, cpu_image, output_path, pifpaf_outputs, pifpaf_out,
+                        dic_out=dic_out, kk=kk)
         print('Image {}\n'.format(cnt) + '-' * 120)
         cnt += 1
 
 
-def factory_outputs(args, images_outputs, output_path, pifpaf_outputs, dic_out=None, kk=None):
+def factory_outputs(args, annotation_painter, cpu_image, output_path, pred, pifpaf_out, dic_out=None, kk=None):
     """Output json files or images according to the choice"""
 
     # Save json file
-    if args.mode == 'pifpaf':
-        with show.image_canvas(cpu_image, image_out_name) as ax:
+    if args.net == 'pifpaf':
+        with openpifpaf.show.image_canvas(cpu_image, output_path) as ax:
             annotation_painter.annotations(ax, pred)
-
-
-        keypoint_sets, scores, pifpaf_out = pifpaf_outputs[:]
 
         # Visualizer
         keypoint_painter = KeypointPainter(show_box=False)
         skeleton_painter = KeypointPainter(show_box=False, color_connections=True, markersize=1, linewidth=4)
 
-        if 'json' in args.output_types and keypoint_sets.size > 0:
+        if 'json' in args.output_types and len(pred) > 0:
             with open(output_path + '.pifpaf.json', 'w') as f:
                 json.dump(pifpaf_out, f)
 
-        if 'keypoints' in args.output_types:
-            with image_canvas(images_outputs[0],
-                              output_path + '.keypoints.png',
-                              show=args.show,
-                              fig_width=args.figure_width,
-                              dpi_factor=args.dpi_factor) as ax:
-                keypoint_painter.keypoints(ax, keypoint_sets)
-
-        if 'skeleton' in args.output_types:
-            with image_canvas(images_outputs[0],
-                              output_path + '.skeleton.png',
-                              show=args.show,
-                              fig_width=args.figure_width,
-                              dpi_factor=args.dpi_factor) as ax:
-                skeleton_painter.keypoints(ax, keypoint_sets, scores=scores)
+        # if 'keypoints' in args.output_types:
+        #     with image_canvas(images_outputs[0],
+        #                       output_path + '.keypoints.png',
+        #                       show=args.show,
+        #                       fig_width=args.figure_width,
+        #                       dpi_factor=args.dpi_factor) as ax:
+        #         keypoint_painter.keypoints(ax, keypoint_sets)
+        #
+        # if 'skeleton' in args.output_types:
+        #     with image_canvas(images_outputs[0],
+        #                       output_path + '.skeleton.png',
+        #                       show=args.show,
+        #                       fig_width=args.figure_width,
+        #                       dpi_factor=args.dpi_factor) as ax:
+        #         skeleton_painter.keypoints(ax, keypoint_sets, scores=scores)
 
     else:
         if any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
             print(output_path)
             if dic_out['boxes']:  # Only print in case of detections
-                printer = Printer(images_outputs[1], output_path, kk, args)
+                printer = Printer(cpu_image, output_path, kk, args)
                 figures, axes = printer.factory_axes()
-                printer.draw(figures, axes, dic_out, images_outputs[1])
+                printer.draw(figures, axes, dic_out, cpu_image)
 
         if 'json' in args.output_types:
             with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:

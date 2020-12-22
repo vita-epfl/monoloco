@@ -56,7 +56,7 @@ class Loco:
                                            output_size=output_size)
             else:
                 self.model = MonStereoModel(p_dropout=p_dropout, input_size=input_size, output_size=output_size,
-                                         linear_size=linear_size, device=self.device)
+                                            linear_size=linear_size, device=self.device)
 
             self.model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))
         else:

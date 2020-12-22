@@ -86,8 +86,7 @@ class Printer:
         self.boxes = dic_ann['boxes']
         self.boxes_gt = dic_ann['boxes_gt']
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
-        if dic_ann['aux']:
-            self.auxs = dic_ann['aux'] if dic_ann['aux'] else None
+        self.auxs = dic_ann['aux']
 
     def factory_axes(self):
         """Create axes for figures: front bird multi"""
@@ -199,7 +198,12 @@ class Printer:
 
     def _draw_front(self, ax, z, idx, number):
 
-        mode = 'stereo' if self.auxs[idx] > 0.3 else 'mono'
+        if len(self.auxs) == 0:
+            mode = 'mono'
+        elif self.auxs[idx] <= 0.3:
+            mode = 'mono'
+        else:
+            mode = 'stereo'
 
         # Bbox
         w = min(self.width-2, self.boxes[idx][2] - self.boxes[idx][0])
