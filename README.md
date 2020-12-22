@@ -8,7 +8,7 @@ This repository contains the code for three research projects:
     ![monstereo](docs/out_005523.png)
 
 2.  **Perceiving Humans: from Monocular 3D Localization to Social Distancing**         
- [README](https://github.com/vita-epfl/monstereo/tree/master/docs/SocialDistancing.md) & [Article](https://arxiv.org/abs/2009.00984)
+ [README](https://github.com/vita-epfl/monstereo/blob/update/docs/MonoLoco%2B%2B.md) & [Article](https://arxiv.org/abs/2009.00984)
  
     ![social distancing](docs/pull_sd.png)
  
