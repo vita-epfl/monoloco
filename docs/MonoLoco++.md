@@ -50,11 +50,11 @@ docs/002282.png \
 --n_dropout <50 to include epistemic uncertainty, 0 otherwise>
 ```
 
-![predict_ground_truth](docs/out_002282.png.multi.jpg)
+![predict](out_002282.png.multi.jpg)
 
 To show all the instances estimated by MonoLoco add the argument `show_all` to the above command.
 
-![predict_all](docs/out_002282.png.multi_all.jpg)
+![predict_all](out_002282.png.multi_all.jpg)
 
 ### Social Distancing
 WIP
