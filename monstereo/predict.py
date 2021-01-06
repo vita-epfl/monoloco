@@ -14,6 +14,7 @@ from PIL import Image
 import openpifpaf
 import openpifpaf.datasets as datasets
 from openpifpaf.predict import processor_factory, preprocess_factory
+from openpifpaf import decoder, network, visualizer, show
 
 from .visuals.printer import Printer
 from .visuals.pifpaf_show import KeypointPainter, image_canvas
@@ -56,6 +57,16 @@ def factory_from_args(args):
     else:
         args.batch_size = 1
 
+    # Make default pifpaf argument
+    args.force_complete_pose = True
+    args.instance_threshold = 0.15
+
+    # Configure
+    decoder.configure(args)
+    network.configure(args)
+    show.configure(args)
+    visualizer.configure(args)
+
     return args
 
 
@@ -71,7 +82,6 @@ def predict(args):
         net = Loco(model=args.model, net=args.net, device=args.device, n_dropout=args.n_dropout, p_dropout=args.dropout)
 
     # data
-
     processor, model = processor_factory(args)
     preprocess = preprocess_factory(args)
 

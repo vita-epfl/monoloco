@@ -1,11 +1,8 @@
 # pylint: disable=too-many-branches, too-many-statements
 
 import argparse
-try:
-    from openpifpaf.network.nets import cli as openpifpaf_cli
-except ImportError:
-    from openpifpaf.network.factory import cli as openpifpaf_cli
-from openpifpaf import decoder
+
+from openpifpaf import decoder, network, visualizer, show
 
 
 def cli():
@@ -39,13 +36,13 @@ def cli():
                                 help='what to output: json keypoints skeleton for Pifpaf'
                                      'json bird front or multi for MonStereo')
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
-    predict_parser.add_argument('--show', help='to show images', action='store_true')
     predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=100)
-    predict_parser.add_argument('--force-complete-pose', help='',  action ='store_true')
 
-    # Pifpaf
-    openpifpaf_cli(predict_parser)
+    # Pifpaf parsers
     decoder.cli(predict_parser)
+    network.cli(predict_parser)
+    show.cli(predict_parser)
+    visualizer.cli(predict_parser)
     predict_parser.add_argument('--scale', default=1.0, type=float, help='change the scale of the image to preprocess')
 
     # Monoloco
@@ -55,7 +52,7 @@ def cli():
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
                                 default='data/arrays/names-kitti-200615-1022.json')
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')
-    predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=100)
+    predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=30)
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
     predict_parser.add_argument('--dropout', type=float, help='dropout parameter', default=0.2)
     predict_parser.add_argument('--show_all', help='only predict ground-truth matches or all', action='store_true')
