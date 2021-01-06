@@ -201,8 +201,8 @@ def predict(args):
             boxes, keypoints = preprocess_pifpaf(annotations, im_size, enlarge_boxes=False)
             dic_out = monoloco.forward(keypoints, kk)
             dic_out = monoloco.post_process(dic_out, boxes, keypoints, kk, dic_gt, reorder=False)
-            # Print
-            show_social(args, image_t, output_path, annotations, dic_out)
+            if args.social_distance:
+                show_social(args, image, output_path, annotations, dic_out)
 
             print('Image {}\n'.format(cnt) + '-' * 120)
             cnt += 1

@@ -18,7 +18,8 @@ setup(
         'monstereo.utils'
     ],
     license='GNU AGPLv3',
-    description='MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization',
+    description=' Perceiving Humans: from Monocular 3D Localization to Social Distancing '
+                '/ MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author='Lorenzo Bertoni',

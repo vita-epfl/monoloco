@@ -17,9 +17,10 @@ from openpifpaf.predict import processor_factory, preprocess_factory
 from openpifpaf import decoder, network, visualizer, show
 
 from .visuals.printer import Printer
-from .visuals.pifpaf_show import KeypointPainter, image_canvas
-from .network import PifPaf, ImageList, Loco
+from .visuals.pifpaf_show import KeypointPainter
+from .network import Loco
 from .network.process import factory_for_gt, preprocess_pifpaf
+from .activity import show_social
 
 LOG = logging.getLogger(__name__)
 
@@ -132,7 +133,10 @@ def predict(args):
             if args.net == 'monoloco_pp':
                 print("Prediction with MonoLoco++")
                 dic_out = net.forward(keypoints, kk)
-                dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt)
+                reorder = False if args.social_distance else True
+                dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt, reorder=reorder)
+                if args.social_distance:
+                    show_social(args, cpu_image, output_path, pifpaf_out, dic_out)
 
             else:
                 print("Prediction with MonStereo")
