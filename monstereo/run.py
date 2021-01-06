@@ -41,6 +41,7 @@ def cli():
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
     predict_parser.add_argument('--show', help='to show images', action='store_true')
     predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=100)
+    predict_parser.add_argument('--force-complete-pose', help='',  action ='store_true')
 
     # Pifpaf
     openpifpaf_cli(predict_parser)
