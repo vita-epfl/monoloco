@@ -57,7 +57,7 @@ def get_iou_matches(boxes, boxes_gt, iou_min=0.3):
             ious.append(iou)
         idx_gt_max = int(np.argmax(ious))
         if (ious[idx_gt_max] >= iou_min) and (idx_gt_max not in used):
-            matches.append((idx, idx_gt_max))
+            matches.append((int(idx), idx_gt_max))
             used.append(idx_gt_max)
     return matches
 
@@ -93,6 +93,6 @@ def reorder_matches(matches, boxes, mode='left_rigth'):
 
     # Order the boxes based on the left-right position in the image and
     ordered_boxes = np.argsort([box[0] for box in boxes])  # indices of boxes ordered from left to right
-    matches_left = [idx for (idx, _) in matches]
+    matches_left = [int(idx) for (idx, _) in matches]
 
     return [matches[matches_left.index(idx_boxes)] for idx_boxes in ordered_boxes if idx_boxes in matches_left]

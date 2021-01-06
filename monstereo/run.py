@@ -37,13 +37,14 @@ def cli():
                                      'json bird front or multi for MonStereo')
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
     predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=100)
+    predict_parser.add_argument('--long-edge', default=None, type=int,
+                                help='rescale the long side of the image (aspect ratio maintained)')
 
     # Pifpaf parsers
     decoder.cli(predict_parser)
     network.cli(predict_parser)
     show.cli(predict_parser)
     visualizer.cli(predict_parser)
-    predict_parser.add_argument('--scale', default=1.0, type=float, help='change the scale of the image to preprocess')
 
     # Monoloco
     predict_parser.add_argument('--net', help='Choose network: monoloco, monoloco_p, monoloco_pp, monstereo')

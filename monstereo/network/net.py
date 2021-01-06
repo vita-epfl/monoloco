@@ -163,7 +163,7 @@ class Loco:
                 print("found {} matches with ground-truth".format(len(matches)))
 
             # Keep track of instances non-matched
-            idxs_matches = (el[0] for el in matches)
+            idxs_matches = [el[0] for el in matches]
             not_matches = [idx for idx, _ in enumerate(boxes) if idx not in idxs_matches]
 
         else:

@@ -18,9 +18,40 @@ Our vision-based system (i) is privacy-safe, (ii) works with any fixed or moving
 
 This readme is in Beta version and refers to the `update` branch. It is currently under development.
 
+##  Predictions
+For a quick setup download a pifpaf and a MonoLoco++ models from here and save them into `data/models`.
+
+### 3D Localization
+The predict script receives an image (or an entire folder using glob expressions), 
+calls PifPaf for 2d human pose detection over the image
+and runs Monoloco++ for 3d location of the detected poses.
+The command `--net` defines if saving pifpaf outputs, MonoLoco++ outputs or MonStereo ones.
+You can check all commands for Pifpaf at [openpifpaf](https://github.com/vita-epfl/openpifpaf).
+
+
+Output options include json files and/or visualization of the predictions on the image in *frontal mode*, 
+*birds-eye-view mode* or *combined mode* and can be specified with `--output_types`
+
+Below an example image and comparison with ground-truth. 
+Ground-truth KITTI files for comparing results can be downloaded from here and should be saved into `data/arrays`
+Ground-truth files can also be generated, more info in the preprocessing section
+```
+python -m monstereo.run predict --net monoloco_pp --glob docs/002282.png --output_types multi 
+--model data/models/monoloco_pp-201203-1424.pkl -o <desired output directory> --long-edge 2500 --n_dropout 50
+```
+
+To show all the instances estimated by MonoLoco add the argument `show_all` to the above command.
+
+### Social Distancing
+WIP
+
+### Orientation and Bounding Box dimensions
+MonoLoco++ estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
+`--output_types json`. At the moment, the only visualization including orientation is the social distancing one.
+
 ## Preprocessing
 
-# Kitti
+### Kitti
 Annotations from a pose detector needs to be stored in a folder.
 For example by using [openpifpaf](https://github.com/vita-epfl/openpifpaf):
 ```
@@ -134,6 +165,3 @@ python -m monstereo.run eval
 --model <path to the model>   
 --dir_ann <annotation directory>
 ```
-
-###  Predictions
-Currently under development. For the moment, please refer to the master branch

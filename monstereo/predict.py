@@ -26,32 +26,29 @@ LOG = logging.getLogger(__name__)
 
 def factory_from_args(args):
 
-    # Merge the model_pifpaf argument
-    if not args.checkpoint:
-        args.checkpoint = 'shufflenetv2k30'  # Default model
-    # glob
+    # Data
     if args.glob:
         args.images += glob.glob(args.glob)
     if not args.images:
         raise Exception("no image files given")
 
-    # add args.device
+    # Model
+    if not args.checkpoint:
+        args.checkpoint = 'data/models/shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl'  # Default model
+
+    # Decices
     args.device = torch.device('cpu')
     args.disable_cuda = False
     args.pin_memory = False
     if torch.cuda.is_available():
         args.device = torch.device('cuda')
         args.pin_memory = True
-
-    # Add num_workers
     args.loader_workers = 8
 
     # Add visualization defaults
     args.figure_width = 10
     args.dpi_factor = 1.0
 
-    # TODO
-    args.long_edge = None
     if args.net == 'monstereo':
         args.batch_size = 2
     else:
@@ -59,7 +56,7 @@ def factory_from_args(args):
 
     # Make default pifpaf argument
     args.force_complete_pose = True
-    args.instance_threshold = 0.15
+    print("Force complete pose is active")
 
     # Configure
     decoder.configure(args)
