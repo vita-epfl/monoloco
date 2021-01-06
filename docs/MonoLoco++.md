@@ -19,7 +19,7 @@ Our vision-based system (i) is privacy-safe, (ii) works with any fixed or moving
 This readme is in Beta version and refers to the `update` branch. It is currently under development.
 
 ##  Predictions
-For a quick setup download a pifpaf and a MonoLoco++ models from here and save them into `data/models`.
+For a quick setup download a pifpaf and a MonoLoco++ models from TODO and save them into `data/models`.
 
 ### 3D Localization
 The predict script receives an image (or an entire folder using glob expressions), 
@@ -28,19 +28,33 @@ and runs Monoloco++ for 3d location of the detected poses.
 The command `--net` defines if saving pifpaf outputs, MonoLoco++ outputs or MonStereo ones.
 You can check all commands for Pifpaf at [openpifpaf](https://github.com/vita-epfl/openpifpaf).
 
-
 Output options include json files and/or visualization of the predictions on the image in *frontal mode*, 
 *birds-eye-view mode* or *combined mode* and can be specified with `--output_types`
 
-Below an example image and comparison with ground-truth. 
-Ground-truth KITTI files for comparing results can be downloaded from here and should be saved into `data/arrays`
-Ground-truth files can also be generated, more info in the preprocessing section
+Ground-truth KITTI files for comparing results can be downloaded from 
+[here](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing) 
+(file called *names-kitti*) and should be saved into `data/arrays`
+Ground-truth files can also be generated, more info in the preprocessing section.
+
+For an example image, run the following command:
+
 ```
-python -m monstereo.run predict --net monoloco_pp --glob docs/002282.png --output_types multi 
---model data/models/monoloco_pp-201203-1424.pkl -o <desired output directory> --long-edge 2500 --n_dropout 50
+python -m monstereo.run predict \
+docs/002282.png \
+--net monoloco_pp \
+--output_types multi \
+--model data/models/monoloco_pp-201203-1424.pkl \
+--path_gt data/arrays/names-kitti-200615-1022.json \
+-o <output directory> \
+--long-edge <rescale the image by providing dimension of long side. If None original resolution>
+--n_dropout <50 to include epistemic uncertainty, 0 otherwise>
 ```
 
+![predict_ground_truth](docs/out_002282.png.multi.jpg)
+
 To show all the instances estimated by MonoLoco add the argument `show_all` to the above command.
+
+![predict_all](docs/out_002282.png.multi_all.jpg)
 
 ### Social Distancing
 WIP
