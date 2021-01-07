@@ -189,8 +189,6 @@ and save them into `data/kitti/3dop`
 and save them into `data/kitti/monodepth`
 * **GeometricalBaseline**: A geometrical baseline comparison is provided. 
 
-Download the model for monoloco
-
 The average geometrical value for comparison can be obtained running:
 ```
 python -m monstereo.run eval 
@@ -201,6 +199,11 @@ python -m monstereo.run eval
 ````
 
 To include also geometric baselines and MonoLoco, add the flag ``--baselines``
+
+<img src="quantitative_mono.png" width="500"/>
+
+Adding the argument `save`, a few plots will be added including 3D localization error as a function of distance:
+<img src="results.png" width="500"/>
 
 ### Activity Estimation (Talking)
 Please follow preprocessing steps for Collective activity dataset and run pifpaf over the dataset images.
