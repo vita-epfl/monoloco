@@ -29,8 +29,7 @@ year = {2020}
 
 ##  Predictions
 For a quick setup download a pifpaf and a MonoLoco++ models from 
-[here](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing)  
-and save them into `data/models`.
+[here](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing)  and save them into `data/models`.
 
 ### 3D Localization
 The predict script receives an image (or an entire folder using glob expressions), 

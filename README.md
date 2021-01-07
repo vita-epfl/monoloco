@@ -55,6 +55,23 @@ To check all the commands for the parser and the subparsers (including openpifpa
 
 or check the file `monstereo/run.py`
 
+### Data structure
+
+    Data         
+    ├── arrays                 
+    ├── models
+    ├── kitti
+    ├── figures
+    ├── logs
+    
+
+Run the following to create the folders:
+```
+mkdir data
+cd data
+mkdir arrays models kitti figures logs
+```
+
 Further instructions for prediction, preprocessing, training and evaluation can be found here:
 
 * [MonoLoco++ README](https://github.com/vita-epfl/monstereo/blob/master/docs/MonoLoco%2B%2B.md)
