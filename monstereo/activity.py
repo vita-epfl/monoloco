@@ -218,22 +218,22 @@ def show_social(args, image_t, output_path, annotations, dic_out):
     stds = dic_out['stds_ale']
     xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
 
+    # Prepare color for social distancing
+    colors = ['r' if social_interactions(idx, xz_centers, angles, dds,
+                                         stds=stds,
+                                         threshold_prob=args.threshold_prob,
+                                         threshold_dist=args.threshold_dist,
+                                         radii=args.radii)
+              else 'deepskyblue'
+              for idx, _ in enumerate(dic_out['xyz_pred'])]
+
     if 'front' in args.output_types:
 
         # Resize back the tensor image to its original dimensions
-        if not 0.99 < args.scale < 1.01:
-            size = (round(image_t.shape[0] / args.scale), round(image_t.shape[1] / args.scale))  # height width
-            image_t = image_t.permute(2, 0, 1).unsqueeze(0)  # batch x channels x height x width
-            image_t = F.interpolate(image_t, size=size).squeeze().permute(1, 2, 0)
-
-        # Prepare color for social distancing
-        colors = ['r' if social_interactions(idx, xz_centers, angles, dds,
-                                             stds=stds,
-                                             threshold_prob=args.threshold_prob,
-                                             threshold_dist=args.threshold_dist,
-                                             radii=args.radii)
-                  else 'deepskyblue'
-                  for idx, _ in enumerate(dic_out['xyz_pred'])]
+        # if not 0.99 < args.scale < 1.01:
+        #     size = (round(image_t.shape[0] / args.scale), round(image_t.shape[1] / args.scale))  # height width
+        #     image_t = image_t.permute(2, 0, 1).unsqueeze(0)  # batch x channels x height x width
+        #     image_t = F.interpolate(image_t, size=size).squeeze().permute(1, 2, 0)
 
         # Draw keypoints and orientation
         keypoint_sets, scores = get_pifpaf_outputs(annotations)

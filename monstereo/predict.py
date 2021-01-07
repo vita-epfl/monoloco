@@ -135,7 +135,9 @@ def predict(args):
                 dic_out = net.forward(keypoints, kk)
                 reorder = False if args.social_distance else True
                 dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt, reorder=reorder)
+
                 if args.social_distance:
+                    # image_t = torchvision.transforms.functional.to_tensor(image).permute(1, 2, 0)
                     show_social(args, cpu_image, output_path, pifpaf_out, dic_out)
 
             else:
@@ -148,9 +150,9 @@ def predict(args):
             dic_out = defaultdict(list)
             kk = None
 
-        # TODO Clean
-        factory_outputs(args, annotation_painter, cpu_image, output_path, pifpaf_outputs, pifpaf_out,
-                        dic_out=dic_out, kk=kk)
+        if not args.social_distance:
+            factory_outputs(args, annotation_painter, cpu_image, output_path, pifpaf_outputs, pifpaf_out,
+                            dic_out=dic_out, kk=kk)
         print('Image {}\n'.format(cnt) + '-' * 120)
         cnt += 1
 
@@ -192,7 +194,7 @@ def factory_outputs(args, annotation_painter, cpu_image, output_path, pred, pifp
             print(output_path)
             if dic_out['boxes']:  # Only print in case of detections
                 printer = Printer(cpu_image, output_path, kk, args)
-                figures, axes = printer.factory_axes()
+                figures, axes = printer.factory_axes(dic_out)
                 printer.draw(figures, axes, dic_out, cpu_image)
 
         if 'json' in args.output_types:

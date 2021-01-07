@@ -58,7 +58,7 @@ class Printer:
         self.output_path = output_path
         self.kk = kk
         self.output_types = args.output_types
-        self.z_max = args.z_max  # To include ellipses in the image
+        self.z_max = args.z_max  # set max distance to show instances
         self.show_all = args.show_all
         self.show = args.show_all
         self.save = not args.no_save
@@ -74,13 +74,17 @@ class Printer:
         self.xx_gt = [xx[0] for xx in dic_ann['xyz_real']]
         self.xx_pred = [xx[0] for xx in dic_ann['xyz_pred']]
 
+        # Set maximum distance
+        self.dd_pred = dic_ann['dds_pred']
+        self.dd_real = dic_ann['dds_real']
+        self.z_max = int(min(self.z_max + 4, max(max(self.dd_pred), max(self.dd_real, default=0))))
+
         # Do not print instances outside z_max
         self.zz_gt = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
                       for idx, xx in enumerate(dic_ann['xyz_real'])]
         self.zz_pred = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
                         for idx, xx in enumerate(dic_ann['xyz_pred'])]
-        self.dd_pred = dic_ann['dds_pred']
-        self.dd_real = dic_ann['dds_real']
+
         self.uv_heads = dic_ann['uv_heads']
         self.uv_shoulders = dic_ann['uv_shoulders']
         self.boxes = dic_ann['boxes']
@@ -97,10 +101,13 @@ class Printer:
                 else:
                     self.modes.append('stereo')
 
-    def factory_axes(self):
+    def factory_axes(self, dic_out):
         """Create axes for figures: front bird multi"""
         axes = []
         figures = []
+
+        # Process the annotation dictionary of monoloco
+        self._process_results(dic_out)
 
         #  Initialize multi figure, resizing it for aesthetic proportion
         if 'multi' in self.output_types:
@@ -160,9 +167,6 @@ class Printer:
 
     def draw(self, figures, axes, dic_out, image):
 
-        # Process the annotation dictionary of monoloco
-        self._process_results(dic_out)
-
         # whether to include instances that don't match the ground-truth
         iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))
         if not iterator:
@@ -171,9 +175,9 @@ class Printer:
 
         # Draw the front figure
         number = dict(flag=False, num=97)
-        if 'multi' in self.output_types:
+        if any(xx in self.output_types for xx in ['front', 'multi']):
             number['flag'] = True  # add numbers
-        self.mpl_im0.set_data(image)
+            self.mpl_im0.set_data(image)
         for idx in iterator:
             if any(xx in self.output_types for xx in ['front', 'multi']) and self.zz_pred[idx] > 0:
                 self._draw_front(axes[0],
