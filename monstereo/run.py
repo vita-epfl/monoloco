@@ -36,7 +36,7 @@ def cli():
                                 help='what to output: json keypoints skeleton for Pifpaf'
                                      'json bird front or multi for MonStereo')
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
-    predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=100)
+    predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=150)
     predict_parser.add_argument('--long-edge', default=None, type=int,
                                 help='rescale the long side of the image (aspect ratio maintained)')
 

@@ -28,7 +28,7 @@ def image_attributes(dpi, output_types):
                 fontsize_num=round(22 * c),
                 fontsize_ax=round(16 * c),
                 linewidth=round(8 * c),
-                markersize=round(16 * c),
+                markersize=round(13 * c),
                 y_box_margin=round(24 * math.sqrt(c)),
                 stereo=dict(color='deepskyblue',
                             numcolor='darkorange',
@@ -77,7 +77,7 @@ class Printer:
         # Set maximum distance
         self.dd_pred = dic_ann['dds_pred']
         self.dd_real = dic_ann['dds_real']
-        self.z_max = int(min(self.z_max + 4, max(max(self.dd_pred), max(self.dd_real, default=0))))
+        self.z_max = int(min(self.z_max, 4 + max(max(self.dd_pred), max(self.dd_real, default=0))))
 
         # Do not print instances outside z_max
         self.zz_gt = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0

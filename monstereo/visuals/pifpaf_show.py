@@ -1,3 +1,6 @@
+
+# File adapted from https://github.com/vita-epfl/openpifpaf
+
 from contextlib import contextmanager
 
 import numpy as np
