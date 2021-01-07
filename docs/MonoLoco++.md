@@ -66,6 +66,12 @@ To show all the instances estimated by MonoLoco add the argument `show_all` to t
 
 ![predict_all](out_002282.png.multi_all.jpg)
 
+It is also possible to run [openpifpaf](https://github.com/vita-epfl/openpifpaf) directly
+by specifying the network with the argument `--net pifpaf`. All the other pifpaf arguments are also supported 
+and can be checked with `python -m monstereo.run predict --help`.
+
+![predict_all](out_002282_pifpaf.jpg)
+
 ### Social Distancing
 To visualize social distancing compliance, simply add the argument `--social-distance` to the predict command.
 
