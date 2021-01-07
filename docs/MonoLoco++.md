@@ -1,6 +1,8 @@
 
 # Perceiving Humans: from Monocular 3D Localization to Social Distancing
 
+![social distancing](docs/social_distancing.jpg)
+
 > Perceiving humans in the context of Intelligent Transportation Systems (ITS) 
 often relies on multiple cameras or expensive LiDAR sensors. 
 In this work, we present a new cost- effective vision-based method that perceives humans’ locations in 3D 
@@ -15,8 +17,6 @@ Our vision-based system (i) is privacy-safe, (ii) works with any fixed or moving
  and verifying the compliance of recent safety measures due to the COVID-19 outbreak. 
  Indeed, we show that we can rethink the concept of “social distancing” as a form of social interaction 
  in contrast to a simple location-based rule. We publicly share the source code towards an open science mission.
-
-This readme is in Beta version and refers to the `update` branch. It is currently under development.
 
 ##  Predictions
 For a quick setup download a pifpaf and a MonoLoco++ models from TODO and save them into `data/models`.
@@ -61,7 +61,7 @@ To visualize social distancing compliance, simply add the argument `--social-dis
 
 An example from the Collective Activity Dataset is provided below.
 
-<img src="frame0038.jpg" width="600"/>
+<img src="frame0038.jpg" width="500"/>
 
 To visualize social distancing run the below, command:
 ```
@@ -72,10 +72,16 @@ docs/frame0038.jpg \
 --output_types front bird --show_all \
 --model data/models/monoloco_pp-201203-1424.pkl -o <output directory> 
 ```
-<img src="out_frame0038.jpg.front.png" width="500"/>
+<img src="out_frame0038.jpg.front.png" width="400"/>
 
 
-<img src="out_frame0038.jpg.bird.png" width="500"/>
+<img src="out_frame0038.jpg.bird.png" width="400"/>
+
+Threshold distance and radii (for F-formations) can be set using `--threshold-dist` and `--radii`, respectively.
+
+For more info, run:
+
+`python -m monstereo.run predict --help`
 
 ### Orientation and Bounding Box dimensions
 MonoLoco++ estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
