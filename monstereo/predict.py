@@ -10,7 +10,6 @@ from collections import defaultdict
 
 import torch
 import PIL
-from PIL import Image
 import openpifpaf
 import openpifpaf.datasets as datasets
 from openpifpaf.predict import processor_factory, preprocess_factory
@@ -132,8 +131,7 @@ def predict(args):
             if args.net == 'monoloco_pp':
                 print("Prediction with MonoLoco++")
                 dic_out = net.forward(keypoints, kk)
-                reorder = False if args.social_distance else True
-                dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt, reorder=reorder)
+                dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt, reorder=not args.social_distance)
 
                 if args.social_distance:
                     show_social(args, cpu_image, output_path, pifpaf_out, dic_out)
@@ -168,7 +166,7 @@ def factory_outputs(args, annotation_painter, cpu_image, output_path, pred, dic_
             if dic_out['boxes']:  # Only print in case of detections
                 printer = Printer(cpu_image, output_path, kk, args)
                 figures, axes = printer.factory_axes(dic_out)
-                printer.draw(figures, axes, dic_out, cpu_image)
+                printer.draw(figures, axes, cpu_image)
 
         if 'json' in args.output_types:
             with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:

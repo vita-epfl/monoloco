@@ -6,7 +6,7 @@ import torch.nn as nn
 class MonStereoModel(nn.Module):
 
     def __init__(self, input_size, output_size=2, linear_size=512, p_dropout=0.2, num_stage=3, device='cuda'):
-        super(MonStereoModel, self).__init__()
+        super().__init__()
 
         self.num_stage = num_stage
         self.stereo_size = input_size
@@ -73,7 +73,7 @@ class MonStereoModel(nn.Module):
 
 class MyLinearSimple(nn.Module):
     def __init__(self, linear_size, p_dropout=0.5):
-        super(MyLinearSimple, self).__init__()
+        super().__init__()
         self.l_size = linear_size
 
         self.relu = nn.ReLU(inplace=True)
@@ -109,7 +109,7 @@ class MonolocoModel(nn.Module):
     """
 
     def __init__(self, input_size, output_size=2, linear_size=256, p_dropout=0.2, num_stage=3):
-        super(MonolocoModel, self).__init__()
+        super().__init__()
 
         self.input_size = input_size
         self.output_size = output_size
@@ -147,7 +147,7 @@ class MonolocoModel(nn.Module):
 
 class MyLinear(nn.Module):
     def __init__(self, linear_size, p_dropout=0.5):
-        super(MyLinear, self).__init__()
+        super().__init__()
         self.l_size = linear_size
 
         self.relu = nn.ReLU(inplace=True)

@@ -61,7 +61,7 @@ class HypTuning:
         # plt.hist(self.lr_list, bins=50)
         # plt.show()
 
-    def train(self):
+    def train(self, args):
         """Train multiple times using log-space random search"""
 
         best_acc_val = 20
@@ -76,10 +76,7 @@ class HypTuning:
             hidden_size = self.hidden_list[idx]
             n_stage = self.n_stage_list[idx]
 
-            training = Trainer(joints=self.joints, epochs=self.num_epochs,
-                               bs=bs, monocular=self.monocular, dropout=self.dropout, lr=lr, sched_step=sched_step,
-                               sched_gamma=sched_gamma, hidden_size=hidden_size, n_stage=n_stage,
-                               save=False, print_loss=False, r_seed=self.r_seed)
+            training = Trainer(args)
 
             best_epoch = training.train()
             dic_err, model = training.evaluate()

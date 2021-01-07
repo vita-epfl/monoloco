@@ -124,15 +124,8 @@ def show_social(args, image_t, output_path, annotations, dic_out):
               else 'deepskyblue'
               for idx, _ in enumerate(dic_out['xyz_pred'])]
 
+    # Draw keypoints and orientation
     if 'front' in args.output_types:
-
-        # Resize back the tensor image to its original dimensions
-        # if not 0.99 < args.scale < 1.01:
-        #     size = (round(image_t.shape[0] / args.scale), round(image_t.shape[1] / args.scale))  # height width
-        #     image_t = image_t.permute(2, 0, 1).unsqueeze(0)  # batch x channels x height x width
-        #     image_t = F.interpolate(image_t, size=size).squeeze().permute(1, 2, 0)
-
-        # Draw keypoints and orientation
         keypoint_sets, scores = get_pifpaf_outputs(annotations)
         uv_centers = dic_out['uv_heads']
         sizes = [abs(dic_out['uv_heads'][idx][1] - uv_s[1]) / 1.5 for idx, uv_s in
@@ -155,14 +148,13 @@ def show_social(args, image_t, output_path, annotations, dic_out):
 
 
 def get_pifpaf_outputs(annotations):
+    # TODO extract direct from predictions with pifpaf 0.11+
     """Extract keypoints sets and scores from output dictionary"""
     if not annotations:
         return [], []
-    keypoints_sets = np.array([dic['keypoints'] for dic in annotations]).reshape(-1, 17, 3)
+    keypoints_sets = np.array([dic['keypoints'] for dic in annotations]).reshape((-1, 17, 3))
     score_weights = np.ones((keypoints_sets.shape[0], 17))
     score_weights[:, 3] = 3.0
-    # score_weights[:, 5:] = 0.1
-    # score_weights[:, -2:] = 0.0  # ears are not annotated
     score_weights /= np.sum(score_weights[0, :])
     kps_scores = keypoints_sets[:, :, 2]
     ordered_kps_scores = np.sort(kps_scores, axis=1)[:, ::-1]

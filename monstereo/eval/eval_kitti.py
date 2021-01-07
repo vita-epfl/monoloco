@@ -60,10 +60,12 @@ class EvalKitti:
         self.path_results = os.path.join(self.dir_logs, 'eval-' + now_time + '.json')
 
         # Set thresholds for comparable recalls
-        self.dic_thresh_iou = {method: (self.thresh_iou_monoloco if method in self.OUR_METHODS else self.thresh_iou_base)
-                          for method in self.methods}
-        self.dic_thresh_conf = {method: (self.thresh_conf_monoloco if method in self.OUR_METHODS else self.thresh_conf_base)
-                           for method in self.methods}
+        self.dic_thresh_iou = {method: (self.thresh_iou_monoloco if method in self.OUR_METHODS
+                                        else self.thresh_iou_base)
+                               for method in self.methods}
+        self.dic_thresh_conf = {method: (self.thresh_conf_monoloco if method in self.OUR_METHODS
+                                         else self.thresh_conf_base)
+                                for method in self.methods}
 
         # Set thresholds to obtain comparable recall
         self.dic_thresh_conf['monopsr'] += 0.4
@@ -108,7 +110,7 @@ class EvalKitti:
                 methods_out = defaultdict(tuple)  # Save all methods for comparison
 
                 # Count ground_truth:
-                boxes_gt, ys, truncs_gt, occs_gt = out_gt
+                boxes_gt, ys, truncs_gt, occs_gt = out_gt  # pylint: disable=unbalanced-tuple-unpacking
                 for idx, box in enumerate(boxes_gt):
                     mode = get_difficulty(box, truncs_gt[idx], occs_gt[idx])
                     self.cnt_gt[mode] += 1
@@ -371,7 +373,7 @@ class EvalKitti:
             self.name = name
             # Iterate over each line of the gt file and save box location and distances
             out_gt = parse_ground_truth(path_gt, 'pedestrian')
-            boxes_gt, ys, truncs_gt, occs_gt = out_gt
+            boxes_gt, ys, truncs_gt, occs_gt = out_gt   # pylint: disable=unbalanced-tuple-unpacking
             for label in ys:
                 heights.append(label[4])
         import numpy as np

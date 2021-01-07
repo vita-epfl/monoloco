@@ -4,7 +4,6 @@
 """
 Run MonoLoco/MonStereo and converts annotations into KITTI format
 """
-from typing import Dict, List
 
 import os
 import math

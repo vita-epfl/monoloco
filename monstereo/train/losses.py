@@ -27,7 +27,7 @@ class AutoTuneMultiTaskLoss(torch.nn.Module):
         loss_values = [lam * l(o, g) / (2.0 * (log_sigma.exp() ** 2))
                        for lam, log_sigma, l, o, g in zip(self.lambdas, self.log_sigmas, self.losses, out, gt_out)]
 
-        auto_reg = [log_sigma for log_sigma in self.log_sigmas]
+        auto_reg = [log_sigma for log_sigma in self.log_sigmas]  # pylint: disable=unnecessary-comprehension
 
         loss = sum(loss_values) + sum(auto_reg)
         if phase == 'val':
@@ -70,7 +70,7 @@ class MultiTaskLoss(torch.nn.Module):
 class CompositeLoss(torch.nn.Module):
 
     def __init__(self, tasks):
-        super(CompositeLoss, self).__init__()
+        super().__init__()
 
         self.tasks = tasks
         self.multi_loss_tr = {task: (LaplacianLoss() if task == 'd'
@@ -98,7 +98,7 @@ class CompositeLoss(torch.nn.Module):
 class LaplacianLoss(torch.nn.Module):
     """1D Gaussian with std depending on the absolute distance"""
     def __init__(self, size_average=True, reduce=True, evaluate=False):
-        super(LaplacianLoss, self).__init__()
+        super().__init__()
         self.size_average = size_average
         self.reduce = reduce
         self.evaluate = evaluate
@@ -140,7 +140,7 @@ class GaussianLoss(torch.nn.Module):
     """1D Gaussian with std depending on the absolute distance
     """
     def __init__(self, device, size_average=True, reduce=True, evaluate=False):
-        super(GaussianLoss, self).__init__()
+        super().__init__()
         self.size_average = size_average
         self.reduce = reduce
         self.evaluate = evaluate

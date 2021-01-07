@@ -93,7 +93,9 @@ class PreprocessKitti:
                 category = 'pedestrian'
 
             # Extract ground truth
-            boxes_gt, ys, _, _ = parse_ground_truth(path_gt, category=category, spherical=True)
+            boxes_gt, ys, _, _ = parse_ground_truth(path_gt,  # pylint: disable=unbalanced-tuple-unpacking
+                                                    category=category,
+                                                    spherical=True)
             cnt_gt[phase] += len(boxes_gt)
             cnt_files += 1
             cnt_files_ped += min(len(boxes_gt), 1)  # if no boxes 0 else 1

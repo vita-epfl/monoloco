@@ -136,7 +136,7 @@ def main():
             hyp_tuning = HypTuning(joints=args.joints, epochs=args.epochs,
                                    monocular=args.monocular, dropout=args.dropout,
                                    multiplier=args.multiplier, r_seed=args.r_seed)
-            hyp_tuning.train()
+            hyp_tuning.train(args)
         else:
 
             from .train import Trainer
