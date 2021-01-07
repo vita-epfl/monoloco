@@ -82,7 +82,7 @@ def factory_for_gt(im_size, name=None, path_gt=None, verbose=True):
         dic_gt = None
         x_factor = im_size[0] / 1600
         y_factor = im_size[1] / 900
-        pixel_factor = (x_factor + y_factor) / 2  # 1.7 for MOT
+        pixel_factor = (x_factor + y_factor) / 1.75  # 1.75 for MOT
         # pixel_factor = 1
         if im_size[0] / im_size[1] > 2.5:
             kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
@@ -274,7 +274,6 @@ def extract_outputs(outputs, tasks=()):
 
     if outputs.shape[1] == 10:
         dic_out['aux'] = torch.sigmoid(dic_out['aux'])
-
     return dic_out
 
 

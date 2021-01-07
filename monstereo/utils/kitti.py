@@ -199,11 +199,11 @@ def factory_file(path_calib, dir_ann, basename, mode='left'):
 
     if mode == 'left':
         kk, tt = p_left[:]
-        path_ann = os.path.join(dir_ann, basename + '.png.pifpaf.json')
+        path_ann = os.path.join(dir_ann, basename + '.png.predictions.json')
 
     else:
         kk, tt = p_right[:]
-        path_ann = os.path.join(dir_ann + '_right', basename + '.png.pifpaf.json')
+        path_ann = os.path.join(dir_ann + '_right', basename + '.png.predictions.json')
 
     from ..utils import open_annotations
     annotations = open_annotations(path_ann)

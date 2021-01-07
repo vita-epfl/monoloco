@@ -9,7 +9,7 @@ Good-names=xx,dd,zz,hh,ww,pp,kk,lr,w1,w2,w3,mm,im,uv,ax,COV_MIN,CONF_MIN
 
 [TYPECHECK]
 
-disable=import-error,invalid-name,unused-variable,fixme,E1102,missing-docstring,useless-object-inheritance,duplicate-code,too-many-arguments,too-many-instance-attributes,too-many-locals,too-few-public-methods,arguments-differ,logging-format-interpolation
+disable=import-error,invalid-name,unused-variable,E1102,missing-docstring,useless-object-inheritance,duplicate-code,too-many-arguments,too-many-instance-attributes,too-many-locals,too-few-public-methods,arguments-differ,logging-format-interpolation,import-outside-toplevel
 
 
 # List of members which are set dynamically and missed by pylint inference

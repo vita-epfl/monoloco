@@ -1,3 +1,6 @@
+
+# File adapted from https://github.com/vita-epfl/openpifpaf
+
 from contextlib import contextmanager
 
 import numpy as np
@@ -39,21 +42,20 @@ def canvas(fig_file=None, show=True, **kwargs):
 @contextmanager
 def image_canvas(image, fig_file=None, show=True, dpi_factor=1.0, fig_width=10.0, **kwargs):
     if 'figsize' not in kwargs:
-        kwargs['figsize'] = (fig_width, fig_width * image.shape[0] / image.shape[1])
+        kwargs['figsize'] = (fig_width, fig_width * image.size[1] / image.size[0])
 
     fig = plt.figure(**kwargs)
     ax = plt.Axes(fig, [0.0, 0.0, 1.0, 1.0])
     ax.set_axis_off()
-    ax.set_xlim(0, image.shape[1])
-    ax.set_ylim(image.shape[0], 0)
+    ax.set_xlim(0, image.size[0])
+    ax.set_ylim(image.size[1], 0)
     fig.add_axes(ax)
     image_2 = ndimage.gaussian_filter(image, sigma=2.5)
     ax.imshow(image_2, alpha=0.4)
-
     yield ax
 
     if fig_file:
-        fig.savefig(fig_file, dpi=image.shape[1] / kwargs['figsize'][0] * dpi_factor)
+        fig.savefig(fig_file, dpi=image.size[0] / kwargs['figsize'][0] * dpi_factor)
         print('keypoints image saved')
     if show:
         plt.show()

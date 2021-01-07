@@ -20,14 +20,14 @@ def append_cluster(dic_jo, phase, xx, ys, kps):
         dic_jo[phase]['clst']['30']['kps'].append(kps)
         dic_jo[phase]['clst']['30']['X'].append(xx)
         dic_jo[phase]['clst']['30']['Y'].append(ys)
-    elif ys[3] < 50:
-        dic_jo[phase]['clst']['50']['kps'].append(kps)
-        dic_jo[phase]['clst']['50']['X'].append(xx)
-        dic_jo[phase]['clst']['50']['Y'].append(ys)
+    elif ys[3] <= 40:
+        dic_jo[phase]['clst']['40']['kps'].append(kps)
+        dic_jo[phase]['clst']['40']['X'].append(xx)
+        dic_jo[phase]['clst']['40']['Y'].append(ys)
     else:
-        dic_jo[phase]['clst']['>50']['kps'].append(kps)
-        dic_jo[phase]['clst']['>50']['X'].append(xx)
-        dic_jo[phase]['clst']['>50']['Y'].append(ys)
+        dic_jo[phase]['clst']['>40']['kps'].append(kps)
+        dic_jo[phase]['clst']['>40']['X'].append(xx)
+        dic_jo[phase]['clst']['>40']['Y'].append(ys)
 
 
 def get_task_error(dd):
@@ -58,7 +58,7 @@ def make_new_directory(dir_out):
     if os.path.exists(dir_out):
         shutil.rmtree(dir_out)
     os.makedirs(dir_out)
-    print("Created empty output directory for {} txt files".format(dir_out))
+    print("Created empty output directory {} ".format(dir_out))
 
 
 def normalize_hwl(lab):

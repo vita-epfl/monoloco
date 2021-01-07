@@ -23,24 +23,28 @@ class ActivityEvaluator:
 
     def __init__(self, args):
 
+        self.dir_ann = args.dir_ann
+        assert self.dir_ann is not None and os.path.exists(self.dir_ann), \
+            "Annotation directory not provided / does not exist"
+        assert os.listdir(self.dir_ann), "Annotation directory is empty"
+
         # COLLECTIVE ACTIVITY DATASET (talking)
         # -------------------------------------------------------------------------------------------------------------
         if args.dataset == 'collective':
-            self.folders_collective = ['seq02', 'seq14', 'seq12', 'seq13', 'seq11', 'seq36']
+            self.sequences = ['seq02', 'seq14', 'seq12', 'seq13', 'seq11', 'seq36']
             # folders_collective = ['seq02']
-            self.path_collective = ['data/activity/' + fold for fold in self.folders_collective]
+            self.dir_data = 'data/activity/dataset'
             self.THRESHOLD_PROB = 0.25  # Concordance for samples
             self.THRESHOLD_DIST = 2  # Threshold to check distance of people
             self.RADII = (0.3, 0.5)  # expected radii of the o-space
-            self.PIFPAF_CONF = 0.4
+            self.PIFPAF_CONF = 0.3
             self.SOCIAL_DISTANCE = False
         # -------------------------------------------------------------------------------------------------------------
 
         # KITTI DATASET (social distancing)
         # ------------------------------------------------------------------------------------------------------------
         else:
-            self.dir_ann_kitti = '/data/lorenzo-data/annotations/kitti/scale_2_july'
-            self.dir_gt_kitti = 'data/kitti/gt_activity'
+            self.dir_data = 'data/kitti/gt_activity'
             self.dir_kk = os.path.join('data', 'kitti', 'calib')
             self.THRESHOLD_PROB = 0.25  # Concordance for samples
             self.THRESHOLD_DIST = 2  # Threshold to check distance of people
@@ -62,25 +66,25 @@ class ActivityEvaluator:
     def eval_collective(self):
         """Parse Collective Activity Dataset and predict if people are talking or not"""
 
-        for fold in self.path_collective:
-            images = glob.glob(fold + '/*.jpg')
-            initial_path = os.path.join(fold, 'frame0001.jpg')
-            with open(initial_path, 'rb') as f:
+        for seq in self.sequences:
+            images = glob.glob(os.path.join(self.dir_data, 'images',  seq + '*.jpg'))
+            initial_im = os.path.join(self.dir_data, 'images', seq + '_frame0001.jpg')
+            with open(initial_im, 'rb') as f:
                 image = Image.open(f).convert('RGB')
                 im_size = image.size
+                assert len(im_size) > 1, "image with frame0001 not available"
 
             for idx, im_path in enumerate(images):
 
                 # Collect PifPaf files and calibration
                 basename = os.path.basename(im_path)
-                extension = '.pifpaf.json'
-                path_pif = os.path.join(fold, basename + extension)
+                extension = '.predictions.json'
+                path_pif = os.path.join(self.dir_ann, basename + extension)
                 annotations = open_annotations(path_pif)
                 kk, _ = factory_for_gt(im_size, verbose=False)
 
                 # Collect corresponding gt files (ys_gt: 1 or 0)
-                boxes_gt, ys_gt = parse_gt_collective(fold, path_pif)
-
+                boxes_gt, ys_gt = parse_gt_collective(self.dir_data, seq, path_pif)
                 # Run Monoloco
                 dic_out, boxes = self.run_monoloco(annotations, kk, im_size=im_size)
 
@@ -88,17 +92,19 @@ class ActivityEvaluator:
                 matches = get_iou_matches(boxes, boxes_gt, iou_min=0.3)
 
                 # Estimate activity
-                categories = [os.path.basename(fold)] * len(boxes_gt)
+                categories = [seq] * len(boxes_gt)  # for compatibility with KITTI evaluation
                 self.estimate_activity(dic_out, matches, ys_gt, categories=categories)
 
         # Print Results
-        cout_results(self.cnt, self.all_gt, self.all_pred, categories=self.folders_collective)
+            acc = accuracy_score(self.all_gt[seq], self.all_pred[seq])
+            print(f"Accuracy of category {seq}: {100*acc:.2f}%")
+        cout_results(self.cnt, self.all_gt, self.all_pred, categories=self.sequences)
 
     def eval_kitti(self):
         """Parse KITTI Dataset and predict if people are talking or not"""
 
         from ..utils import factory_file
-        files = glob.glob(self.dir_gt_kitti + '/*.txt')
+        files = glob.glob(self.dir_data + '/*.txt')
         # files = [self.dir_gt_kitti + '/001782.txt']
         assert files, "Empty directory"
 
@@ -107,10 +113,10 @@ class ActivityEvaluator:
             # Collect PifPaf files and calibration
             basename, _ = os.path.splitext(os.path.basename(file))
             path_calib = os.path.join(self.dir_kk, basename + '.txt')
-            annotations, kk, tt = factory_file(path_calib, self.dir_ann_kitti, basename)
+            annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
 
             # Collect corresponding gt files (ys_gt: 1 or 0)
-            path_gt = os.path.join(self.dir_gt_kitti, basename + '.txt')
+            path_gt = os.path.join(self.dir_data, basename + '.txt')
             boxes_gt, ys_gt, difficulties = parse_gt_kitti(path_gt)
 
             # Run Monoloco
@@ -131,17 +137,16 @@ class ActivityEvaluator:
         angles = dic_out['angles']
         dds = dic_out['dds_pred']
         stds = dic_out['stds_ale']
-        confs = dic_out['confs']
         xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
 
-        # Count gt statistics
+        # Count gt statistics. (One element each gt)
         for key in categories:
             self.cnt['gt'][key] += 1
             self.cnt['gt']['all'] += 1
 
         for i_m, (idx, idx_gt) in enumerate(matches):
 
-            # Select keys to update resultd for Collective or KITTI
+            # Select keys to update results for Collective or KITTI
             keys = ('all', categories[idx_gt])
 
             # Run social interactions rule
@@ -166,10 +171,12 @@ class ActivityEvaluator:
         return dic_out, boxes
 
 
-def parse_gt_collective(fold, path_pif):
+def parse_gt_collective(dir_data, seq, path_pif):
     """Parse both gt and binary label (1/0) for talking or not"""
 
-    with open(os.path.join(fold, "annotations.txt"), "r") as ff:
+    path = os.path.join(dir_data, 'annotations', seq + '_annotations.txt')
+
+    with open(path, "r") as ff:
         reader = csv.reader(ff, delimiter='\t')
         dic_frames = defaultdict(lambda: defaultdict(list))
         for idx, line in enumerate(reader):
@@ -212,17 +219,21 @@ def cout_results(cnt, all_gt, all_pred, categories=()):
     # Split by folders for collective activity
     for key in categories:
         acc = accuracy_score(all_gt[key], all_pred[key])
-        print("Accuracy of category {}: {:.2f}% , Recall: {:.2f}%, #: {}, Predicted positive: {:.2f}%"
+        print("Accuracy of category {}: {:.2f}% , Recall: {:.2f}%, #: {}, Pred/Real positive: {:.1f}% / {:.1f}%"
               .format(key,
                       acc * 100,
                       cnt['pred'][key] / cnt['gt'][key]*100,
                       cnt['pred'][key],
-                      sum(all_gt[key]) / len(all_gt[key]) * 100))
+                      sum(all_pred[key]) / len(all_pred[key]) * 100,
+                      sum(all_gt[key]) / len(all_gt[key]) * 100
+                      )
+              )
 
     # Final Accuracy
     acc = accuracy_score(all_gt['all'], all_pred['all'])
+    recall = cnt['pred']['all'] / cnt['gt']['all'] * 100  # only predictions that match a ground-truth are included
     print('-' * 80)
-    print("Final Accuracy: {:.2f}%".format(acc * 100))
+    print(f"Final Accuracy: {acc * 100:.2f}      Final Recall:{recall:.2f}")
     print('-' * 80)
 
 
@@ -244,8 +255,8 @@ def convert_category(cat):
 def extract_frame_number(path):
     """extract frame number from path"""
     name = os.path.basename(path)
-    if name[5] == '0':
-        frame = name[6:9]
+    if name[11] == '0':
+        frame = name[12:15]
     else:
-        frame = name[5:9]
+        frame = name[11:15]
     return frame

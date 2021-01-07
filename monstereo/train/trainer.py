@@ -34,10 +34,9 @@ class Trainer:
     tasks = ('d', 'x', 'y', 'h', 'w', 'l', 'ori', 'aux')
     val_task = 'd'
     lambdas = (1, 1, 1, 1, 1, 1, 1, 1)
+    clusters = ['10', '20', '30', '40']
 
-    def __init__(self, joints, epochs=100, bs=256, dropout=0.2, lr=0.002,
-                 sched_step=20, sched_gamma=1, hidden_size=256, n_stage=3, r_seed=1, n_samples=100,
-                 monocular=False, save=False, print_loss=True):
+    def __init__(self, args):
         """
         Initialize directories, load the data and parameters for the training
         """
@@ -49,31 +48,29 @@ class Trainer:
         dir_logs = os.path.join('data', 'logs')
         if not os.path.exists(dir_logs):
             warnings.warn("Warning: default logs directory not found")
-        assert os.path.exists(joints), "Input file not found"
+        assert os.path.exists(args.joints), "Input file not found"
 
-        self.joints = joints
-        self.num_epochs = epochs
-        self.save = save
-        self.print_loss = print_loss
-        self.monocular = monocular
-        self.lr = lr
-        self.sched_step = sched_step
-        self.sched_gamma = sched_gamma
-        self.clusters = ['10', '20', '30', '50', '>50']
-        self.hidden_size = hidden_size
-        self.n_stage = n_stage
+        self.joints = args.joints
+        self.num_epochs = args.epochs
+        self.no_save = args.no_save
+        self.print_loss = args.print_loss
+        self.monocular = args.monocular
+        self.lr = args.lr
+        self.sched_step = args.sched_step
+        self.sched_gamma = args.sched_gamma
+        self.hidden_size = args.hidden_size
+        self.n_stage = args.n_stage
         self.dir_out = dir_out
-        self.n_samples = n_samples
-        self.r_seed = r_seed
-        self.auto_tune_mtl = False
+        self.r_seed = args.r_seed
+        self.auto_tune_mtl = args.auto_tune_mtl
 
         # Select the device
         use_cuda = torch.cuda.is_available()
         self.device = torch.device("cuda" if use_cuda else "cpu")
         print('Device: ', self.device)
-        torch.manual_seed(r_seed)
+        torch.manual_seed(self.r_seed)
         if use_cuda:
-            torch.cuda.manual_seed(r_seed)
+            torch.cuda.manual_seed(self.r_seed)
 
         # Remove auxiliary task if monocular
         if self.monocular and self.tasks[-1] == 'aux':
@@ -95,25 +92,28 @@ class Trainer:
             input_size = 34
             output_size = 9
 
+        name = 'monoloco_pp' if self.monocular else 'monstereo'
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
-        name_out = 'monstereo-' + now_time
-        if self.save:
+        name_out = name + '-' + now_time
+        if not self.no_save:
             self.path_model = os.path.join(dir_out, name_out + '.pkl')
             self.logger = set_logger(os.path.join(dir_logs, name_out))
             self.logger.info("Training arguments: \nepochs: {} \nbatch_size: {} \ndropout: {}"
                              "\nmonocular: {} \nlearning rate: {} \nscheduler step: {} \nscheduler gamma: {}  "
                              "\ninput_size: {} \noutput_size: {}\nhidden_size: {} \nn_stages: {} "
                              "\nr_seed: {} \nlambdas: {} \ninput_file: {}"
-                             .format(epochs, bs, dropout, self.monocular, lr, sched_step, sched_gamma, input_size,
-                                     output_size, hidden_size, n_stage, r_seed, self.lambdas, self.joints))
+                             .format(args.epochs, args.bs, args.dropout, self.monocular,
+                                     args.lr, args.sched_step, args.sched_gamma, input_size,
+                                     output_size, args.hidden_size, args.n_stage, args.r_seed,
+                                     self.lambdas, self.joints))
         else:
             logging.basicConfig(level=logging.INFO)
             self.logger = logging.getLogger(__name__)
 
         # Dataloader
         self.dataloaders = {phase: DataLoader(KeypointsDataset(self.joints, phase=phase),
-                                              batch_size=bs, shuffle=True) for phase in ['train', 'val']}
+                                              batch_size=args.bs, shuffle=True) for phase in ['train', 'val']}
 
         self.dataset_sizes = {phase: len(KeypointsDataset(self.joints, phase=phase))
                               for phase in ['train', 'val']}
@@ -122,15 +122,16 @@ class Trainer:
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
         print(">>> creating model")
 
-        self.model = MonStereoModel(input_size=input_size, output_size=output_size, linear_size=hidden_size,
-                                    p_dropout=dropout, num_stage=self.n_stage, device=self.device)
+        self.model = MonStereoModel(input_size=input_size, output_size=output_size, linear_size=args.hidden_size,
+                                    p_dropout=args.dropout, num_stage=self.n_stage, device=self.device)
         self.model.to(self.device)
         print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model.parameters()) / 1000000.0))
         print(">>> loss params: {}".format(sum(p.numel() for p in self.mt_loss.parameters())))
 
         # Optimizer and scheduler
         all_params = chain(self.model.parameters(), self.mt_loss.parameters())
-        self.optimizer = torch.optim.Adam(params=all_params, lr=lr)
+        self.optimizer = torch.optim.Adam(params=all_params, lr=args.lr)
+        self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
 
     def train(self):
@@ -155,11 +156,11 @@ class Trainer:
                     labels = labels.to(self.device)
                     with torch.set_grad_enabled(phase == 'train'):
                         if phase == 'train':
+                            self.optimizer.zero_grad()
                             outputs = self.model(inputs)
                             loss, loss_values = self.mt_loss(outputs, labels, phase=phase)
-                            self.optimizer.zero_grad()
                             loss.backward()
-                            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 2)
+                            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3)
                             self.optimizer.step()
                             self.scheduler.step()
 
@@ -242,7 +243,7 @@ class Trainer:
                 self.cout_stats(dic_err['val'], size_eval, clst=clst)
 
         # Save the model and the results
-        if self.save and not load:
+        if not (self.no_save or load):
             torch.save(self.model.state_dict(), self.path_model)
             print('-' * 120)
             self.logger.info("\nmodel saved: {} \n".format(self.path_model))
@@ -264,7 +265,6 @@ class Trainer:
 
         # Distance
         errs = torch.abs(extract_outputs(outputs)['d'] - extract_labels(labels)['d'])
-
         assert rel_frac > 0.99, "Variance of errors not supported with partial evaluation"
 
         # Uncertainty

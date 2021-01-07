@@ -24,10 +24,9 @@ from .transforms import flip_inputs, flip_labels, height_augmentation
 class PreprocessKitti:
     """Prepare arrays with same format as nuScenes preprocessing but using ground truth txt files"""
 
-    # AV_W = 0.68
-    # AV_L = 0.75
-    # AV_H = 1.72
-    # WLH_STD = 0.1
+    dir_gt = os.path.join('data', 'kitti', 'gt')
+    dir_images = '/data/lorenzo-data/kitti/original_images/training/image_2'
+    dir_byc_l = '/data/lorenzo-data/kitti/object_detection/left'
 
     # SOCIAL DISTANCING PARAMETERS
     THRESHOLD_DIST = 2  # Threshold to check distance of people
@@ -51,9 +50,6 @@ class PreprocessKitti:
         self.dir_ann = dir_ann
         self.iou_min = iou_min
         self.monocular = monocular
-        self.dir_gt = os.path.join('data', 'kitti', 'gt')
-        self.dir_images = '/data/lorenzo-data/kitti/original_images/training/image_2'
-        self.dir_byc_l = '/data/lorenzo-data/kitti/object_detection/left'
         self.names_gt = tuple(os.listdir(self.dir_gt))
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
         self.list_gt = glob.glob(self.dir_gt + '/*.txt')
@@ -97,7 +93,9 @@ class PreprocessKitti:
                 category = 'pedestrian'
 
             # Extract ground truth
-            boxes_gt, ys, _, _ = parse_ground_truth(path_gt, category=category, spherical=True)
+            boxes_gt, ys, _, _ = parse_ground_truth(path_gt,  # pylint: disable=unbalanced-tuple-unpacking
+                                                    category=category,
+                                                    spherical=True)
             cnt_gt[phase] += len(boxes_gt)
             cnt_files += 1
             cnt_files_ped += min(len(boxes_gt), 1)  # if no boxes 0 else 1
@@ -170,7 +168,7 @@ class PreprocessKitti:
                                 self.dic_jo[phase]['X'].append(inp)
                                 self.dic_jo[phase]['Y'].append(lab)
                                 self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
-                                append_cluster(self.dic_jo, phase, inp, lab, keypoint)
+                                append_cluster(self.dic_jo, phase, inp, lab, keypoint.tolist())
                                 cnt_mono[phase] += 1
                                 cnt_tot += 1
 

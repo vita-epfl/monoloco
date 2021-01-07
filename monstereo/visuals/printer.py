@@ -28,7 +28,7 @@ def image_attributes(dpi, output_types):
                 fontsize_num=round(22 * c),
                 fontsize_ax=round(16 * c),
                 linewidth=round(8 * c),
-                markersize=round(16 * c),
+                markersize=round(13 * c),
                 y_box_margin=round(24 * math.sqrt(c)),
                 stereo=dict(color='deepskyblue',
                             numcolor='darkorange',
@@ -58,7 +58,7 @@ class Printer:
         self.output_path = output_path
         self.kk = kk
         self.output_types = args.output_types
-        self.z_max = args.z_max  # To include ellipses in the image
+        self.z_max = args.z_max  # set max distance to show instances
         self.show_all = args.show_all
         self.show = args.show_all
         self.save = not args.no_save
@@ -74,25 +74,40 @@ class Printer:
         self.xx_gt = [xx[0] for xx in dic_ann['xyz_real']]
         self.xx_pred = [xx[0] for xx in dic_ann['xyz_pred']]
 
+        # Set maximum distance
+        self.dd_pred = dic_ann['dds_pred']
+        self.dd_real = dic_ann['dds_real']
+        self.z_max = int(min(self.z_max, 4 + max(max(self.dd_pred), max(self.dd_real, default=0))))
+
         # Do not print instances outside z_max
         self.zz_gt = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
                       for idx, xx in enumerate(dic_ann['xyz_real'])]
         self.zz_pred = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
                         for idx, xx in enumerate(dic_ann['xyz_pred'])]
-        self.dd_pred = dic_ann['dds_pred']
-        self.dd_real = dic_ann['dds_real']
+
         self.uv_heads = dic_ann['uv_heads']
         self.uv_shoulders = dic_ann['uv_shoulders']
         self.boxes = dic_ann['boxes']
         self.boxes_gt = dic_ann['boxes_gt']
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
-        if dic_ann['aux']:
-            self.auxs = dic_ann['aux'] if dic_ann['aux'] else None
+        self.auxs = dic_ann['aux']
+        if len(self.auxs) == 0:
+            self.modes = ['mono'] * len(self.dd_pred)
+        else:
+            self.modes = []
+            for aux in self.auxs:
+                if aux <= 0.3:
+                    self.modes.append('mono')
+                else:
+                    self.modes.append('stereo')
 
-    def factory_axes(self):
+    def factory_axes(self, dic_out):
         """Create axes for figures: front bird multi"""
         axes = []
         figures = []
+
+        # Process the annotation dictionary of monoloco
+        self._process_results(dic_out)
 
         #  Initialize multi figure, resizing it for aesthetic proportion
         if 'multi' in self.output_types:
@@ -150,10 +165,7 @@ class Printer:
             axes.append(ax1)
         return figures, axes
 
-    def draw(self, figures, axes, dic_out, image):
-
-        # Process the annotation dictionary of monoloco
-        self._process_results(dic_out)
+    def draw(self, figures, axes, image):
 
         # whether to include instances that don't match the ground-truth
         iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))
@@ -163,9 +175,9 @@ class Printer:
 
         # Draw the front figure
         number = dict(flag=False, num=97)
-        if 'multi' in self.output_types:
+        if any(xx in self.output_types for xx in ['front', 'multi']):
             number['flag'] = True  # add numbers
-        self.mpl_im0.set_data(image)
+            self.mpl_im0.set_data(image)
         for idx in iterator:
             if any(xx in self.output_types for xx in ['front', 'multi']) and self.zz_pred[idx] > 0:
                 self._draw_front(axes[0],
@@ -199,8 +211,6 @@ class Printer:
 
     def _draw_front(self, ax, z, idx, number):
 
-        mode = 'stereo' if self.auxs[idx] > 0.3 else 'mono'
-
         # Bbox
         w = min(self.width-2, self.boxes[idx][2] - self.boxes[idx][0])
         h = min(self.height-2, (self.boxes[idx][3] - self.boxes[idx][1]) * self.y_scale)
@@ -211,12 +221,12 @@ class Printer:
                               width=w,
                               height=h,
                               fill=False,
-                              color=self.attr[mode]['color'],
-                              linewidth=self.attr[mode]['linewidth'])
+                              color=self.attr[self.modes[idx]]['color'],
+                              linewidth=self.attr[self.modes[idx]]['linewidth'])
         ax.add_patch(rectangle)
         z_str = str(z).split(sep='.')
         text = z_str[0] + '.' + z_str[1][0]
-        bbox_config = {'facecolor': self.attr[mode]['color'], 'alpha': 0.4, 'linewidth': 0}
+        bbox_config = {'facecolor': self.attr[self.modes[idx]]['color'], 'alpha': 0.4, 'linewidth': 0}
 
         x_t = x0 - 1.5
         y_t = y1 + self.attr['y_box_margin']
@@ -236,12 +246,12 @@ class Printer:
                         y1 + 14,
                         chr(number['num']),
                         fontsize=self.attr['fontsize_num'],
-                        color=self.attr[mode]['numcolor'],
+                        color=self.attr[self.modes[idx]]['numcolor'],
                         weight='bold')
 
     def _draw_text_bird(self, axes, idx, num):
         """Plot the number in the bird eye view map"""
-        mode = 'stereo' if self.auxs[idx] > 0.3 else 'mono'
+
         std = self.stds_epi[idx] if self.stds_epi[idx] > 0 else self.stds_ale[idx]
         theta = math.atan2(self.zz_pred[idx], self.xx_pred[idx])
 
@@ -250,7 +260,7 @@ class Printer:
 
         axes[1].text(self.xx_pred[idx] + delta_x + 0.2, self.zz_pred[idx] + delta_z + 0/2, chr(num),
                      fontsize=self.attr['fontsize_bv'],
-                     color=self.attr[mode]['numcolor'])
+                     color=self.attr[self.modes[idx]]['numcolor'])
 
     def _draw_uncertainty(self, axes, idx):
 

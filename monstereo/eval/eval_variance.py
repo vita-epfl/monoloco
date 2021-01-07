@@ -1,5 +1,4 @@
-
-# pylint: disable=too-many-statements,cyclic-import, too-many-branches
+# pylint: disable=too-many-statements,too-many-branches,cyclic-import
 
 """Joints Analysis: Supplementary material of MonStereo"""
 

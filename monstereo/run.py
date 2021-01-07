@@ -2,8 +2,7 @@
 
 import argparse
 
-from openpifpaf.network import nets
-from openpifpaf import decoder
+from openpifpaf import decoder, network, visualizer, show
 
 
 def cli():
@@ -37,15 +36,18 @@ def cli():
                                 help='what to output: json keypoints skeleton for Pifpaf'
                                      'json bird front or multi for MonStereo')
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
-    predict_parser.add_argument('--show', help='to show images', action='store_true')
-    predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=100)
+    predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=150)
+    predict_parser.add_argument('--long-edge', default=None, type=int,
+                                help='rescale the long side of the image (aspect ratio maintained)')
 
-    # Pifpaf
-    nets.cli(predict_parser)
-    decoder.cli(predict_parser, force_complete_pose=True, instance_threshold=0.15)
-    predict_parser.add_argument('--scale', default=1.0, type=float, help='change the scale of the image to preprocess')
+    # Pifpaf parsers
+    decoder.cli(predict_parser)
+    network.cli(predict_parser)
+    show.cli(predict_parser)
+    visualizer.cli(predict_parser)
 
     # Monoloco
+    predict_parser.add_argument('--net', help='Choose network: monoloco, monoloco_p, monoloco_pp, monstereo')
     predict_parser.add_argument('--model', help='path of MonoLoco model to load', required=True)
     predict_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=512)
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
@@ -57,18 +59,15 @@ def cli():
     predict_parser.add_argument('--show_all', help='only predict ground-truth matches or all', action='store_true')
 
     # Social distancing and social interactions
-    predict_parser.add_argument('--social', help='social', action='store_true')
-    predict_parser.add_argument('--activity', help='activity', action='store_true')
-    predict_parser.add_argument('--json_dir', help='for social')
+    predict_parser.add_argument('--social_distance', help='social', action='store_true')
     predict_parser.add_argument('--threshold_prob', type=float, help='concordance for samples', default=0.25)
-    predict_parser.add_argument('--threshold_dist', type=float, help='min distance of people', default=2)
-    predict_parser.add_argument('--margin', type=float, help='conservative for noise in orientation', default=1.5)
-    predict_parser.add_argument('--radii', type=tuple, help='o-space radii', default=(0.25, 1, 2))
+    predict_parser.add_argument('--threshold_dist', type=float, help='min distance of people', default=2.5)
+    predict_parser.add_argument('--radii', type=tuple, help='o-space radii', default=(0.3, 0.5, 1))
 
     # Training
     training_parser.add_argument('--joints', help='Json file with input joints',
                                  default='data/arrays/joints-nuscenes_teaser-190513-1846.json')
-    training_parser.add_argument('--save', help='whether to not save model and log file', action='store_true')
+    training_parser.add_argument('--no_save', help='to not save model and log file', action='store_true')
     training_parser.add_argument('-e', '--epochs', type=int, help='number of epochs to train for', default=500)
     training_parser.add_argument('--bs', type=int, default=512, help='input batch size')
     training_parser.add_argument('--monocular', help='whether to train monoloco', action='store_true')
@@ -81,7 +80,9 @@ def cli():
     training_parser.add_argument('--hyp', help='run hyperparameters tuning', action='store_true')
     training_parser.add_argument('--multiplier', type=int, help='Size of the grid of hyp search', default=1)
     training_parser.add_argument('--r_seed', type=int, help='specify the seed for training and hyp tuning', default=1)
-    training_parser.add_argument('--activity', help='new', action='store_true')
+    training_parser.add_argument('--print_loss', help='print training and validation losses', action='store_true')
+    training_parser.add_argument('--auto_tune_mtl', help='whether to use uncertainty to autotune losses',
+                                 action='store_true')
 
     # Evaluation
     eval_parser.add_argument('--dataset', help='datasets to evaluate, kitti or nuscenes', default='kitti')
@@ -102,6 +103,9 @@ def cli():
     eval_parser.add_argument('--variance', help='evaluate keypoints variance', action='store_true')
     eval_parser.add_argument('--activity', help='evaluate activities', action='store_true')
     eval_parser.add_argument('--net', help='Choose network: monoloco, monoloco_p, monoloco_pp, monstereo')
+    eval_parser.add_argument('--baselines', help='whether to evaluate stereo baselines', action='store_true')
+    eval_parser.add_argument('--generate_official', help='whether to add empty txt files for official evaluation',
+                             action='store_true')
 
     args = parser.parse_args()
     return args
@@ -110,10 +114,7 @@ def cli():
 def main():
     args = cli()
     if args.command == 'predict':
-        if args.activity:
-            from .activity import predict
-        else:
-            from .predict import predict
+        from .predict import predict
         predict(args)
 
     elif args.command == 'prep':
@@ -135,14 +136,11 @@ def main():
             hyp_tuning = HypTuning(joints=args.joints, epochs=args.epochs,
                                    monocular=args.monocular, dropout=args.dropout,
                                    multiplier=args.multiplier, r_seed=args.r_seed)
-            hyp_tuning.train()
+            hyp_tuning.train(args)
         else:
 
             from .train import Trainer
-            training = Trainer(joints=args.joints, epochs=args.epochs, bs=args.bs,
-                               monocular=args.monocular, dropout=args.dropout, lr=args.lr, sched_step=args.sched_step,
-                               n_stage=args.n_stage, sched_gamma=args.sched_gamma, hidden_size=args.hidden_size,
-                               r_seed=args.r_seed, save=args.save)
+            training = Trainer(args)
 
             _ = training.train()
             _ = training.evaluate()
@@ -169,19 +167,18 @@ def main():
         else:
             if args.generate:
                 from .eval.generate_kitti import GenerateKitti
-                kitti_txt = GenerateKitti(args.model, args.dir_ann, p_dropout=args.dropout, n_dropout=args.n_dropout,
-                                          hidden_size=args.hidden_size)
+                kitti_txt = GenerateKitti(args)
                 kitti_txt.run()
 
             if args.dataset == 'kitti':
                 from .eval import EvalKitti
-                kitti_eval = EvalKitti(verbose=args.verbose)
+                kitti_eval = EvalKitti(args)
                 kitti_eval.run()
-                kitti_eval.printer(show=args.show, save=args.save)
+                kitti_eval.printer()
 
             elif 'nuscenes' in args.dataset:
                 from .train import Trainer
-                training = Trainer(joints=args.joints, hidden_size=args.hidden_size)
+                training = Trainer(args)
                 _ = training.evaluate(load=True, model=args.model, debug=False)
 
             else:

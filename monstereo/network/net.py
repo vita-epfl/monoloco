@@ -56,7 +56,7 @@ class Loco:
                                            output_size=output_size)
             else:
                 self.model = MonStereoModel(p_dropout=p_dropout, input_size=input_size, output_size=output_size,
-                                         linear_size=linear_size, device=self.device)
+                                            linear_size=linear_size, device=self.device)
 
             self.model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))
         else:
@@ -163,7 +163,7 @@ class Loco:
                 print("found {} matches with ground-truth".format(len(matches)))
 
             # Keep track of instances non-matched
-            idxs_matches = (el[0] for el in matches)
+            idxs_matches = [el[0] for el in matches]
             not_matches = [idx for idx, _ in enumerate(boxes) if idx not in idxs_matches]
 
         else:

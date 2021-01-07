@@ -25,41 +25,58 @@ class EvalKitti:
                 '27', '29', '31', '49')
     ALP_THRESHOLDS = ('<0.5m', '<1m', '<2m')
     OUR_METHODS = ['geometric', 'monoloco', 'monoloco_pp', 'pose', 'reid', 'monstereo']
-    METHODS_MONO = ['m3d', 'monopsr']
+    METHODS_MONO = ['m3d', 'monopsr', 'smoke', 'monodis']
     METHODS_STEREO = ['3dop', 'psf', 'pseudo-lidar', 'e2e', 'oc-stereo']
     BASELINES = ['task_error', 'pixel_error']
     HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
     CATEGORIES = ('pedestrian',)
+    methods = OUR_METHODS + METHODS_MONO + METHODS_STEREO
 
-    def __init__(self, thresh_iou_monoloco=0.3, thresh_iou_base=0.3, thresh_conf_monoloco=0.2, thresh_conf_base=0.5,
-                 verbose=False):
+    # Set directories
+    main_dir = os.path.join('data', 'kitti')
+    dir_gt = os.path.join(main_dir, 'gt')
+    path_train = os.path.join('splits', 'kitti_train.txt')
+    path_val = os.path.join('splits', 'kitti_val.txt')
+    dir_logs = os.path.join('data', 'logs')
+    assert os.path.exists(dir_logs), "No directory to save final statistics"
+    dir_fig = os.path.join('data', 'figures')
+    assert os.path.exists(dir_logs), "No directory to save figures"
 
-        self.main_dir = os.path.join('data', 'kitti')
-        self.dir_gt = os.path.join(self.main_dir, 'gt')
-        self.methods = self.OUR_METHODS + self.METHODS_MONO + self.METHODS_STEREO
-        path_train = os.path.join('splits', 'kitti_train.txt')
-        path_val = os.path.join('splits', 'kitti_val.txt')
-        dir_logs = os.path.join('data', 'logs')
-        assert dir_logs, "No directory to save final statistics"
+    # Set thresholds to obtain comparable recalls
+    thresh_iou_monoloco = 0.3
+    thresh_iou_base = 0.3
+    thresh_conf_monoloco = 0.2
+    thresh_conf_base = 0.5
+
+    def __init__(self, args):
+
+        self.verbose = args.verbose
+        self.net = args.net
+        self.save = args.save
+        self.show = args.show
 
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
-        self.path_results = os.path.join(dir_logs, 'eval-' + now_time + '.json')
-        self.verbose = verbose
+        self.path_results = os.path.join(self.dir_logs, 'eval-' + now_time + '.json')
 
-        self.dic_thresh_iou = {method: (thresh_iou_monoloco if method in self.OUR_METHODS
-                                        else thresh_iou_base)
+        # Set thresholds for comparable recalls
+        self.dic_thresh_iou = {method: (self.thresh_iou_monoloco if method in self.OUR_METHODS
+                                        else self.thresh_iou_base)
                                for method in self.methods}
-        self.dic_thresh_conf = {method: (thresh_conf_monoloco if method in self.OUR_METHODS
-                                         else thresh_conf_base)
+        self.dic_thresh_conf = {method: (self.thresh_conf_monoloco if method in self.OUR_METHODS
+                                         else self.thresh_conf_base)
                                 for method in self.methods}
-        self.dic_thresh_conf['monopsr'] += 0.3
-        self.dic_thresh_conf['e2e-pl'] = -100  # They don't have enough detections
+
+        # Set thresholds to obtain comparable recall
+        self.dic_thresh_conf['monopsr'] += 0.4
+        self.dic_thresh_conf['e2e-pl'] = -100
         self.dic_thresh_conf['oc-stereo'] = -100
+        self.dic_thresh_conf['smoke'] = -100
+        self.dic_thresh_conf['monodis'] = -100
 
         # Extract validation images for evaluation
         names_gt = tuple(os.listdir(self.dir_gt))
-        _, self.set_val = split_training(names_gt, path_train, path_val)
+        _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
 
         # self.set_val = ('002282.txt', )
 
@@ -68,10 +85,13 @@ class EvalKitti:
             = None
         self.cnt = 0
 
+        # Filter methods with empty or non existent directory
+        filter_directories(self.main_dir, self.methods)
+
     def run(self):
         """Evaluate Monoloco performances on ALP and ALE metrics"""
-        for self.category in self.CATEGORIES:
 
+        for self.category in self.CATEGORIES:
             # Initialize variables
             self.errors = defaultdict(lambda: defaultdict(list))
             self.dic_stds = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -90,7 +110,7 @@ class EvalKitti:
                 methods_out = defaultdict(tuple)  # Save all methods for comparison
 
                 # Count ground_truth:
-                boxes_gt, ys, truncs_gt, occs_gt = out_gt
+                boxes_gt, ys, truncs_gt, occs_gt = out_gt  # pylint: disable=unbalanced-tuple-unpacking
                 for idx, box in enumerate(boxes_gt):
                     mode = get_difficulty(box, truncs_gt[idx], occs_gt[idx])
                     self.cnt_gt[mode] += 1
@@ -100,7 +120,6 @@ class EvalKitti:
                     for method in self.methods:
                         # Extract annotations
                         dir_method = os.path.join(self.main_dir, method)
-                        assert os.path.exists(dir_method), "directory of the method %s does not exists" % method
                         path_method = os.path.join(dir_method, name)
                         methods_out[method] = self._parse_txts(path_method, method=method)
 
@@ -124,12 +143,14 @@ class EvalKitti:
             print('\n' + self.category.upper() + ':')
             self.show_statistics()
 
-    def printer(self, show, save):
-        if save or show:
-            show_results(self.dic_stats, self.CLUSTERS, show=show, save=save)
-            show_spread(self.dic_stats, self.CLUSTERS, show=show, save=save)
-            show_box_plot(self.errors, self.CLUSTERS, show=show, save=save)
-            show_task_error(show=show, save=save)
+    def printer(self):
+        if self.save or self.show:
+            show_results(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)
+            show_spread(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)
+            if self.net == 'monstero':
+                show_box_plot(self.errors, self.CLUSTERS, self.dir_fig, show=self.show, save=self.save)
+            else:
+                show_task_error(self.dir_fig, show=self.show, save=self.save)
 
     def _parse_txts(self, path, method):
 
@@ -352,7 +373,7 @@ class EvalKitti:
             self.name = name
             # Iterate over each line of the gt file and save box location and distances
             out_gt = parse_ground_truth(path_gt, 'pedestrian')
-            boxes_gt, ys, truncs_gt, occs_gt = out_gt
+            boxes_gt, ys, truncs_gt, occs_gt = out_gt   # pylint: disable=unbalanced-tuple-unpacking
             for label in ys:
                 heights.append(label[4])
         import numpy as np
@@ -430,3 +451,14 @@ def extract_indices(idx_to_check, *args):
 def average(my_list):
     """calculate mean of a list"""
     return sum(my_list) / len(my_list)
+
+
+def filter_directories(main_dir, methods):
+    for method in methods:
+        dir_method = os.path.join(main_dir, method)
+        if not os.path.exists(dir_method):
+            methods.remove(method)
+            print(f"\nMethod {method}. No directory found. Skipping it..")
+        elif not os.listdir(dir_method):
+            methods.remove(method)
+            print(f"\nMethod {method}. Directory is empty. Skipping it..")
