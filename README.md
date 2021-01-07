@@ -15,7 +15,7 @@ year = {2019}
 
 **NEW! MonoLoco++ is [available](https://github.com/vita-epfl/monstereo):**
 * It estimates 3D localization, orientation, and bounding box dimensions
-* It verifies social distance requirements. More info: [video](https://www.youtube.com/watch?v=r32UxHFAJ2M) and [project page](https://www.epfl.ch/labs/vita/research/perception/monoloco/).**
+* It verifies social distance requirements. More info: [video](https://www.youtube.com/watch?v=r32UxHFAJ2M) and [project page](http://vita.epfl.ch/monoloco)
 * It works with OpenPifPaf 0.12 and latest PyTorch Version
 
 **2020** 
