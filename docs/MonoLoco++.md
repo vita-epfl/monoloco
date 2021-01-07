@@ -61,7 +61,7 @@ To visualize social distancing compliance, simply add the argument `--social-dis
 
 An example from the Collective Activity Dataset is provided below.
 
-<img src="frame0038.jpg" width="400"/>
+<img src="frame0038.jpg" width="600"/>
 
 To visualize social distancing run the below, command:
 ```
@@ -72,10 +72,10 @@ docs/frame0038.jpg \
 --output_types front bird --show_all \
 --model data/models/monoloco_pp-201203-1424.pkl -o <output directory> 
 ```
-<img src="out_frame0038.jpg.front.png" width="300"/>
+<img src="out_frame0038.jpg.front.png" width="500"/>
 
 
-<img src="out_frame0038.jpg.bird.png" width="300"/>
+<img src="out_frame0038.jpg.bird.png" width="500"/>
 
 ### Orientation and Bounding Box dimensions
 MonoLoco++ estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
