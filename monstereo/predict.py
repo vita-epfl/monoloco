@@ -22,6 +22,7 @@ from .activity import show_social
 
 LOG = logging.getLogger(__name__)
 
+OPENPIFPAF_PATH = 'data/models/shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl'  # Default model
 
 def factory_from_args(args):
 
@@ -33,7 +34,12 @@ def factory_from_args(args):
 
     # Model
     if not args.checkpoint:
-        args.checkpoint = 'data/models/shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl'  # Default model
+        if os.path.exists(OPENPIFPAF_PATH):
+            args.checkpoint = OPENPIFPAF_PATH
+        else:
+            print("Checkpoint for OpenPifPaf not specified and default model not found in 'data/models'. "
+                  "Using a ShuffleNet backbone")
+            args.checkpoint = 'shufflenetv2k30'
 
     # Devices
     args.device = torch.device('cpu')
