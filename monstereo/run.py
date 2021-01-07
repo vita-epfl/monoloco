@@ -53,18 +53,16 @@ def cli():
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
                                 default='data/arrays/names-kitti-200615-1022.json')
     predict_parser.add_argument('--transform', help='transformation for the pose', default='None')
-    predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=30)
+    predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=100)
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
     predict_parser.add_argument('--dropout', type=float, help='dropout parameter', default=0.2)
     predict_parser.add_argument('--show_all', help='only predict ground-truth matches or all', action='store_true')
 
     # Social distancing and social interactions
     predict_parser.add_argument('--social_distance', help='social', action='store_true')
-    predict_parser.add_argument('--json_dir', help='for social')
     predict_parser.add_argument('--threshold_prob', type=float, help='concordance for samples', default=0.25)
-    predict_parser.add_argument('--threshold_dist', type=float, help='min distance of people', default=2)
-    predict_parser.add_argument('--margin', type=float, help='conservative for noise in orientation', default=1.5)
-    predict_parser.add_argument('--radii', type=tuple, help='o-space radii', default=(0.25, 1, 2))
+    predict_parser.add_argument('--threshold_dist', type=float, help='min distance of people', default=2.5)
+    predict_parser.add_argument('--radii', type=tuple, help='o-space radii', default=(0.3, 0.5, 1))
 
     # Training
     training_parser.add_argument('--joints', help='Json file with input joints',

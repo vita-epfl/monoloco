@@ -37,7 +37,7 @@ def factory_from_args(args):
     if not args.checkpoint:
         args.checkpoint = 'data/models/shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl'  # Default model
 
-    # Decices
+    # Devices
     args.device = torch.device('cpu')
     args.disable_cuda = False
     args.pin_memory = False
@@ -98,8 +98,8 @@ def predict(args):
     for batch_i, (image_tensors_batch, _, meta_batch) in enumerate(data_loader):
         pred_batch = processor.batch(model, image_tensors_batch, device=args.device)
 
-        # unbatch
-        for pred, meta in zip(pred_batch, meta_batch):
+        # unbatch (only for MonStereo)
+        for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
             LOG.info('batch %d: %s', batch_i, meta['file_name'])
             pred = preprocess.annotations_inverse(pred, meta)
 
@@ -112,7 +112,7 @@ def predict(args):
             print('image', batch_i, meta['file_name'], output_path)
             pifpaf_out = [ann.json_data() for ann in pred]
 
-            if batch_i == 0:
+            if idx == 0:
                 pifpaf_outputs = pred  # to only print left image for stereo
                 pifpaf_outs = {'left': pifpaf_out}
                 with open(meta_batch[0]['file_name'], 'rb') as f:
@@ -120,7 +120,7 @@ def predict(args):
             else:
                 pifpaf_outs['right'] = pifpaf_out
 
-        # Load the original image
+        # 3D Predictions
         if args.net in ('monoloco_pp', 'monstereo'):
 
             im_name = os.path.basename(meta['file_name'])

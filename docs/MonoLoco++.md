@@ -57,7 +57,25 @@ To show all the instances estimated by MonoLoco add the argument `show_all` to t
 ![predict_all](out_002282.png.multi_all.jpg)
 
 ### Social Distancing
-WIP
+To visualize social distancing compliance, simply add the argument `--social-distance` to the predict command.
+
+An example from the Collective Activity Dataset is provided below.
+
+<img src="frame0038.jpg" width="400"/>
+
+To visualize social distancing run the below, command:
+```
+python -m monstereo.run predict \
+docs/frame0038.jpg \
+--net monoloco_pp  \
+--social_distance \
+--output_types front bird --show_all \
+--model data/models/monoloco_pp-201203-1424.pkl -o <output directory> 
+```
+<img src="out_frame0038.jpg.front.png" width="300"/>
+
+
+<img src="out_frame0038.jpg.bird.png" width="300"/>
 
 ### Orientation and Bounding Box dimensions
 MonoLoco++ estimates orientation and box dimensions as well. Results are saved in a json file when using the command 

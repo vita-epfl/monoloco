@@ -251,7 +251,8 @@ def show_social(args, image_t, output_path, annotations, dic_out):
             draw_orientation(ax, uv_centers, sizes, angles, colors, mode='front')
 
     if 'bird' in args.output_types:
-        with bird_canvas(args, output_path) as ax1:
+        z_max = min(args.z_max, 4 + max([el[1] for el in xz_centers]))
+        with bird_canvas(output_path, z_max) as ax1:
             draw_orientation(ax1, xz_centers, [], angles, colors, mode='bird')
             draw_uncertainty(ax1, xz_centers, stds)
 
@@ -273,14 +274,14 @@ def get_pifpaf_outputs(annotations):
 
 
 @contextmanager
-def bird_canvas(args, output_path):
+def bird_canvas(output_path, z_max):
     fig, ax = plt.subplots(1, 1)
     fig.set_tight_layout(True)
     output_path = output_path + '.bird.png'
-    x_max = args.z_max / 1.5
-    ax.plot([0, x_max], [0, args.z_max], 'k--')
-    ax.plot([0, -x_max], [0, args.z_max], 'k--')
-    ax.set_ylim(0, args.z_max + 1)
+    x_max = z_max / 1.5
+    ax.plot([0, x_max], [0, z_max], 'k--')
+    ax.plot([0, -x_max], [0, z_max], 'k--')
+    ax.set_ylim(0, z_max + 1)
     yield ax
     fig.savefig(output_path)
     plt.close(fig)
