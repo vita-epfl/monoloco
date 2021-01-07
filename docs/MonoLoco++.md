@@ -200,10 +200,10 @@ python -m monstereo.run eval
 
 To include also geometric baselines and MonoLoco, add the flag ``--baselines``
 
-<img src="quantitative_mono.png" width="500"/>
+<img src="quantitative_mono.png" width="550"/>
 
 Adding the argument `save`, a few plots will be added including 3D localization error as a function of distance:
-<img src="results.png" width="500"/>
+<img src="results.png" width="600"/>
 
 ### Activity Estimation (Talking)
 Please follow preprocessing steps for Collective activity dataset and run pifpaf over the dataset images.

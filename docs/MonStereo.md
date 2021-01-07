@@ -138,7 +138,7 @@ We provide evaluation on KITTI in the eval section. Txt files for MonStereo are 
 
 `python -m monstereo.run eval --dir_ann <directory of pifpaf annotations> --model data/models/ms-200710-1511.pkl  --generate`
 
-<img src="quantitative_mono.png" width="500"/>
+<img src="quantitative_mono.png" width="600"/>
 
 ### Relative Average Precision Localization (RALP-5%)
 We modified the original C++ evaluation of KITTI to make it relative to distance. We use **cmake**.
