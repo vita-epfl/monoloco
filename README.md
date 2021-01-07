@@ -57,5 +57,5 @@ or check the file `monstereo/run.py`
 
 Further instructions for prediction, preprocessing, training and evaluation can be found here:
 
-* [MonStereo README](https://github.com/vita-epfl/monstereo/tree/master/docs/MonStereo.md)
-* [MonoLoco++ README](https://github.com/vita-epfl/monstereo/tree/master/docs/MonoLoco_pp.md)
+* [MonoLoco++README](https://github.com/vita-epfl/monstereo/blob/master/docs/MonoLoco%2B%2B.md)
+* [MonStereo README](https://github.com/vita-epfl/monstereo/blob/master/docs/MonStereo.md)
