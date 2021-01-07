@@ -11,13 +11,20 @@ month = {October},
 year = {2019}
 }
 ```
-* **New! MonoLoco for social distancing is [available](https://github.com/vita-epfl/monoloco/tree/social-distance)! More info: [video](https://www.youtube.com/watch?v=r32UxHFAJ2M) and [project page](https://www.epfl.ch/labs/vita/research/perception/monoloco/).**
-* **Paper on [ICCV'19](http://openaccess.thecvf.com/content_ICCV_2019/html/Bertoni_MonoLoco_Monocular_3D_Pedestrian_Localization_and_Uncertainty_Estimation_ICCV_2019_paper.html) website or [ArXiv](https://arxiv.org/abs/1906.06059)**
-* **Check our video with method description and qualitative results on [YouTube](https://www.youtube.com/watch?v=ii0fqerQrec)**
+**2021**
 
-* **Live demo available! (more info in the webcam section)**
+**NEW! MonoLoco++ is [available](https://github.com/vita-epfl/monstereo):**
+* It estimates 3D localization, orientation, and bounding box dimensions
+* It verifies social distance requirements. More info: [video](https://www.youtube.com/watch?v=r32UxHFAJ2M) and [project page](https://www.epfl.ch/labs/vita/research/perception/monoloco/).**
+* It works with OpenPifPaf 0.12 and latest PyTorch Version
 
-* **Continuously tested with Travis CI: [![Build Status](https://travis-ci.org/vita-epfl/monoloco.svg?branch=master)](https://travis-ci.org/vita-epfl/monoloco)<br />**
+**2020** 
+* Paper on [ICCV'19](http://openaccess.thecvf.com/content_ICCV_2019/html/Bertoni_MonoLoco_Monocular_3D_Pedestrian_Localization_and_Uncertainty_Estimation_ICCV_2019_paper.html) website or [ArXiv](https://arxiv.org/abs/1906.06059)
+* Check our video with method description and qualitative results on [YouTube](https://www.youtube.com/watch?v=ii0fqerQrec)
+
+* Live demo available! (more info in the webcam section)
+
+* Continuously tested with Travis CI: [![Build Status](https://travis-ci.org/vita-epfl/monoloco.svg?branch=master)](https://travis-ci.org/vita-epfl/monoloco)<br />
 
 <img src="docs/pull.png" height="600">
 
