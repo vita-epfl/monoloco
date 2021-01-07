@@ -28,7 +28,8 @@ setup(
     zip_safe=False,
 
     install_requires=[
-        'openpifpaf>=0.11'
+        'openpifpaf>=0.11',
+        'matplotlib'
     ],
     extras_require={
         'eval': [
