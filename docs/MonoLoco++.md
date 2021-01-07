@@ -1,8 +1,6 @@
 
 # Perceiving Humans: from Monocular 3D Localization to Social Distancing
 
-![social distancing](docs/social_distancing.jpg)
-
 > Perceiving humans in the context of Intelligent Transportation Systems (ITS) 
 often relies on multiple cameras or expensive LiDAR sensors. 
 In this work, we present a new cost- effective vision-based method that perceives humans’ locations in 3D 
@@ -18,8 +16,21 @@ Our vision-based system (i) is privacy-safe, (ii) works with any fixed or moving
  Indeed, we show that we can rethink the concept of “social distancing” as a form of social interaction 
  in contrast to a simple location-based rule. We publicly share the source code towards an open science mission.
 
+```
+@InProceedings{bertoni_social,
+author = {Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
+title={Perceiving Humans: from Monocular 3D Localization to Social Distancing}, 
+booktitle = {arXiv:2009.00984},
+month = {September},
+year = {2020}
+}
+```
+![social distancing](social_distancing.jpg)
+
 ##  Predictions
-For a quick setup download a pifpaf and a MonoLoco++ models from TODO and save them into `data/models`.
+For a quick setup download a pifpaf and a MonoLoco++ models from 
+[here](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing)  
+and save them into `data/models`.
 
 ### 3D Localization
 The predict script receives an image (or an entire folder using glob expressions), 
@@ -161,12 +172,12 @@ For a more extensive list of available parameters, run:
 We provide evaluation on KITTI for models trained on nuScenes or KITTI. We compare them with other monocular 
 and stereo Baselines: 
 
-[MonoLoco](TODO), 
+[MonoLoco](https://github.com/vita-epfl/monoloco), 
 [Mono3D](https://www.cs.toronto.edu/~urtasun/publications/chen_etal_cvpr16.pdf), 
 [3DOP](https://xiaozhichen.github.io/papers/nips15chen.pdf), 
 [MonoDepth](https://arxiv.org/abs/1609.03677) 
-[MonoPSR](TODO) and our 
-[MonoDIS](TODO) and our 
+[MonoPSR](https://github.com/kujason/monopsr) and our 
+[MonoDIS](https://research.mapillary.com/img/publications/MonoDIS.pdf) and our 
 [Geometrical Baseline](monoloco/eval/geom_baseline.py).
 
 * **Mono3D**: download validation files from [here](http://3dimage.ee.tsinghua.edu.cn/cxz/mono3d) 

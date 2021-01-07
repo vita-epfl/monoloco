@@ -17,7 +17,6 @@ from openpifpaf.predict import processor_factory, preprocess_factory
 from openpifpaf import decoder, network, visualizer, show
 
 from .visuals.printer import Printer
-from .visuals.pifpaf_show import KeypointPainter
 from .network import Loco
 from .network.process import factory_for_gt, preprocess_pifpaf
 from .activity import show_social
@@ -137,7 +136,6 @@ def predict(args):
                 dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt, reorder=reorder)
 
                 if args.social_distance:
-                    # image_t = torchvision.transforms.functional.to_tensor(image).permute(1, 2, 0)
                     show_social(args, cpu_image, output_path, pifpaf_out, dic_out)
 
             else:
@@ -151,13 +149,13 @@ def predict(args):
             kk = None
 
         if not args.social_distance:
-            factory_outputs(args, annotation_painter, cpu_image, output_path, pifpaf_outputs, pifpaf_out,
+            factory_outputs(args, annotation_painter, cpu_image, output_path, pifpaf_outputs,
                             dic_out=dic_out, kk=kk)
         print('Image {}\n'.format(cnt) + '-' * 120)
         cnt += 1
 
 
-def factory_outputs(args, annotation_painter, cpu_image, output_path, pred, pifpaf_out, dic_out=None, kk=None):
+def factory_outputs(args, annotation_painter, cpu_image, output_path, pred, dic_out=None, kk=None):
     """Output json files or images according to the choice"""
 
     # Save json file
@@ -165,31 +163,6 @@ def factory_outputs(args, annotation_painter, cpu_image, output_path, pred, pifp
         with openpifpaf.show.image_canvas(cpu_image, output_path) as ax:
             annotation_painter.annotations(ax, pred)
 
-        # Visualizer
-        keypoint_painter = KeypointPainter(show_box=False)
-        skeleton_painter = KeypointPainter(show_box=False, color_connections=True, markersize=1, linewidth=4)
-
-        if 'json' in args.output_types and len(pred) > 0:
-            with open(output_path + '.pifpaf.json', 'w') as f:
-                json.dump(pifpaf_out, f)
-
-        # if 'keypoints' in args.output_types:
-        #     with image_canvas(images_outputs[0],
-        #                       output_path + '.keypoints.png',
-        #                       show=args.show,
-        #                       fig_width=args.figure_width,
-        #                       dpi_factor=args.dpi_factor) as ax:
-        #         keypoint_painter.keypoints(ax, keypoint_sets)
-        #
-        # if 'skeleton' in args.output_types:
-        #     with image_canvas(images_outputs[0],
-        #                       output_path + '.skeleton.png',
-        #                       show=args.show,
-        #                       fig_width=args.figure_width,
-        #                       dpi_factor=args.dpi_factor) as ax:
-        #         skeleton_painter.keypoints(ax, keypoint_sets, scores=scores)
-
-    else:
         if any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
             print(output_path)
             if dic_out['boxes']:  # Only print in case of detections

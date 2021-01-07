@@ -2,24 +2,16 @@
 # pylint: disable=too-many-statements
 
 import math
-import glob
-import os
 import copy
 from contextlib import contextmanager
 
 import numpy as np
 import torch
-import torch.nn.functional as F
-import torchvision
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, FancyArrow
-from PIL import Image
 
 from .network.process import laplace_sampling
-from .utils import open_annotations, get_task_error
 from .visuals.pifpaf_show import KeypointPainter, image_canvas
-from .network import Loco
-from .network.process import factory_for_gt, preprocess_pifpaf
 
 
 def social_interactions(idx, centers, angles, dds, stds=None, social_distance=False,
@@ -111,101 +103,6 @@ def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False
         if d_new <= min(d_0, d_1) and np.min(other_distances) > radius:
             return True
     return False
-
-
-def predict(args):
-
-    cnt = 0
-    args.device = torch.device('cpu')
-    if torch.cuda.is_available():
-        args.device = torch.device('cuda')
-
-    # Load data and model
-    monoloco = Loco(model=args.model, net='monoloco_pp',
-                    device=args.device, n_dropout=args.n_dropout, p_dropout=args.dropout)
-
-    images = []
-    images += glob.glob(args.glob)  # from cli as a string or linux converts
-
-    # Option 1: Run PifPaf extract poses and run MonoLoco in a single forward pass
-    if args.json_dir is None:
-        from .network import PifPaf, ImageList
-        pifpaf = PifPaf(args)
-        data = ImageList(args.images, scale=args.scale)
-        data_loader = torch.utils.data.DataLoader(
-            data, batch_size=1, shuffle=False,
-            pin_memory=args.pin_memory, num_workers=args.loader_workers)
-
-        for idx, (image_paths, image_tensors, processed_images_cpu) in enumerate(data_loader):
-            images = image_tensors.permute(0, 2, 3, 1)
-
-            processed_images = processed_images_cpu.to(args.device, non_blocking=True)
-            fields_batch = pifpaf.fields(processed_images)
-
-            # unbatch
-            for image_path, image, processed_image_cpu, fields in zip(
-                    image_paths, images, processed_images_cpu, fields_batch):
-
-                if args.output_directory is None:
-                    output_path = image_path
-                else:
-                    file_name = os.path.basename(image_path)
-                    output_path = os.path.join(args.output_directory, file_name)
-                im_size = (float(image.size()[1] / args.scale),
-                           float(image.size()[0] / args.scale))
-
-                print('image', idx, image_path, output_path)
-
-                _, _, pifpaf_out = pifpaf.forward(image, processed_image_cpu, fields)
-
-                kk, dic_gt = factory_for_gt(im_size, name=image_path, path_gt=args.path_gt)
-                image_t = image  # Resized tensor
-
-                # Run Monoloco
-                boxes, keypoints = preprocess_pifpaf(pifpaf_out, im_size, enlarge_boxes=False)
-                dic_out = monoloco.forward(keypoints, kk)
-                dic_out = monoloco.post_process(dic_out, boxes, keypoints, kk, dic_gt, reorder=False)
-
-                # Print
-                show_social(args, image_t, output_path, pifpaf_out, dic_out)
-
-                print('Image {}\n'.format(cnt) + '-' * 120)
-                cnt += 1
-
-    # Option 2: Load json file of poses from PifPaf and run monoloco
-    else:
-        for idx, im_path in enumerate(images):
-
-            # Load image
-            with open(im_path, 'rb') as f:
-                image = Image.open(f).convert('RGB')
-            if args.output_directory is None:
-                output_path = im_path
-            else:
-                file_name = os.path.basename(im_path)
-                output_path = os.path.join(args.output_directory, file_name)
-
-            im_size = (float(image.size[0] / args.scale),
-                       float(image.size[1] / args.scale))  # Width, Height (original)
-            kk, dic_gt = factory_for_gt(im_size, name=im_path, path_gt=args.path_gt)
-            image_t = torchvision.transforms.functional.to_tensor(image).permute(1, 2, 0)
-
-            # Load json
-            basename, ext = os.path.splitext(os.path.basename(im_path))
-
-            extension = ext + '.pifpaf.json'
-            path_json = os.path.join(args.json_dir, basename + extension)
-            annotations = open_annotations(path_json)
-
-            # Run Monoloco
-            boxes, keypoints = preprocess_pifpaf(annotations, im_size, enlarge_boxes=False)
-            dic_out = monoloco.forward(keypoints, kk)
-            dic_out = monoloco.post_process(dic_out, boxes, keypoints, kk, dic_gt, reorder=False)
-            if args.social_distance:
-                show_social(args, image, output_path, annotations, dic_out)
-
-            print('Image {}\n'.format(cnt) + '-' * 120)
-            cnt += 1
 
 
 def show_social(args, image_t, output_path, annotations, dic_out):
