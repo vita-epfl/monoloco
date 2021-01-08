@@ -29,7 +29,7 @@ Packages have been installed with pip and virtual environments.
 For quick installation, do not clone this repository, 
 and make sure there is no folder named monstereo in your current directory.
 A GPU is not required, yet highly recommended for real-time performances. 
-MonStereo can be installed as a package, by:
+MonoLoco++ and MonStereo can be installed as a single package, by:
 
 ```
 pip3 install monstereo
