@@ -1,5 +1,8 @@
-
 # pylint: disable=too-many-statements, too-many-branches, undefined-loop-variable
+
+"""
+Adapted from https://github.com/vita-epfl/openpifpaf/blob/master/openpifpaf/predict.py
+"""
 
 import os
 import glob
