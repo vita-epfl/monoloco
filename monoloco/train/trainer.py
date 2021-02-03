@@ -125,7 +125,7 @@ class Trainer:
         best_model_wts = copy.deepcopy(self.model.state_dict())
         best_acc = 1e6
         best_epoch = 0
-        epoch_losses_tr = epoch_losses_val = epoch_norms = epoch_sis = []
+        epoch_losses_tr, epoch_losses_val, epoch_norms, epoch_sis = [], [], [], []
 
         for epoch in range(self.num_epochs):
 

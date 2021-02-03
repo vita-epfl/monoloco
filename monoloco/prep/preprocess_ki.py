@@ -84,7 +84,7 @@ class PreprocessKitti:
                 boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1238, 374))
                 keypoints_hflip = transform_keypoints(keypoints, mode='flip')
                 inputs = preprocess_monoloco(keypoints, kk).tolist()
-                inputs_hflip = preprocess_monoloco(keypoints, kk).tolist()
+                inputs_hflip = preprocess_monoloco(keypoints_hflip, kk).tolist()
                 all_keypoints = [keypoints, keypoints_hflip]
                 all_inputs = [inputs, inputs_hflip]
 
