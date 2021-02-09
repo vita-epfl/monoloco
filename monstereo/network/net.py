@@ -14,6 +14,7 @@ import torch
 from ..utils import get_iou_matches, reorder_matches, get_keypoints, pixel_to_camera, xyz_from_distance
 from .process import preprocess_monstereo, preprocess_monoloco, extract_outputs, extract_outputs_mono,\
     filter_outputs, cluster_outputs, unnormalize_bi
+from ..activity import social_interactions
 from .architectures import MonolocoModel, MonStereoModel
 
 
@@ -172,7 +173,7 @@ class Loco:
             if verbose:
                 print("NO ground-truth associated")
 
-        if reorder:
+        if reorder and matches:
             matches = reorder_matches(matches, boxes, mode='left_right')
 
         all_idxs = [idx for idx, _ in matches] + not_matches
@@ -231,6 +232,23 @@ class Loco:
             dic_out['dds_real'].append(dd_real)
             dic_out['boxes_gt'].append(boxes_gt[idx_gt])
             dic_out['xyz_real'].append(xyz_real.squeeze().tolist())
+        return dic_out
+
+    @staticmethod
+    def social_distance(dic_out, args):
+
+        angles = dic_out['angles']
+        dds = dic_out['dds_pred']
+        stds = dic_out['stds_ale']
+        xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
+
+        # Prepare color for social distancing
+        dic_out['social_distance'] = [bool(social_interactions(idx, xz_centers, angles, dds,
+                                                               stds=stds,
+                                                               threshold_prob=args.threshold_prob,
+                                                               threshold_dist=args.threshold_dist,
+                                                               radii=args.radii))
+                                      for idx, _ in enumerate(dic_out['xyz_pred'])]
         return dic_out
 
 

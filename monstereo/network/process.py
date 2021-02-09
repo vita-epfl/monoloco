@@ -1,10 +1,14 @@
 
 import json
 import os
+import logging
 
 import numpy as np
 import torch
 import torchvision
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 from ..utils import get_keypoints, pixel_to_camera, to_cartesian, back_correct_angles
 
@@ -13,6 +17,9 @@ z_min = 4
 z_max = 60
 D_MIN = BF / z_max
 D_MAX = BF / z_min
+FL = 5.7  # nuScenes focal length (mm)
+Sx = 7.2  # nuScenes sensor size (mm)
+Sy = 5.4  # nuScenes sensor size (mm)
 
 
 def preprocess_monstereo(keypoints, keypoints_r, kk):
@@ -67,31 +74,28 @@ def factory_for_gt(im_size, name=None, path_gt=None, verbose=True):
         with open(path_gt, 'r') as f:
             dic_names = json.load(f)
         if verbose:
-            print('-' * 120 + "\nGround-truth file opened")
+            logger.info('-' * 120 + "\nGround-truth file opened")
     except (FileNotFoundError, TypeError):
         if verbose:
-            print('-' * 120 + "\nGround-truth file not found")
+            logger.info('-' * 120 + "\nGround-truth file not found")
         dic_names = {}
 
     try:
         kk = dic_names[name]['K']
         dic_gt = dic_names[name]
         if verbose:
-            print("Matched ground-truth file!")
+            logger.info("Matched ground-truth file!")
     except KeyError:
         dic_gt = None
-        x_factor = im_size[0] / 1600
-        y_factor = im_size[1] / 900
-        pixel_factor = (x_factor + y_factor) / 1.75  # 1.75 for MOT
-        # pixel_factor = 1
-        if im_size[0] / im_size[1] > 2.5:
+        if im_size[0] / im_size[1] > 2.5:  # KITTI default
             kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
-        else:
-            kk = [[1266.4 * pixel_factor, 0., 816.27 * x_factor],
-                  [0, 1266.4 * pixel_factor, 491.5 * y_factor],
-                  [0., 0., 1.]]  # nuScenes calibration
+        else:  # nuScenes camera parameters
+            kk = [
+                [im_size[0]*FL/Sx, 0., im_size[0]/2],
+                [0., im_size[1]*FL/Sy, im_size[1]/2],
+                [0., 0., 1.]]
         if verbose:
-            print("Using a standard calibration matrix...")
+            logger.info("Using a standard calibration matrix...")
 
     return kk, dic_gt
 

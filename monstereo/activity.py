@@ -111,18 +111,11 @@ def show_social(args, image_t, output_path, annotations, dic_out):
     assert 'front' in args.output_types or 'bird' in args.output_types, "outputs allowed: front and/or bird"
 
     angles = dic_out['angles']
-    dds = dic_out['dds_pred']
     stds = dic_out['stds_ale']
     xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
 
     # Prepare color for social distancing
-    colors = ['r' if social_interactions(idx, xz_centers, angles, dds,
-                                         stds=stds,
-                                         threshold_prob=args.threshold_prob,
-                                         threshold_dist=args.threshold_dist,
-                                         radii=args.radii)
-              else 'deepskyblue'
-              for idx, _ in enumerate(dic_out['xyz_pred'])]
+    colors = ['r' if flag else 'deepskyblue' for flag in dic_out['social_distance']]
 
     # Draw keypoints and orientation
     if 'front' in args.output_types:
