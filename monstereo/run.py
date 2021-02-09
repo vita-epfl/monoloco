@@ -39,6 +39,9 @@ def cli():
     predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=150)
     predict_parser.add_argument('--long-edge', default=None, type=int,
                                 help='rescale the long side of the image (aspect ratio maintained)')
+    predict_parser.add_argument('--focal',
+                                help='focal length in mm for a sensor size of 7.2x5.4 mm. Default nuScenes sensor',
+                                type=float, default=5.7)
 
     # Pifpaf parsers
     decoder.cli(predict_parser)

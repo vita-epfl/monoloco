@@ -17,7 +17,6 @@ z_min = 4
 z_max = 60
 D_MIN = BF / z_max
 D_MAX = BF / z_min
-FL = 5.7  # nuScenes focal length (mm)
 Sx = 7.2  # nuScenes sensor size (mm)
 Sy = 5.4  # nuScenes sensor size (mm)
 
@@ -67,7 +66,7 @@ def preprocess_monoloco(keypoints, kk, zero_center=False):
     return kps_out
 
 
-def factory_for_gt(im_size, name=None, path_gt=None, verbose=True):
+def factory_for_gt(im_size, focal_length=5.7, name=None, path_gt=None, verbose=True):
     """Look for ground-truth annotations file and define calibration matrix based on image size """
 
     try:
@@ -91,8 +90,8 @@ def factory_for_gt(im_size, name=None, path_gt=None, verbose=True):
             kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
         else:  # nuScenes camera parameters
             kk = [
-                [im_size[0]*FL/Sx, 0., im_size[0]/2],
-                [0., im_size[1]*FL/Sy, im_size[1]/2],
+                [im_size[0]*focal_length/Sx, 0., im_size[0]/2],
+                [0., im_size[1]*focal_length/Sy, im_size[1]/2],
                 [0., 0., 1.]]
         if verbose:
             logger.info("Using a standard calibration matrix...")

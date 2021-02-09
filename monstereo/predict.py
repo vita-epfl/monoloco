@@ -130,7 +130,7 @@ def predict(args):
 
             im_name = os.path.basename(meta['file_name'])
             im_size = (cpu_image.size[0], cpu_image.size[1])  # Original
-            kk, dic_gt = factory_for_gt(im_size, name=im_name, path_gt=args.path_gt)
+            kk, dic_gt = factory_for_gt(im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
 
             # Preprocess pifpaf outputs and run monoloco
             boxes, keypoints = preprocess_pifpaf(pifpaf_outs['left'], im_size, enlarge_boxes=False)
