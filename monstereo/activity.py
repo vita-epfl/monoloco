@@ -79,11 +79,15 @@ def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False
 
     # Find the center of o-space as average of two candidates (based on their orientation)
     for radius in radii:
-        x_0 = np.array([centers[idx][0], centers[idx][1]])
-        x_1 = np.array([centers[idx_t][0], centers[idx_t][1]])
+        x_0 = np.array([float(centers[idx][0]), float(centers[idx][1])])
+        x_1 = np.array([float(centers[idx_t][0]), float(centers[idx_t][1])])
 
-        mu_0 = np.array([centers[idx][0] + radius * math.cos(theta0), centers[idx][1] - radius * math.sin(theta0)])
-        mu_1 = np.array([centers[idx_t][0] + radius * math.cos(theta1), centers[idx_t][1] - radius * math.sin(theta1)])
+        mu_0 = np.array([
+            float(centers[idx][0]) + radius * math.cos(theta0),
+            float(centers[idx][1]) - radius * math.sin(theta0)])
+        mu_1 = np.array([
+            float(centers[idx_t][0]) + radius * math.cos(theta1),
+            float(centers[idx_t][1]) - radius * math.sin(theta1)])
         o_c = (mu_0 + mu_1) / 2
 
         # 1) Verify they are looking inwards.
