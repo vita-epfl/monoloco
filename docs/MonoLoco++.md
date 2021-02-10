@@ -72,6 +72,12 @@ and can be checked with `python -m monstereo.run predict --help`.
 
 ![predict_all](out_002282_pifpaf.jpg)
 
+### Focal Length and Camera Parameters
+Absolute distances are affected by the camera intrinsic parameters. 
+When processing KITTI images, the network uses the provided intrinsic matrix of the dataset. 
+In all the other cases, we use the parameters of nuScenes cameras, with "1/1.8'' CMOS sensors of size 7.2 x 5.4 mm.
+The default focal length is 5.7mm and this parameter can be modified using the argument `--focal`.
+
 ### Social Distancing
 To visualize social distancing compliance, simply add the argument `--social-distance` to the predict command.
 
