@@ -2,7 +2,7 @@
 
 import argparse
 
-from openpifpaf import decoder, network, visualizer, show
+from openpifpaf import decoder, network, visualizer, show, logger
 
 
 def cli():
@@ -39,15 +39,17 @@ def cli():
     predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=150)
     predict_parser.add_argument('--long-edge', default=None, type=int,
                                 help='rescale the long side of the image (aspect ratio maintained)')
+    predict_parser.add_argument('--disable-cuda', action='store_true', help='disable CUDA')
     predict_parser.add_argument('--focal',
                                 help='focal length in mm for a sensor size of 7.2x5.4 mm. Default nuScenes sensor',
                                 type=float, default=5.7)
 
     # Pifpaf parsers
-    decoder.cli(predict_parser)
-    network.cli(predict_parser)
-    show.cli(predict_parser)
-    visualizer.cli(predict_parser)
+    decoder.cli(parser)
+    logger.cli(parser)
+    network.Factory.cli(parser)
+    show.cli(parser)
+    visualizer.cli(parser)
 
     # Monoloco
     predict_parser.add_argument('--net', help='Choose network: monoloco, monoloco_p, monoloco_pp, monstereo')

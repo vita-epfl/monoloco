@@ -16,7 +16,7 @@ import PIL
 import openpifpaf
 import openpifpaf.datasets as datasets
 from openpifpaf.predict import processor_factory, preprocess_factory
-from openpifpaf import decoder, network, visualizer, show
+from openpifpaf import decoder, network, visualizer, show, logger
 
 from .visuals.printer import Printer
 from .network import Loco
@@ -45,14 +45,15 @@ def factory_from_args(args):
                   "Using a ShuffleNet backbone")
             args.checkpoint = 'shufflenetv2k30'
 
+    logger.configure(args, LOG)  # logger first
+
     # Devices
     args.device = torch.device('cpu')
-    args.disable_cuda = False
     args.pin_memory = False
     if torch.cuda.is_available():
         args.device = torch.device('cuda')
         args.pin_memory = True
-    args.loader_workers = 8
+    LOG.debug('neural network device: %s', args.device)
 
     # Add visualization defaults
     args.figure_width = 10
@@ -69,7 +70,7 @@ def factory_from_args(args):
 
     # Configure
     decoder.configure(args)
-    network.configure(args)
+    network.Factory.configure(args)
     show.configure(args)
     visualizer.configure(args)
 
@@ -105,7 +106,7 @@ def predict(args):
         # unbatch (only for MonStereo)
         for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
             print('batch %d: %s', batch_i, meta['file_name'])
-            pred = preprocess.annotations_inverse(pred, meta)
+            pred = [ann.inverse_transform(meta) for ann in pred]
 
             if args.output_directory is None:
                 splits = os.path.split(meta['file_name'])

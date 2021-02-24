@@ -111,7 +111,7 @@ class Printer:
 
         #  Initialize multi figure, resizing it for aesthetic proportion
         if 'multi' in self.output_types:
-            assert 'bird' and 'front' not in self.output_types, \
+            assert 'bird' not in self.output_types and 'front' not in self.output_types, \
                 "multi figure cannot be print together with front or bird ones"
 
             self.y_scale = self.width / (self.height * 2)  # Defined proportion

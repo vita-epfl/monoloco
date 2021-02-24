@@ -7,10 +7,10 @@ import numpy as np
 import torch
 import torchvision
 
+from ..utils import get_keypoints, pixel_to_camera, to_cartesian, back_correct_angles
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-from ..utils import get_keypoints, pixel_to_camera, to_cartesian, back_correct_angles
 
 BF = 0.54 * 721
 z_min = 4
