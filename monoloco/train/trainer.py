@@ -1,5 +1,5 @@
-
 # pylint: disable=too-many-statements
+
 """
 Training and evaluation of a neural network which predicts 3D localization and confidence intervals
 given 2d joints
@@ -13,24 +13,30 @@ from collections import defaultdict
 import sys
 import time
 import warnings
+from itertools import chain
 
 import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
 from .datasets import KeypointsDataset
-from ..network import LaplacianLoss
-from ..network.process import unnormalize_bi
-from ..network.architectures import LinearModel
+from .losses import CompositeLoss, MultiTaskLoss, AutoTuneMultiTaskLoss
+from ..network import extract_outputs, extract_labels
+from ..network.architectures import MonStereoModel
 from ..utils import set_logger
 
 
 class Trainer:
-    def __init__(self, joints, epochs=100, bs=256, dropout=0.2, lr=0.002,
-                 sched_step=20, sched_gamma=1, hidden_size=256, n_stage=3, r_seed=1, n_samples=100,
-                 baseline=False, save=False, print_loss=False):
+    # Constants
+    VAL_BS = 10000
+
+    tasks = ('d', 'x', 'y', 'h', 'w', 'l', 'ori', 'aux')
+    val_task = 'd'
+    lambdas = (1, 1, 1, 1, 1, 1, 1, 1)
+    clusters = ['10', '20', '30', '40']
+
+    def __init__(self, args):
         """
         Initialize directories, load the data and parameters for the training
         """
@@ -42,169 +48,158 @@ class Trainer:
         dir_logs = os.path.join('data', 'logs')
         if not os.path.exists(dir_logs):
             warnings.warn("Warning: default logs directory not found")
-        assert os.path.exists(joints), "Input file not found"
+        assert os.path.exists(args.joints), "Input file not found"
 
-        self.joints = joints
-        self.num_epochs = epochs
-        self.save = save
-        self.print_loss = print_loss
-        self.baseline = baseline
-        self.lr = lr
-        self.sched_step = sched_step
-        self.sched_gamma = sched_gamma
-        n_joints = 17
-        input_size = n_joints * 2
-        self.output_size = 2
-        self.clusters = ['10', '20', '30', '>30']
-        self.hidden_size = hidden_size
-        self.n_stage = n_stage
+        self.joints = args.joints
+        self.num_epochs = args.epochs
+        self.no_save = args.no_save
+        self.print_loss = args.print_loss
+        self.monocular = args.monocular
+        self.lr = args.lr
+        self.sched_step = args.sched_step
+        self.sched_gamma = args.sched_gamma
+        self.hidden_size = args.hidden_size
+        self.n_stage = args.n_stage
         self.dir_out = dir_out
-        self.n_samples = n_samples
-        self.r_seed = r_seed
+        self.r_seed = args.r_seed
+        self.auto_tune_mtl = args.auto_tune_mtl
 
-        # Loss functions and output names
+        # Select the device
+        use_cuda = torch.cuda.is_available()
+        self.device = torch.device("cuda" if use_cuda else "cpu")
+        print('Device: ', self.device)
+        torch.manual_seed(self.r_seed)
+        if use_cuda:
+            torch.cuda.manual_seed(self.r_seed)
+
+        # Remove auxiliary task if monocular
+        if self.monocular and self.tasks[-1] == 'aux':
+            self.tasks = self.tasks[:-1]
+            self.lambdas = self.lambdas[:-1]
+
+        losses_tr, losses_val = CompositeLoss(self.tasks)()
+
+        if self.auto_tune_mtl:
+            self.mt_loss = AutoTuneMultiTaskLoss(losses_tr, losses_val, self.lambdas, self.tasks)
+        else:
+            self.mt_loss = MultiTaskLoss(losses_tr, losses_val, self.lambdas, self.tasks)
+        self.mt_loss.to(self.device)
+
+        if not self.monocular:
+            input_size = 68
+            output_size = 10
+        else:
+            input_size = 34
+            output_size = 9
+
+        name = 'monoloco_pp' if self.monocular else 'monstereo'
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
-
-        if baseline:
-            name_out = 'baseline-' + now_time
-            self.criterion = nn.L1Loss().cuda()
-            self.output_size = 1
-        else:
-            name_out = 'monoloco-' + now_time
-            self.criterion = LaplacianLoss().cuda()
-            self.output_size = 2
-        self.criterion_eval = nn.L1Loss().cuda()
-
-        if self.save:
+        name_out = name + '-' + now_time
+        if not self.no_save:
             self.path_model = os.path.join(dir_out, name_out + '.pkl')
             self.logger = set_logger(os.path.join(dir_logs, name_out))
             self.logger.info("Training arguments: \nepochs: {} \nbatch_size: {} \ndropout: {}"
-                             "\nbaseline: {} \nlearning rate: {} \nscheduler step: {} \nscheduler gamma: {}  "
-                             "\ninput_size: {} \nhidden_size: {} \nn_stages: {} \nr_seed: {}"
-                             "\ninput_file: {}"
-                             .format(epochs, bs, dropout, baseline, lr, sched_step, sched_gamma, input_size,
-                                     hidden_size, n_stage, r_seed, self.joints))
+                             "\nmonocular: {} \nlearning rate: {} \nscheduler step: {} \nscheduler gamma: {}  "
+                             "\ninput_size: {} \noutput_size: {}\nhidden_size: {} \nn_stages: {} "
+                             "\nr_seed: {} \nlambdas: {} \ninput_file: {}"
+                             .format(args.epochs, args.bs, args.dropout, self.monocular,
+                                     args.lr, args.sched_step, args.sched_gamma, input_size,
+                                     output_size, args.hidden_size, args.n_stage, args.r_seed,
+                                     self.lambdas, self.joints))
         else:
             logging.basicConfig(level=logging.INFO)
             self.logger = logging.getLogger(__name__)
 
-        # Select the device and load the data
-        use_cuda = torch.cuda.is_available()
-        self.device = torch.device("cuda" if use_cuda else "cpu")
-        print('Device: ', self.device)
-
-        # Set the seed for random initialization
-        torch.manual_seed(r_seed)
-        if use_cuda:
-            torch.cuda.manual_seed(r_seed)
-
         # Dataloader
         self.dataloaders = {phase: DataLoader(KeypointsDataset(self.joints, phase=phase),
-                                              batch_size=bs, shuffle=True) for phase in ['train', 'val']}
+                                              batch_size=args.bs, shuffle=True) for phase in ['train', 'val']}
 
         self.dataset_sizes = {phase: len(KeypointsDataset(self.joints, phase=phase))
-                              for phase in ['train', 'val', 'test']}
+                              for phase in ['train', 'val']}
 
         # Define the model
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
         print(">>> creating model")
-        self.model = LinearModel(input_size=input_size, output_size=self.output_size, linear_size=hidden_size,
-                                 p_dropout=dropout, num_stage=self.n_stage)
+
+        self.model = MonStereoModel(input_size=input_size, output_size=output_size, linear_size=args.hidden_size,
+                                    p_dropout=args.dropout, num_stage=self.n_stage, device=self.device)
         self.model.to(self.device)
-        print(">>> total params: {:.2f}M".format(sum(p.numel() for p in self.model.parameters()) / 1000000.0))
+        print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model.parameters()) / 1000000.0))
+        print(">>> loss params: {}".format(sum(p.numel() for p in self.mt_loss.parameters())))
 
         # Optimizer and scheduler
-        self.optimizer = torch.optim.Adam(params=self.model.parameters(), lr=lr)
+        all_params = chain(self.model.parameters(), self.mt_loss.parameters())
+        self.optimizer = torch.optim.Adam(params=all_params, lr=args.lr)
+        self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
 
     def train(self):
-
-        # Initialize the variable containing model weights
         since = time.time()
         best_model_wts = copy.deepcopy(self.model.state_dict())
         best_acc = 1e6
+        best_training_acc = 1e6
         best_epoch = 0
-        epoch_losses_tr, epoch_losses_val, epoch_norms, epoch_sis = [], [], [], []
-
+        epoch_losses = defaultdict(lambda: defaultdict(list))
         for epoch in range(self.num_epochs):
+            running_loss = defaultdict(lambda: defaultdict(int))
 
             # Each epoch has a training and validation phase
             for phase in ['train', 'val']:
                 if phase == 'train':
-                    self.scheduler.step()
                     self.model.train()  # Set model to training mode
                 else:
                     self.model.eval()  # Set model to evaluate mode
 
-                running_loss_tr = running_loss_eval = norm_tr = bi_tr = 0.0
-
-                # Iterate over data.
                 for inputs, labels, _, _ in self.dataloaders[phase]:
                     inputs = inputs.to(self.device)
                     labels = labels.to(self.device)
-
-                    # zero the parameter gradients
-                    self.optimizer.zero_grad()
-
-                    # forward
-                    # track history if only in train
                     with torch.set_grad_enabled(phase == 'train'):
-                        outputs = self.model(inputs)
-
-                        outputs_eval = outputs[:, 0:1] if self.output_size == 2 else outputs
-
-                        loss = self.criterion(outputs, labels)
-                        loss_eval = self.criterion_eval(outputs_eval, labels)  # L1 loss to evaluation
-
-                        # backward + optimize only if in training phase
                         if phase == 'train':
+                            self.optimizer.zero_grad()
+                            outputs = self.model(inputs)
+                            loss, loss_values = self.mt_loss(outputs, labels, phase=phase)
                             loss.backward()
+                            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3)
                             self.optimizer.step()
+                            self.scheduler.step()
 
-                    # statistics
-                    running_loss_tr += loss.item() * inputs.size(0)
-                    running_loss_eval += loss_eval.item() * inputs.size(0)
+                        else:
+                            outputs = self.model(inputs)
+                        with torch.no_grad():
+                            loss_eval, loss_values_eval = self.mt_loss(outputs, labels, phase='val')
+                            self.epoch_logs(phase, loss_eval, loss_values_eval, inputs, running_loss)
 
-                epoch_loss = running_loss_tr / self.dataset_sizes[phase]
-                epoch_acc = running_loss_eval / self.dataset_sizes[phase]  # Average distance in meters
-                epoch_norm = float(norm_tr / self.dataset_sizes[phase])
-                epoch_si = float(bi_tr / self.dataset_sizes[phase])
-                if phase == 'train':
-                    epoch_losses_tr.append(epoch_loss)
-                    epoch_norms.append(epoch_norm)
-                    epoch_sis.append(epoch_si)
-                else:
-                    epoch_losses_val.append(epoch_acc)
+            self.cout_values(epoch, epoch_losses, running_loss)
 
-                if epoch % 5 == 1:
-                    sys.stdout.write('\r' + 'Epoch: {:.0f}   Training Loss: {:.3f}   Val Loss {:.3f}'
-                                     .format(epoch, epoch_losses_tr[-1], epoch_losses_val[-1]) + '\t')
+            # deep copy the model
 
-                # deep copy the model
-                if phase == 'val' and epoch_acc < best_acc:
-                    best_acc = epoch_acc
-                    best_epoch = epoch
-                    best_model_wts = copy.deepcopy(self.model.state_dict())
+            if epoch_losses['val'][self.val_task][-1] < best_acc:
+                best_acc = epoch_losses['val'][self.val_task][-1]
+                best_training_acc = epoch_losses['train']['all'][-1]
+                best_epoch = epoch
+                best_model_wts = copy.deepcopy(self.model.state_dict())
 
         time_elapsed = time.time() - since
-        print('\n\n' + '-'*120)
+        print('\n\n' + '-' * 120)
         self.logger.info('Training:\nTraining complete in {:.0f}m {:.0f}s'
                          .format(time_elapsed // 60, time_elapsed % 60))
-        self.logger.info('Best validation Accuracy: {:.3f}'.format(best_acc))
+        self.logger.info('Best training Accuracy: {:.3f}'.format(best_training_acc))
+        self.logger.info('Best validation Accuracy for {}: {:.3f}'.format(self.val_task, best_acc))
         self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch))
 
         if self.print_loss:
-            epoch_losses_val_scaled = [x - 4 for x in epoch_losses_val]  # to compare with L1 Loss
-            plt.plot(epoch_losses_tr[10:], label='Training Loss')
-            plt.plot(epoch_losses_val_scaled[10:], label='Validation Loss')
-            plt.legend()
-            plt.show()
+            print_losses(epoch_losses)
 
         # load best model weights
         self.model.load_state_dict(best_model_wts)
-
         return best_epoch
+
+    def epoch_logs(self, phase, loss, loss_values, inputs, running_loss):
+
+        running_loss[phase]['all'] += loss.item() * inputs.size(0)
+        for i, task in enumerate(self.tasks):
+            running_loss[phase][task] += loss_values[i].item() * inputs.size(0)
 
     def evaluate(self, load=False, model=None, debug=False):
 
@@ -215,13 +210,12 @@ class Trainer:
         # Average distance on training and test set after unnormalizing
         self.model.eval()
         dic_err = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0)))  # initialized to zero
-        phase = 'val'
-        batch_size = 5000
-        dataset = KeypointsDataset(self.joints, phase=phase)
+        dic_err['val']['sigmas'] = [0.] * len(self.tasks)
+        dataset = KeypointsDataset(self.joints, phase='val')
         size_eval = len(dataset)
         start = 0
         with torch.no_grad():
-            for end in range(batch_size, size_eval+batch_size, batch_size):
+            for end in range(self.VAL_BS, size_eval + self.VAL_BS, self.VAL_BS):
                 end = end if end < size_eval else size_eval
                 inputs, labels, _, _ = dataset[start:end]
                 start = end
@@ -235,18 +229,9 @@ class Trainer:
 
                 # Forward pass
                 outputs = self.model(inputs)
-                if not self.baseline:
-                    outputs = unnormalize_bi(outputs)
+                self.compute_stats(outputs, labels, dic_err['val'], size_eval, clst='all')
 
-                dic_err[phase]['all'] = self.compute_stats(outputs, labels, dic_err[phase]['all'], size_eval)
-
-            print('-'*120)
-            self.logger.info("Evaluation:\nAverage distance on the {} set: {:.2f}"
-                             .format(phase, dic_err[phase]['all']['mean']))
-
-            self.logger.info("Aleatoric Uncertainty: {:.2f}, inside the interval: {:.1f}%\n"
-                             .format(dic_err[phase]['all']['bi'], dic_err[phase]['all']['conf_bi']*100))
-
+            self.cout_stats(dic_err['val'], size_eval, clst='all')
             # Evaluate performances on different clusters and save statistics
             for clst in self.clusters:
                 inputs, labels, size_eval = dataset.get_cluster_annotations(clst)
@@ -254,49 +239,99 @@ class Trainer:
 
                 # Forward pass on each cluster
                 outputs = self.model(inputs)
-                if not self.baseline:
-                    outputs = unnormalize_bi(outputs)
-
-                    dic_err[phase][clst] = self.compute_stats(outputs, labels, dic_err[phase][clst], size_eval)
-
-                self.logger.info("{} error in cluster {} = {:.2f} for {} instances. "
-                                 "Aleatoric of {:.2f} with {:.1f}% inside the interval"
-                                 .format(phase, clst, dic_err[phase][clst]['mean'], size_eval,
-                                         dic_err[phase][clst]['bi'], dic_err[phase][clst]['conf_bi'] * 100))
+                self.compute_stats(outputs, labels, dic_err['val'], size_eval, clst=clst)
+                self.cout_stats(dic_err['val'], size_eval, clst=clst)
 
         # Save the model and the results
-        if self.save and not load:
+        if not (self.no_save or load):
             torch.save(self.model.state_dict(), self.path_model)
-            print('-'*120)
+            print('-' * 120)
             self.logger.info("\nmodel saved: {} \n".format(self.path_model))
         else:
             self.logger.info("\nmodel not saved\n")
 
         return dic_err, self.model
 
-    def compute_stats(self, outputs, labels_orig, dic_err, size_eval):
+    def compute_stats(self, outputs, labels, dic_err, size_eval, clst):
         """Compute mean, bi and max of torch tensors"""
 
-        labels = labels_orig.view(-1, )
-        mean_mu = float(self.criterion_eval(outputs[:, 0], labels).item())
-        max_mu = float(torch.max(torch.abs((outputs[:, 0] - labels))).item())
+        loss, loss_values = self.mt_loss(outputs, labels, phase='val')
+        rel_frac = outputs.size(0) / size_eval
 
-        if self.baseline:
-            return (mean_mu, max_mu), (0, 0, 0)
+        tasks = self.tasks[:-1] if self.tasks[-1] == 'aux' else self.tasks  # Exclude auxiliary
 
-        mean_bi = torch.mean(outputs[:, 1]).item()
+        for idx, task in enumerate(tasks):
+            dic_err[clst][task] += float(loss_values[idx].item()) * (outputs.size(0) / size_eval)
 
-        low_bound_bi = labels >= (outputs[:, 0] - outputs[:, 1])
-        up_bound_bi = labels <= (outputs[:, 0] + outputs[:, 1])
-        bools_bi = low_bound_bi & up_bound_bi
-        conf_bi = float(torch.sum(bools_bi)) / float(bools_bi.shape[0])
+        # Distance
+        errs = torch.abs(extract_outputs(outputs)['d'] - extract_labels(labels)['d'])
+        assert rel_frac > 0.99, "Variance of errors not supported with partial evaluation"
 
-        dic_err['mean'] += mean_mu * (outputs.size(0) / size_eval)
-        dic_err['bi'] += mean_bi * (outputs.size(0) / size_eval)
-        dic_err['count'] += (outputs.size(0) / size_eval)
-        dic_err['conf_bi'] += conf_bi * (outputs.size(0) / size_eval)
+        # Uncertainty
+        bis = extract_outputs(outputs)['bi'].cpu()
+        bi = float(torch.mean(bis).item())
+        bi_perc = float(torch.sum(errs <= bis)) / errs.shape[0]
+        dic_err[clst]['bi'] += bi * rel_frac
+        dic_err[clst]['bi%'] += bi_perc * rel_frac
+        dic_err[clst]['std'] = errs.std()
 
-        return dic_err
+        # (Don't) Save auxiliary task results
+        if self.monocular:
+            dic_err[clst]['aux'] = 0
+            dic_err['sigmas'].append(0)
+        else:
+            acc_aux = get_accuracy(extract_outputs(outputs)['aux'], extract_labels(labels)['aux'])
+            dic_err[clst]['aux'] += acc_aux * rel_frac
+
+        if self.auto_tune_mtl:
+            assert len(loss_values) == 2 * len(self.tasks)
+            for i, _ in enumerate(self.tasks):
+                dic_err['sigmas'][i] += float(loss_values[len(tasks) + i + 1].item()) * rel_frac
+
+    def cout_stats(self, dic_err, size_eval, clst):
+        if clst == 'all':
+            print('-' * 120)
+            self.logger.info("Evaluation, val set: \nAv. dist D: {:.2f} m with bi {:.2f} ({:.1f}%), \n"
+                             "X: {:.1f} cm,  Y: {:.1f} cm \nOri: {:.1f}  "
+                             "\n H: {:.1f} cm, W: {:.1f} cm, L: {:.1f} cm"
+                             "\nAuxiliary Task: {:.1f} %, "
+                             .format(dic_err[clst]['d'], dic_err[clst]['bi'], dic_err[clst]['bi%'] * 100,
+                                     dic_err[clst]['x'] * 100, dic_err[clst]['y'] * 100,
+                                     dic_err[clst]['ori'], dic_err[clst]['h'] * 100, dic_err[clst]['w'] * 100,
+                                     dic_err[clst]['l'] * 100, dic_err[clst]['aux'] * 100))
+            if self.auto_tune_mtl:
+                self.logger.info("Sigmas: Z: {:.2f}, X: {:.2f}, Y:{:.2f}, H: {:.2f}, W: {:.2f}, L: {:.2f}, ORI: {:.2f}"
+                                 " AUX:{:.2f}\n"
+                                 .format(*dic_err['sigmas']))
+        else:
+            self.logger.info("Val err clust {} --> D:{:.2f}m,  bi:{:.2f} ({:.1f}%), STD:{:.1f}m   X:{:.1f} Y:{:.1f}  "
+                             "Ori:{:.1f}d,   H: {:.0f} W: {:.0f} L:{:.0f}  for {} pp. "
+                             .format(clst, dic_err[clst]['d'], dic_err[clst]['bi'], dic_err[clst]['bi%'] * 100,
+                                     dic_err[clst]['std'], dic_err[clst]['x'] * 100, dic_err[clst]['y'] * 100,
+                                     dic_err[clst]['ori'], dic_err[clst]['h'] * 100, dic_err[clst]['w'] * 100,
+                                     dic_err[clst]['l'] * 100, size_eval))
+
+    def cout_values(self, epoch, epoch_losses, running_loss):
+
+        string = '\r' + '{:.0f} '
+        format_list = [epoch]
+        for phase in running_loss:
+            string = string + phase[0:1].upper() + ':'
+            for el in running_loss['train']:
+                loss = running_loss[phase][el] / self.dataset_sizes[phase]
+                epoch_losses[phase][el].append(loss)
+                if el == 'all':
+                    string = string + ':{:.1f}  '
+                    format_list.append(loss)
+                elif el in ('ori', 'aux'):
+                    string = string + el + ':{:.1f}  '
+                    format_list.append(loss)
+                else:
+                    string = string + el + ':{:.0f}  '
+                    format_list.append(loss * 100)
+
+        if epoch % 10 == 0:
+            print(string.format(*format_list))
 
 
 def debug_plots(inputs, labels):
@@ -310,3 +345,20 @@ def debug_plots(inputs, labels):
     plt.figure(2)
     plt.hist(labels, bins='auto')
     plt.show()
+
+
+def print_losses(epoch_losses):
+    for idx, phase in enumerate(epoch_losses):
+        for idx_2, el in enumerate(epoch_losses['train']):
+            plt.figure(idx + idx_2)
+            plt.plot(epoch_losses[phase][el][10:], label='{} Loss: {}'.format(phase, el))
+            plt.savefig('figures/{}_loss_{}.png'.format(phase, el))
+            plt.close()
+
+
+def get_accuracy(outputs, labels):
+    """From Binary cross entropy outputs to accuracy"""
+
+    mask = outputs >= 0.5
+    accuracy = 1. - torch.mean(torch.abs(mask.float() - labels)).item()
+    return accuracy

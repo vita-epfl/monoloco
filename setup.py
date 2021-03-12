@@ -18,7 +18,8 @@ setup(
         'monoloco.utils'
     ],
     license='GNU AGPLv3',
-    description='MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation',
+    description=' Perceiving Humans: from Monocular 3D Localization to Social Distancing '
+                '/ MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author='Lorenzo Bertoni',
@@ -27,19 +28,19 @@ setup(
     zip_safe=False,
 
     install_requires=[
-        'torch<=1.1.0',
-        'Pillow<=6.3',
-        'torchvision<=0.3.0',
-        'openpifpaf<=0.9.0',
-        'tabulate<=0.8.3',   # For evaluation
+        'openpifpaf>=v0.12.1',
+        'matplotlib'
     ],
     extras_require={
-        'test': [
-            'pylint<=2.4.2',
-            'pytest<=4.6.3',
+        'eval': [
+            'tabulate==0.8.3',
+            'sklearn',
+            'pandas',
+            'pylint',
+            'pytest',
         ],
         'prep': [
-            'nuscenes-devkit<=1.0.2',
+            'nuscenes-devkit==1.0.2',
         ],
     },
 )
