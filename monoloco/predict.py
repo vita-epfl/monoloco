@@ -61,8 +61,13 @@ def factory_from_args(args):
 
     if args.net == 'monstereo':
         args.batch_size = 2
+        args.images = sorted(args.images)
     else:
         args.batch_size = 1
+
+    if args.batch_size == 2 and not args.long_edge:
+        args.long_edge = 1238
+        LOG.info("Long-edge set to %i".format(args.long_edge))
 
     # Make default pifpaf argument
     args.force_complete_pose = True
@@ -108,14 +113,7 @@ def predict(args):
             print('batch %d: %s', batch_i, meta['file_name'])
             pred = [ann.inverse_transform(meta) for ann in pred]
 
-            if args.output_directory is None:
-                splits = os.path.split(meta['file_name'])
-                output_path = os.path.join(splits[0], 'out_' + splits[1])
-            else:
-                file_name = os.path.basename(meta['file_name'])
-                output_path = os.path.join(args.output_directory, 'out_' + file_name)
-            print('image', batch_i, meta['file_name'], output_path)
-
+            # Load image and collect pifpaf results
             if idx == 0:
                 with open(meta_batch[0]['file_name'], 'rb') as f:
                     cpu_image = PIL.Image.open(f).convert('RGB')
@@ -123,15 +121,24 @@ def predict(args):
                     'pred': pred,
                     'left': [ann.json_data() for ann in pred],
                     'image': cpu_image}
+
+                # Set output image name
+                if args.output_directory is None:
+                    splits = os.path.split(meta['file_name'])
+                    output_path = os.path.join(splits[0], 'out_' + splits[1])
+                else:
+                    file_name = os.path.basename(meta['file_name'])
+                    output_path = os.path.join(args.output_directory, 'out_' + file_name)
+                print('image', batch_i, meta['file_name'], output_path)
+
+            # Only for MonStereo
             else:
                 pifpaf_outs['right'] = [ann.json_data() for ann in pred]
 
         # 3D Predictions
         if args.net in ('monoloco_pp', 'monstereo'):
-
-            im_name = os.path.basename(meta['file_name'])
             im_size = (cpu_image.size[0], cpu_image.size[1])  # Original
-            kk, dic_gt = factory_for_gt(im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
+            kk, dic_gt = factory_for_gt(im_size, focal_length=args.focal, name=file_name, path_gt=args.path_gt)
 
             # Preprocess pifpaf outputs and run monoloco
             boxes, keypoints = preprocess_pifpaf(pifpaf_outs['left'], im_size, enlarge_boxes=False)
