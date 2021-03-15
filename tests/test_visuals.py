@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join('..', 'monoloco'))
 
 def test_printer():
     """Draw a fake figure"""
-    from monoloco.visuals.printer import Printer
+    from stereoloco.visuals.printer import Printer
     test_list = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]
     boxes = [xx + [0] for xx in test_list]
     kk = test_list

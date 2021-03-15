@@ -1,7 +1,7 @@
 from setuptools import setup
 
 # extract version from __init__.py
-with open('monoloco/__init__.py', 'r') as f:
+with open('monstereo/__init__.py', 'r') as f:
     VERSION_LINE = [l for l in f if l.startswith('__version__')][0]
     VERSION = VERSION_LINE.split('=')[1].strip()[1:-1]
 
@@ -18,7 +18,7 @@ setup(
         'monoloco.utils'
     ],
     license='GNU AGPLv3',
-    description='MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation',
+    description=' 3D localization with semantic keypoints ',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author='Lorenzo Bertoni',
@@ -27,19 +27,19 @@ setup(
     zip_safe=False,
 
     install_requires=[
-        'torch<=1.1.0',
-        'Pillow<=6.3',
-        'torchvision<=0.3.0',
-        'openpifpaf<=0.9.0',
-        'tabulate<=0.8.3',   # For evaluation
+        'openpifpaf>=v0.12.1',
+        'matplotlib'
     ],
     extras_require={
-        'test': [
-            'pylint<=2.4.2',
-            'pytest<=4.6.3',
+        'eval': [
+            'tabulate==0.8.3',
+            'sklearn',
+            'pandas',
+            'pylint',
+            'pytest',
         ],
         'prep': [
-            'nuscenes-devkit<=1.0.2',
+            'nuscenes-devkit==1.0.2',
         ],
     },
 )
