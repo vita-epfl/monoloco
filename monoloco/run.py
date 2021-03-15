@@ -39,6 +39,9 @@ def cli():
     predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=150)
     predict_parser.add_argument('--long-edge', default=None, type=int,
                                 help='rescale the long side of the image (aspect ratio maintained)')
+    predict_parser.add_argument('--white-overlay',
+                                nargs='?', default=False, const=0.8, type=float,
+                                help='increase contrast to annotations by making image whiter')
     predict_parser.add_argument('--disable-cuda', action='store_true', help='disable CUDA')
     predict_parser.add_argument('--focal',
                                 help='focal length in mm for a sensor size of 7.2x5.4 mm. Default nuScenes sensor',
