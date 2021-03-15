@@ -6,29 +6,28 @@ with open('monstereo/__init__.py', 'r') as f:
     VERSION = VERSION_LINE.split('=')[1].strip()[1:-1]
 
 setup(
-    name='monstereo',
+    name='monoloco',
     version=VERSION,
     packages=[
-        'monstereo',
-        'monstereo.network',
-        'monstereo.eval',
-        'monstereo.train',
-        'monstereo.prep',
-        'monstereo.visuals',
-        'monstereo.utils'
+        'monoloco',
+        'monoloco.network',
+        'monoloco.eval',
+        'monoloco.train',
+        'monoloco.prep',
+        'monoloco.visuals',
+        'monoloco.utils'
     ],
     license='GNU AGPLv3',
-    description=' Perceiving Humans: from Monocular 3D Localization to Social Distancing '
-                '/ MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization',
+    description=' 3D localization with semantic keypoints ',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author='Lorenzo Bertoni',
     author_email='lorenzo.bertoni@epfl.ch',
-    url='https://github.com/vita-epfl/monstereo',
+    url='https://github.com/vita-epfl/monoloco',
     zip_safe=False,
 
     install_requires=[
-        'openpifpaf==v0.12.1',
+        'openpifpaf>=v0.12.1',
         'matplotlib'
     ],
     extras_require={
