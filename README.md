@@ -3,13 +3,13 @@
 <img src="docs/monoloco.gif" alt="gif" />
 
 
-This library is based on three research projects:
+This library is based on three research projects for monocular/stereo 3D human localization, orientation and social distancing.
 
 > __MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization__<br /> 
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), 
 [T. Mordan](https://people.epfl.ch/taylor.mordan/?lang=en), [A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICRA21 --> [Article](https://arxiv.org/abs/2008.10913),[Video](#Todo)
      
-<img src="docs/000840_multi.jpg" width="550"/>
+<img src="docs/000840_multi.jpg" width="600"/>
 
 ---
 
@@ -18,20 +18,25 @@ This library is based on three research projects:
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), 
 [A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, T-ITS 2021 --> [Article](https://arxiv.org/abs/2009.00984), [Video](https://www.youtube.com/watch?v=r32UxHFAJ2M)
 
-<img src="docs/social_distancing.jpg" width="550"/>
+<img src="docs/social_distancing.jpg" width="600"/>
 
 ---
 
 > __MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation__<br />
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), [A.Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICCV 2019 --> [Article](https://arxiv.org/abs/1906.06059), [Video](https://www.youtube.com/watch?v=ii0fqerQrec)
    
-<img src="docs/surf.jpg.combined.png" width="550"/>
+<img src="docs/surf.jpg.combined.png" width="600"/>
     
+## License
 All projects are built upon [Openpifpaf](https://github.com/vita-epfl/openpifpaf) for the 2D keypoints and share the AGPL Licence.
+
+This software is also available for commercial licensing via the EPFL Technology Transfer
+Office (https://tto.epfl.ch/, info.tto@epfl.ch).
 
 
 # Quick setup
 A GPU is not required, yet highly recommended for real-time performances. 
+
 The installation has been tested on OSX and Linux operating systems, with Python 3.6, 3.7, 3.8. 
 Packages have been installed with pip and virtual environments.
 
@@ -64,6 +69,7 @@ To check all the options:
 or check the file `monoloco/run.py`
 
 #  Predictions
+# TODO from here
 For a quick setup download a pifpaf and MonoLoco++ / MonStereo models from 
 [here](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing)  and save them into `data/models`.
 
