@@ -3,7 +3,7 @@
 <img src="docs/monoloco.gif" alt="gif" />
 
 
-This library is based on three research projects for monocular/stereo 3D human localization, orientation and social distancing.
+This library is based on three research projects for 3D human localization, orientation and social distancing.
 
 > __MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization__<br /> 
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), 
