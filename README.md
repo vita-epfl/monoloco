@@ -9,25 +9,23 @@ This library is based on three research projects:
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), 
 [T. Mordan](https://people.epfl.ch/taylor.mordan/?lang=en), [A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICRA21 --> [Article](https://arxiv.org/abs/2008.10913),[Video](#Todo)
      
-<img src="docs/000840_multi.jpg" width="420"/>
+<img src="docs/000840_multi.jpg" width="550"/>
 
 ---
 
-&nbsp;
 
 > __Perceiving Humans: from Monocular 3D Localization to Social Distancing__<br />
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), 
 [A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, T-ITS 2021 --> [Article](https://arxiv.org/abs/2009.00984), [Video](https://www.youtube.com/watch?v=r32UxHFAJ2M)
 
-<img src="docs/social_distancing.jpg" width="420"/>
+<img src="docs/social_distancing.jpg" width="550"/>
 
 ---
-&nbsp;
 
 > __MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation__<br />
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), [A.Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICCV 2019 --> [Article](https://arxiv.org/abs/1906.06059), [Video](https://www.youtube.com/watch?v=ii0fqerQrec)
    
-<img src="docs/surf.jpg.combined.png" width="420"/>
+<img src="docs/surf.jpg.combined.png" width="550"/>
     
 All projects are built upon [Openpifpaf](https://github.com/vita-epfl/openpifpaf) for the 2D keypoints and share the AGPL Licence.
 
