@@ -2,7 +2,7 @@
 data/
 .DS_store
 __pycache__
-monstereo/*.pyc
+monoloco/*.pyc
 .pytest*
 build/
 dist/
