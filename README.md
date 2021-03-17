@@ -1,4 +1,8 @@
-# Perceiving Humans in 3D
+# Monoloco: a library to perceive humans in 3D
+
+
+<img src="docs/monoloco.gif" alt="gif" />
+
 
 This repository contains the code for two research projects:
    
