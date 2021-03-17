@@ -1,5 +1,4 @@
-# Monoloco: a library to perceive humans in 3D
-
+# Monoloco library
 
 <img src="docs/monoloco.gif" alt="gif" />
 
