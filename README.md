@@ -349,29 +349,29 @@ When using this library in your research, we will be happy if you cite us!
 
 ```
 @InProceedings{bertoni_2021_icra,
-author = {Bertoni, Lorenzo and Kreiss, Sven and Mordan, Taylor and Alahi, Alexandre},
-title = {MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization},
-booktitle = {International Conference on Robotics and Automation},
-year = {2021}
+    author = {Bertoni, Lorenzo and Kreiss, Sven and Mordan, Taylor and Alahi, Alexandre},
+    title = {MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization},
+    booktitle = {International Conference on Robotics and Automation},
+    year = {2021}
 }
 ```
 
 
 ```
 @ARTICLE{bertoni_2021_its,
-  author = {Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
-  journal={IEEE Transactions on Intelligent Transportation Systems}, 
-  title={Perceiving Humans: from Monocular 3D Localization to Social Distancing}, 
-  year={2021},
+    author = {Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
+    journal={IEEE Transactions on Intelligent Transportation Systems}, 
+    title={Perceiving Humans: from Monocular 3D Localization to Social Distancing}, 
+    year={2021},
 ```
 
 
 ```
 @InProceedings{bertoni_2019_iccv,
-author = {Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
-title = {MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation},
-booktitle = {The IEEE International Conference on Computer Vision (ICCV)},
-month = {October},
-year = {2019}
+    author = {Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
+    title = {MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation},
+    booktitle = {The IEEE International Conference on Computer Vision (ICCV)},
+    month = {October},
+    year = {2019}
 }
 ```
