@@ -18,7 +18,7 @@ setup(
         'monoloco.utils'
     ],
     license='GNU AGPLv3',
-    description=' 3D localization with semantic keypoints ',
+    description=' A 3D vision library from 2D keypoints',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author='Lorenzo Bertoni',

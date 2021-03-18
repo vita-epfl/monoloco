@@ -7,7 +7,8 @@ This library is based on three research projects for 3D human localization, orie
 
 > __MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization__<br /> 
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), 
-[T. Mordan](https://people.epfl.ch/taylor.mordan/?lang=en), [A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICRA21 --> [Article](https://arxiv.org/abs/2008.10913),[Video](#Todo)
+[T. Mordan](https://people.epfl.ch/taylor.mordan/?lang=en), [A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICRA21
+> [Article](https://arxiv.org/abs/2008.10913)     [Citation](#Todo)     [Video](#Todo)
      
 <img src="docs/000840_multi.jpg" width="700"/>
 
@@ -16,16 +17,18 @@ This library is based on three research projects for 3D human localization, orie
 
 > __Perceiving Humans: from Monocular 3D Localization to Social Distancing__<br />
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), 
-[A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, T-ITS 2021 --> [Article](https://arxiv.org/abs/2009.00984), [Video](https://www.youtube.com/watch?v=r32UxHFAJ2M)
+[A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, T-ITS 2021
+> [Article](https://arxiv.org/abs/2009.00984)     [Citation](#Citation)     [Video](https://www.youtube.com/watch?v=r32UxHFAJ2M)
 
 <img src="docs/social_distancing.jpg" width="700"/>
 
 ---
 
 > __MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation__<br />
-> _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), [A.Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICCV 2019 --> [Article](https://arxiv.org/abs/1906.06059), [Video](https://www.youtube.com/watch?v=ii0fqerQrec)
+> _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), [A.Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICCV 2019
+> [Article](https://arxiv.org/abs/1906.06059)     [Citation](#Todo)     [Video](https://www.youtube.com/watch?v=ii0fqerQrec)
    
-<img src="docs/surf.jpg.combined.png" width="700"/>
+<img src="docs/surf.jpg" width="700"/>
     
 ## License
 All projects are built upon [Openpifpaf](https://github.com/vita-epfl/openpifpaf) for the 2D keypoints and share the AGPL Licence.
@@ -341,7 +344,34 @@ cd data
 mkdir arrays models kitti figures logs
 ```
 
-Further instructions for prediction, preprocessing, training and evaluation can be found here:
+## Citation
+When using this library in your research, we will be happy if you cite us! 
 
-* [MonoLoco++ README](https://github.com/vita-epfl/monstereo/blob/master/docs/MonoLoco%2B%2B.md)
-* [MonStereo README](https://github.com/vita-epfl/monstereo/blob/master/docs/MonStereo.md)
+```
+@InProceedings{bertoni_2021_icra,
+author = {Bertoni, Lorenzo and Kreiss, Sven and Mordan, Taylor and Alahi, Alexandre},
+title = {MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization},
+booktitle = {International Conference on Robotics and Automation},
+year = {2021}
+}
+```
+
+
+```
+@ARTICLE{bertoni_2021_its,
+  author = {Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
+  journal={IEEE Transactions on Intelligent Transportation Systems}, 
+  title={Perceiving Humans: from Monocular 3D Localization to Social Distancing}, 
+  year={2021},
+```
+
+
+```
+@InProceedings{bertoni_2019_iccv,
+author = {Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
+title = {MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation},
+booktitle = {The IEEE International Conference on Computer Vision (ICCV)},
+month = {October},
+year = {2019}
+}
+```
