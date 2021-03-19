@@ -72,29 +72,52 @@ To check all the options:
 or check the file `monoloco/run.py`
 
 #  Predictions
-# TODO from here
 For a quick setup download a pifpaf and MonoLoco++ / MonStereo models from 
 [here](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing)  and save them into `data/models`.
 
-## Monocular 3D Localization
+## A) 3D Localization
 The predict script receives an image (or an entire folder using glob expressions), 
-calls PifPaf for 2d human pose detection over the image
-and runs Monoloco++ for 3d location of the detected poses.
+calls PifPaf for 2D human pose detection over the image
+and runs Monoloco++ or MonStereo for 3D localization &/or social distancing &/or orientation
+
+**Which Network** <br /> 
 The command `--net` defines if saving pifpaf outputs, MonoLoco++ outputs or MonStereo ones.
-You can check all commands for Pifpaf at [openpifpaf](https://github.com/vita-epfl/openpifpaf).
 
-Output options include json files and/or visualization of the predictions on the image in *frontal mode*, 
-*birds-eye-view mode* or *combined mode* and can be specified with `--output_types`
+- select `--net monstereo` if you have stereo images
+- select `--net monoloco_pp` if you have monocular (single) images
+- select `--net pifpaf` if you are interested in 2D keypoint outputs
 
-Ground-truth KITTI files for comparing results can be downloaded from 
-[here](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing) 
-(file called *names-kitti*) and should be saved into `data/arrays`
-Ground-truth files can also be generated, more info in the preprocessing section.
+**Which Visualization** <br /> 
+- select `--output_types multi` if you want to visualize both frontal view or bird's eye view in the same picture
+- select `--output_types bird front` if you want to different pictures for the two views or just one view
+- select `--output_types json` if you'd like the ouput json file
+
+Those options can be combined
+
+**Focal Length and Camera Parameters** <br /> 
+Absolute distances are affected by the camera intrinsic parameters. 
+When processing KITTI images, the network uses the provided intrinsic matrix of the dataset. 
+In all the other cases, we use the parameters of nuScenes cameras, with "1/1.8'' CMOS sensors of size 7.2 x 5.4 mm.
+The default focal length is 5.7mm and this parameter can be modified using the argument `--focal`.
+
+**Ground-truth comparison** <br /> 
+If you provide a ground-truth json file to compare the predictions of the network,
+ the script will match every detection using Intersection over Union metric. 
+ The ground truth file can be generated using the subparser `prep` and called with the command `--path_gt`. 
+As this step requires running the pose detector over all the training images and save the annotations, we 
+provide the resulting json file for the category *pedestrians* from 
+[Google Drive](https://drive.google.com/file/d/1e-wXTO460ip_Je2NdXojxrOrJ-Oirlgh/view?usp=sharing) 
+and save it into `data/arrays`.
+ 
+If a ground-truth json file is not available, with the command `--show_all`, is possible to 
+show all the prediction for the image
+
+**Monocular examples** <br>
 
 For an example image, run the following command:
 
 ```
-python -m monstereo.run predict \
+python -m monoloco.run predict \
 docs/002282.png \
 --net monoloco_pp \
 --output_types multi \
@@ -105,77 +128,78 @@ docs/002282.png \
 --n_dropout <50 to include epistemic uncertainty, 0 otherwise>
 ```
 
-![predict](out_002282.png.multi.jpg)
+![predict](docs/out_002282.png.multi.jpg)
 
 To show all the instances estimated by MonoLoco add the argument `show_all` to the above command.
 
-![predict_all](out_002282.png.multi_all.jpg)
+![predict_all](docs/out_002282.png.multi_all.jpg)
 
 It is also possible to run [openpifpaf](https://github.com/vita-epfl/openpifpaf) directly
 by specifying the network with the argument `--net pifpaf`. All the other pifpaf arguments are also supported 
 and can be checked with `python -m monstereo.run predict --help`.
 
-![predict_all](out_002282_pifpaf.jpg)
+![predict](docs/out_002282_pifpaf.jpg)
 
-### Focal Length and Camera Parameters
-Absolute distances are affected by the camera intrinsic parameters. 
-When processing KITTI images, the network uses the provided intrinsic matrix of the dataset. 
-In all the other cases, we use the parameters of nuScenes cameras, with "1/1.8'' CMOS sensors of size 7.2 x 5.4 mm.
-The default focal length is 5.7mm and this parameter can be modified using the argument `--focal`.
+**Stereo Examples** <br /> 
+To run MonStereo on stereo images, make sure the stereo pairs have the following name structure:
+- Left image: \<name>.\<extension>
+- Right image: \<name>**_r**.\<extension>
 
-## Social Distancing
-To visualize social distancing compliance, simply add the argument `--social-distance` to the predict command.
+(It does not matter the exact suffix as long as the images are ordered)
 
+You can load one or more image pairs using glob expressions. For example:
+
+```
+python3 -m monoloco.run predict \
+--glob docs/000840*.png --output_types multi \
+ --model data/models/ms-200710-1511.pkl \
+ --path_gt data/arrays/names-kitti-200615-1022.json \
+ -o data/output  --scale 2 
+ ```
+ 
+![Crowded scene](docs/out_000840.jpg)
+
+```
+python3 -m monoloco.run predict --glob docs/005523*.png \ --output_types multi \
+--model data/models/ms-200710-1511.pkl \
+--path_gt data/arrays/names-kitti-200615-1022.json \
+ -o data/output  --scale 2 
+ ```
+
+![Occluded hard example](docs/out_005523.jpg)
+
+## B) Social Distancing (and Talking activity)
+To visualize social distancing compliance, simply add the argument `--social-distance` to the predict command. This visualization is only supported with `--net monoloco_pp` at the moment.
+Threshold distance and radii (for F-formations) can be set using `--threshold-dist` and `--radii`, respectively.
+
+For more info, run:
+`python -m monoloco.run predict --help`
+
+**Examples** <br>
 An example from the Collective Activity Dataset is provided below.
 
-<img src="frame0038.jpg" width="500"/>
+<img src="docs/frame0038.jpg" width="500"/>
 
 To visualize social distancing run the below, command:
 ```
-python -m monstereo.run predict \
+python -m monoloco.run predict \
 docs/frame0038.jpg \
 --net monoloco_pp  \
 --social_distance \
 --output_types front bird --show_all \
 --model data/models/monoloco_pp-201203-1424.pkl -o <output directory> 
 ```
-<img src="out_frame0038.jpg.front.png" width="400"/>
+<img src="docs/out_frame0038.jpg.front.jpg" width="400"/>
 
 
-<img src="out_frame0038.jpg.bird.png" width="400"/>
+<img src="docs/out_frame0038.jpg.bird.jpg" width="400"/>
 
-Threshold distance and radii (for F-formations) can be set using `--threshold-dist` and `--radii`, respectively.
 
-For more info, run:
 
-`python -m monstereo.run predict --help`
-
-### Orientation and Bounding Box dimensions
+## C) Orientation and Bounding Box dimensions
 MonoLoco++ estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
 `--output_types json`. At the moment, the only visualization including orientation is the social distancing one.
 
-
-### Stereo 3D Localization
-The predict script receives an image (or an entire folder using glob expressions), 
-calls PifPaf for 2d human pose detection over the image
-and runs MonStereo for 3d location of the detected poses.
-
-Output options include json files and/or visualization of the predictions on the image in *frontal mode*, 
-*birds-eye-view mode* or *multi mode* and can be specified with `--output_types`
-
-
-### Pre-trained Models
-* Download Monstereo pre-trained model from 
-[Google Drive](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing),
-and save them in `data/models` 
-(default) or in any folder and call it through the command line option `--model <model path>`
-* Pifpaf pre-trained model will be automatically downloaded at the first run. 
-Three standard, pretrained models are available when using the command line option 
-`--checkpoint resnet50`, `--checkpoint resnet101` and `--checkpoint resnet152`.
-Alternatively, you can download a Pifpaf pre-trained model from [openpifpaf](https://github.com/vita-epfl/openpifpaf)
- and call it with `--checkpoint  <pifpaf model path>`. All experiments have been run with v0.8 of pifpaf.
-  If you'd like to use an updated version, we suggest to re-train the MonStereo model as well.
-* The model for the experiments is provided in *data/models/ms-200710-1511.pkl*
 
 
 ### Ground truth matching
@@ -196,30 +220,54 @@ After downloading model and ground-truth file, a demo can be tested with the fol
  --model data/models/ms-200710-1511.pkl --z_max 30 --checkpoint resnet152 --path_gt data/arrays/names-kitti-200615-1022.json
  -o data/output`
  
-![Crowded scene](out_000840.jpg)
+![Crowded scene](docs/out_000840.jpg)
 
 `python3 -m monstereo.run predict --glob docs/005523*.png --output_types multi --scale 2
  --model data/models/ms-200710-1511.pkl --z_max 30 --checkpoint resnet152 --path_gt data/arrays/names-kitti-200615-1022.json
  -o data/output`
 
-![Occluded hard example](out_005523.jpg)
+![Occluded hard example](docs/out_005523.jpg)
 
 
 ## Preprocessing
+Preprocessing and training step are already fully supported by the code provided, 
+but require first to run a pose detector over
+all the training images and collect the annotations. 
+The code supports this option (by running the predict script and using `--mode pifpaf`).
 
-### Kitti
-Annotations from a pose detector needs to be stored in a folder.
-For example by using [openpifpaf](https://github.com/vita-epfl/openpifpaf):
+### Data structure
+
+    data         
+    ├── arrays                 
+    ├── models
+    ├── kitti
+    ├── logs
+    ├── output
+    
+Run the following inside monoloco repository:
+```
+mkdir data
+cd data
+mkdir arrays models kitti logs output
+```
+
+
+### Kitti Dataset
+Annotations from a pose detector needs to be stored in a folder. With PifPaf:
+
 ```
 python -m openpifpaf.predict \
 --glob "<kitti images directory>/*.png" \
---json-output <directory to contain predictions> 
+--json-output <directory to contain predictions> \
 --checkpoint=shufflenetv2k30 \
 --instance-threshold=0.05 --seed-threshold 0.05 --force-complete-pose 
 ```
-Once the step is complete:
-`python -m monstereo.run prep --dir_ann <directory that contains predictions> --monocular`
+Once the step is complete, the below commands transform all the annotations into a single json file that will used for training
 
+```
+python -m monoloco.run prep --dir_ann <directory that contains annotations>
+```
+!Add the flag `--monocular` for MonoLoco(++)!
 
 ### Collective Activity Dataset
 To evaluate on of the [collective activity dataset](http://vhosts.eecs.umich.edu/vision//activity-dataset.html)
@@ -237,7 +285,7 @@ where images and annotations inside have the following name convention:
 IMAGES: seq<sequence_name>_frame<frame_name>.jpg
 ANNOTATIONS: seq<sequence_name>_annotations.txt
 
-With respect to the original datasets the images and annotations are moved to a single folder 
+With respect to the original dataset, the images and annotations are moved to a single folder 
 and the sequence is added in their name. One command to do this is:
 
 `rename -v -n 's/frame/seq14_frame/'  f*.jpg`
@@ -251,8 +299,8 @@ Pifpaf annotations should also be saved in a single folder and can be created wi
 python -m openpifpaf.predict \
 --glob "data/collective_activity/images/*.jpg"  \
 --checkpoint=shufflenetv2k30 \
---instance-threshold=0.05 --seed-threshold 0.05 --force-complete-pose\
---json-output /data/lorenzo-data/annotations/collective_activity/v012 
+--instance-threshold=0.05 --seed-threshold 0.05 \--force-complete-pose \
+--json-output <output folder>
 ```
 
 Finally, to evaluate activity using a MonoLoco++ pre-trained model trained either on nuSCENES or KITTI:
@@ -263,13 +311,22 @@ python -m monstereo.run eval --activity \
 ```
 
 ## Training
-We train on KITTI or nuScenes dataset specifying the path of the input joints.
+We train on the KITTI dataset (MonoLoco/Monoloco++/MonStereo) or the nuScenes dataset (MonoLoco) specifying the path of the json file containing the input joints. Please download them here or follow preprocessing instructions.
 
-Our results are obtained with: 
+Our results for MonoLoco++ are obtained with: 
 
-`python -m monstereo.run train --lr 0.001 --joints data/arrays/joints-kitti-201202-1743.json --save --monocular`
+```
+python -m monoloco.run train --joints data/arrays/joints-kitti-201202-1743.json --save --monocular
+```
 
-For a more extensive list of available parameters, run:
+While for the MonStereo ones just change the input joints and remove the monocular flag:
+```
+python3 -m monoloco.run train --joints <json file path> --save`
+```
+
+If you are interested in the original results of the MonoLoco ICCV article (now improved with MonoLoco++), please refer to the tag v0.4.9 in this repository.
+
+Finally, for a more extensive list of available parameters, run:
 
 `python -m monstereo.run train --help`
 
@@ -277,7 +334,7 @@ For a more extensive list of available parameters, run:
 
 ### 3D Localization
 We provide evaluation on KITTI for models trained on nuScenes or KITTI. We compare them with other monocular 
-and stereo Baselines: 
+and stereo baselines, depending whether you are evaluating stereo or monocular settings. For some of the baselines, we have obtained the annotations directly from the authors and we don't have yet the permission to publish them.
 
 [MonoLoco](https://github.com/vita-epfl/monoloco), 
 [Mono3D](https://www.cs.toronto.edu/~urtasun/publications/chen_etal_cvpr16.pdf), 
@@ -294,9 +351,8 @@ and save them into `data/kitti/3dop`
 * **MonoDepth**: compute an average depth for every instance using the following script 
 [here](https://github.com/Parrotlife/pedestrianDepth-baseline/tree/master/MonoDepth-PyTorch) 
 and save them into `data/kitti/monodepth`
-* **GeometricalBaseline**: A geometrical baseline comparison is provided. 
-
-The average geometrical value for comparison can be obtained running:
+* **Geometrical Baseline and MonoLoco**:
+To include also geometric baselines and MonoLoco, add the flag ``--baselines`` to the evaluation command
 ```
 python -m monstereo.run eval 
 --dir_ann <annotation directory> 
@@ -305,12 +361,23 @@ python -m monstereo.run eval
 --generate
 ````
 
-To include also geometric baselines and MonoLoco, add the flag ``--baselines``
+### Relative Average Precision Localization (RALP-5%) 
 
-<img src="quantitative_mono.png" width="550"/>
+We modified the original C++ evaluation of KITTI to make it relative to distance. We use **cmake**.
+To run the evaluation, first generate the txt files with:
+
+`python -m monstereo.run eval --dir_ann <directory of pifpaf annotations> --model data/models/ms-200710-1511.pkl  --generate`
+
+Then follow the instructions of this [repository](https://github.com/cguindel/eval_kitti) 
+to prepare the folders accordingly (or follow kitti guidelines) and run evaluation. 
+The modified file is called *evaluate_object.cpp* and runs exactly as the original kitti evaluation.
+
+
+
+<img src="docs/quantitative_mono.png" width="550"/>
 
 Adding the argument `save`, a few plots will be added including 3D localization error as a function of distance:
-<img src="results.png" width="600"/>
+<img src="docs/results.png" width="600"/>
 
 ### Activity Estimation (Talking)
 Please follow preprocessing steps for Collective activity dataset and run pifpaf over the dataset images.
