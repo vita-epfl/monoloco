@@ -189,10 +189,7 @@ docs/frame0038.jpg \
 --output_types front bird --show_all \
 --model data/models/monoloco_pp-201203-1424.pkl -o <output directory> 
 ```
-<img src="docs/out_frame0038.jpg.front.jpg" width="400"/>
-
-
-<img src="docs/out_frame0038.jpg.bird.jpg" width="400"/>
+<img src="docs/out_frame0038.jpg.front_bird.jpg" width="700"/>
 
 
 
@@ -354,35 +351,35 @@ and save them into `data/kitti/monodepth`
 * **Geometrical Baseline and MonoLoco**:
 To include also geometric baselines and MonoLoco, add the flag ``--baselines`` to the evaluation command
 ```
-python -m monstereo.run eval 
---dir_ann <annotation directory> 
---model <model path> 
---net monoloco_pp 
---generate
+python -m monoloco.run eval \
+--dir_ann <annotation directory> \
+--model <model path> \
+--net monoloco_pp \
+--generate \
+--save \
 ````
 
-### Relative Average Precision Localization (RALP-5%) 
+#TODO add white table for monocular
+
+<img src="docs/results_monoloco_pp." width="550"/>
+By changing the net and the model, the same command evaluates MonStereo model.
+
+#TODO Add white  table for stereo
+<img src="docs/results_stereo.jpg" width="550"/>
+
+
+### Relative Average Precision Localization: RALP-5% (MonStereo)
 
 We modified the original C++ evaluation of KITTI to make it relative to distance. We use **cmake**.
-To run the evaluation, first generate the txt files with:
-
-`python -m monstereo.run eval --dir_ann <directory of pifpaf annotations> --model data/models/ms-200710-1511.pkl  --generate`
-
+To run the evaluation, first generate the txt file with the standard command for evaluation (above).
 Then follow the instructions of this [repository](https://github.com/cguindel/eval_kitti) 
 to prepare the folders accordingly (or follow kitti guidelines) and run evaluation. 
 The modified file is called *evaluate_object.cpp* and runs exactly as the original kitti evaluation.
 
-
-
-<img src="docs/quantitative_mono.png" width="550"/>
-
-Adding the argument `save`, a few plots will be added including 3D localization error as a function of distance:
-<img src="docs/results.png" width="600"/>
-
 ### Activity Estimation (Talking)
 Please follow preprocessing steps for Collective activity dataset and run pifpaf over the dataset images.
 Evaluation on this dataset is done with models trained on either KITTI or nuScenes. 
-For optimal performances, we suggest the model trained on nuScenes teaser (TODO add link)
+For optimal performances, we suggest the model trained on nuScenes teaser (#TODO add link)
 ```
 python -m monstereo.run eval 
 --activity 
@@ -392,24 +389,6 @@ python -m monstereo.run eval
 --dir_ann <annotation directory>
 ```
 
-
-
-### Data structure
-
-    Data         
-    ├── arrays                 
-    ├── models
-    ├── kitti
-    ├── figures
-    ├── logs
-    
-
-Run the following to create the folders:
-```
-mkdir data
-cd data
-mkdir arrays models kitti figures logs
-```
 
 ## Citation
 When using this library in your research, we will be happy if you cite us! 
@@ -423,7 +402,6 @@ When using this library in your research, we will be happy if you cite us!
 }
 ```
 
-
 ```
 @ARTICLE{bertoni_2021_its,
     author = {Bertoni, Lorenzo and Kreiss, Sven and Alahi, Alexandre},
@@ -431,7 +409,6 @@ When using this library in your research, we will be happy if you cite us!
     title={Perceiving Humans: from Monocular 3D Localization to Social Distancing}, 
     year={2021},
 ```
-
 
 ```
 @InProceedings{bertoni_2019_iccv,
