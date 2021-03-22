@@ -49,7 +49,7 @@ def download_checkpoints(args):
     dic_models = {'keypoints': pifpaf_model}
     if not os.path.exists(pifpaf_model):
         import gdown
-        LOG.info("Downloading OpenPifPaf model in %s".format(torch_dir))
+        LOG.info(f'Downloading OpenPifPaf model in {torch_dir}')
         gdown.download(OPENPIFPAF_MODEL, pifpaf_model, quiet=False)
 
     if args.mode == 'keypoints':
@@ -68,7 +68,7 @@ def download_checkpoints(args):
 
     if not os.path.exists(model):
         import gdown
-        LOG.info("Downloading model in %s".format(torch_dir))
+        LOG.info(f'Downloading model (modality: {args.mode}) in {torch_dir}')
         gdown.download(path, model, quiet=False)
     return dic_models
 
