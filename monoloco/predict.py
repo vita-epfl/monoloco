@@ -47,7 +47,6 @@ def download_checkpoints(args):
     torch_dir = get_torch_checkpoints_dir()
     pifpaf_model = os.path.join(torch_dir, 'shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl')
     dic_models = {'keypoints': pifpaf_model}
-    print(torch_dir)
     if not os.path.exists(pifpaf_model):
         import gdown
         LOG.info("Downloading OpenPifPaf model in %s".format(torch_dir))
@@ -159,7 +158,7 @@ def predict(args):
 
         # unbatch (only for MonStereo)
         for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
-            print('batch %d: %s', batch_i, meta['file_name'])
+            LOG.info('batch %d: %s'.format(batch_i, meta['file_name']))
             pred = [ann.inverse_transform(meta) for ann in pred]
 
             # Load image and collect pifpaf results
@@ -220,7 +219,7 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
 
     # Verify conflicting options
     if any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
-        assert args.mode != 'keypoints', "for keypooints please use pifpaf original arguments"
+        assert args.mode != 'keypoints', "for keypoints please use pifpaf original arguments"
         if args.social_distance:
             assert args.mode == 'mono', "Social distancing only works with monocular network"
 

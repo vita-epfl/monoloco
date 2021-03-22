@@ -60,7 +60,7 @@ pip3 install -e .
 ```
 
 ### Interfaces
-All the commands are run through a main file called `main.py` using subparsers.
+All the commands are run through a main file called `run.py` using subparsers.
 To check all the options:
 
 * `python3 -m monoloco.run --help`
@@ -80,9 +80,9 @@ and runs Monoloco++ or MonStereo for 3D localization &/or social distancing &/or
 **Which Modality** <br /> 
 The command `--mode` defines which network to run.
 
-- select `--mode mono` (default) to predict 3D localization on monocular image(s)
+- select `--mode mono` (default) to predict the 3D localization of all the humans from monocular image(s)
 - select `--mode stereo` for stereo images
-- select `--moode keypoints` if just interested in 2D keypoints from OpenPifPaf
+- select `--mode keypoints` if just interested in 2D keypoints from OpenPifPaf
 
 Models are downloaded automatically. To use a specific model, use the command `--model`. Additional models can be downloaded from [here](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing)
 
@@ -92,8 +92,6 @@ Models are downloaded automatically. To use a specific model, use the command `-
 - select `--output_types json` if you'd like the ouput json file
 
 If you select `--mode keypoints`, use standard OpenPifPaf arguments
-For 
-Those options can be combined
 
 **Focal Length and Camera Parameters** <br /> 
 Absolute distances are affected by the camera intrinsic parameters. 
@@ -129,7 +127,7 @@ To show all the instances estimated by MonoLoco add the argument `show_all` to t
 ![predict_all](docs/out_002282.png.multi_all.jpg)
 
 It is also possible to run [openpifpaf](https://github.com/vita-epfl/openpifpaf) directly
-by specifying the network with the argument `--net pifpaf`. All the other pifpaf arguments are also supported 
+by usingt `--mode keypoints`. All the other pifpaf arguments are also supported 
 and can be checked with `python -m monstereo.run predict --help`.
 
 ![predict](docs/out_002282_pifpaf.jpg)
@@ -163,7 +161,7 @@ python3 -m monoloco.run predict --glob docs/005523*.png \ --output_types multi \
 ![Occluded hard example](docs/out_005523.jpg)
 
 ## B) Social Distancing (and Talking activity)
-To visualize social distancing compliance, simply add the argument `--social-distance` to the predict command. This visualization is only supported with `--net monoloco_pp` at the moment.
+To visualize social distancing compliance, simply add the argument `--social-distance` to the predict command. This visualization is not supported with a stereo camera.
 Threshold distance and radii (for F-formations) can be set using `--threshold-dist` and `--radii`, respectively.
 
 For more info, run:
@@ -319,7 +317,6 @@ To include also geometric baselines and MonoLoco, add the flag ``--baselines`` t
 python -m monoloco.run eval \
 --dir_ann <annotation directory> \
 --model <model path> \
---net monoloco_pp \
 --generate \
 --save \
 ````
@@ -347,10 +344,9 @@ Evaluation on this dataset is done with models trained on either KITTI or nuScen
 For optimal performances, we suggest the model trained on nuScenes teaser (#TODO add link)
 ```
 python -m monstereo.run eval 
---activity 
---dataset collective
---net monoloco_pp
---model <path to the model>   
+--activity \
+--dataset collective \
+--model <path to the model>  \
 --dir_ann <annotation directory>
 ```
 
