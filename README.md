@@ -3,14 +3,14 @@
 <img src="docs/monoloco.gif" alt="gif" />
 
 
-This library is based on three research projects for monocular/stereo 3D human localization, orientation and social distancing.
+This library is based on three research projects for monocular/stereo 3D human localization (detection), body orientation, and social distancing.
 
 > __MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization__<br /> 
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), 
 [T. Mordan](https://people.epfl.ch/taylor.mordan/?lang=en), [A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICRA 2021 <br /> 
 __[Article](https://arxiv.org/abs/2008.10913)__  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;   __[Citation](#Citation)__  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; __[Video](#Todo)__
      
-<img src="docs/000840_multi.jpg" width="700"/>
+<img src="docs/out_000840_multi.jpg" width="700"/>
 
 ---
 
@@ -128,7 +128,7 @@ To show all the instances estimated by MonoLoco add the argument `show_all` to t
 
 It is also possible to run [openpifpaf](https://github.com/vita-epfl/openpifpaf) directly
 by usingt `--mode keypoints`. All the other pifpaf arguments are also supported 
-and can be checked with `python -m monstereo.run predict --help`.
+and can be checked with `python -m monoloco.run predict --help`.
 
 ![predict](docs/out_002282_pifpaf.jpg)
 
@@ -149,16 +149,17 @@ python3 -m monoloco.run predict --mode stereo \
  -o data/output  -long_edge 2500
  ```
  
-![Crowded scene](docs/out_000840.jpg)
+![Crowded scene](docs/out_000840_multi.jpg)
 
 ```
 python3 -m monoloco.run predict --glob docs/005523*.png \ --output_types multi \
 --model data/models/ms-200710-1511.pkl \
 --path_gt <to match results with ground-truths> \
- -o data/output  --long_edge 2500
+-o data/output  --long_edge 2500 \
+--instance-threshold 0.05 --seed-threshold 0.05
  ```
 
-![Occluded hard example](docs/out_005523.jpg)
+![Occluded hard example](docs/out_005523.png.multi.jpg)
 
 ## B) Social Distancing (and Talking activity)
 To visualize social distancing compliance, simply add the argument `--social-distance` to the predict command. This visualization is not supported with a stereo camera.
@@ -180,17 +181,16 @@ python -m monoloco.run predict docs/frame0038.jpg \
 <img src="docs/out_frame0038.jpg.front_bird.jpg" width="700"/>
 
 
-
-## C) Orientation and Bounding Box dimensions
-MonoLoco++ estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
+## C) Orientation and Bounding Box dimensions 
+The network estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
 `--output_types json`. At the moment, the only visualization including orientation is the social distancing one.
 
-<br>
+<br /> 
 
 ## Training
 We train on the KITTI dataset (MonoLoco/Monoloco++/MonStereo) or the nuScenes dataset (MonoLoco) specifying the path of the json file containing the input joints. Please download them [heere](https://drive.google.com/file/d/1e-wXTO460ip_Je2NdXojxrOrJ-Oirlgh/view?usp=sharing) or follow [preprocessing instructions](#Preprocessing).
 
-Our results for MonoLoco++ are obtained with: 
+Results for MonoLoco++ are obtained with: 
 
 ```
 python -m monoloco.run train --joints data/arrays/joints-kitti-201202-1743.json --save --monocular
@@ -207,7 +207,7 @@ Finally, for a more extensive list of available parameters, run:
 
 `python -m monstereo.run train --help`
 
-<br>
+<br /> 
 
 ## Preprocessing
 Preprocessing and training step are already fully supported by the code provided, 

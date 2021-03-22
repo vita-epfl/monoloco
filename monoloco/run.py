@@ -45,6 +45,8 @@ def cli():
     predict_parser.add_argument('--font-size', default=0, type=int, help='annotation font size')
     predict_parser.add_argument('--monocolor-connections', default=False, action='store_true',
                                 help='use a single color per instance')
+    predict_parser.add_argument('--instance-threshold', type=float, default=None, help='threshold for entire instance')
+    predict_parser.add_argument('--seed-threshold', type=float, default=None, help='threshold for single seed')
     predict_parser.add_argument('--disable-cuda', action='store_true', help='disable CUDA')
     predict_parser.add_argument('--focal',
                                 help='focal length in mm for a sensor size of 7.2x5.4 mm. Default nuScenes sensor',

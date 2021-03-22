@@ -108,6 +108,7 @@ def factory_from_args(args):
     else:
         args.batch_size = 1
 
+    # Patch for stereo images with batch_size = 2
     if args.batch_size == 2 and not args.long_edge:
         args.long_edge = 1238
         LOG.info("Long-edge set to %i".format(args.long_edge))
@@ -177,7 +178,9 @@ def predict(args):
                 else:
                     file_name = os.path.basename(meta['file_name'])
                     output_path = os.path.join(args.output_directory, 'out_' + file_name)
-                print('image', batch_i, meta['file_name'], output_path)
+
+                im_name = os.path.basename(meta['file_name'])
+                print(f'{batch_i} image {im_name} saved as {output_path}')
 
             # Only for MonStereo
             else:
@@ -186,7 +189,7 @@ def predict(args):
         # 3D Predictions
         if args.mode != 'keypoints':
             im_size = (cpu_image.size[0], cpu_image.size[1])  # Original
-            kk, dic_gt = factory_for_gt(im_size, focal_length=args.focal, name=file_name, path_gt=args.path_gt)
+            kk, dic_gt = factory_for_gt(im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
 
             # Preprocess pifpaf outputs and run monoloco
             boxes, keypoints = preprocess_pifpaf(pifpaf_outs['left'], im_size, enlarge_boxes=False)
