@@ -1,4 +1,6 @@
 
-"""Open implementation of MonoLoco++ / MonStereo."""
+"""
+Open implementation of MonoLoco / MonoLoco++ / MonStereo
+"""
 
-__version__ = '0.2.3'
+__version__ = '0.5.0'
