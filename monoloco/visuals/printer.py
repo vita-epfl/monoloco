@@ -60,7 +60,6 @@ class Printer:
         self.output_types = args.output_types
         self.z_max = args.z_max  # set max distance to show instances
         self.show_all = args.show_all
-        self.show = args.show_all
         self.save = not args.no_save
 
         # define image attributes
@@ -170,8 +169,7 @@ class Printer:
         # whether to include instances that don't match the ground-truth
         iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))
         if not iterator:
-            print("-" * 110 + '\n' + "! No instances detected, be sure to include file with ground-truth values or "
-                                     "use the command --show_all" + '\n' + "-" * 110)
+            print("-" * 110 + '\n' + '! No instances detected' '\n' + '-' * 110)
 
         # Draw the front figure
         number = dict(flag=False, num=97)

@@ -82,6 +82,9 @@ def factory_from_args(args):
     if not args.images:
         raise Exception("no image files given")
 
+    if args.path_gt is None:
+        args.show_all = True
+
     # Models
     dic_models = download_checkpoints(args)
     args.checkpoint = dic_models['keypoints']

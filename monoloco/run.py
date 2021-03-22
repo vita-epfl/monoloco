@@ -61,8 +61,7 @@ def cli():
     predict_parser.add_argument('--mode', help='keypoints, mono, stereo', default='mono')
     predict_parser.add_argument('--model', help='path of MonoLoco/MonStereo model to load')
     predict_parser.add_argument('--net', help='only to select older MonoLoco model, otherwise use --mode')
-    predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization',
-                                default='data/arrays/names-kitti-200615-1022.json')
+    predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization')
     predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=100)
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
     predict_parser.add_argument('--dropout', type=float, help='dropout parameter', default=0.2)

@@ -66,26 +66,18 @@ def preprocess_monoloco(keypoints, kk, zero_center=False):
     return kps_out
 
 
-def factory_for_gt(im_size, focal_length=5.7, name=None, path_gt=None, verbose=True):
+def factory_for_gt(im_size, focal_length=5.7, name=None, path_gt=None):
     """Look for ground-truth annotations file and define calibration matrix based on image size """
 
-    try:
+    if path_gt is not None:
+        assert os.path.exists(path_gt), "Ground-truth file not found"
         with open(path_gt, 'r') as f:
             dic_names = json.load(f)
-        if verbose:
-            logger.info('-' * 120 + "\nGround-truth file opened")
-    except (FileNotFoundError, TypeError):
-        if verbose:
-            logger.info('-' * 120 + "\nGround-truth file not found")
-        dic_names = {}
+            kk = dic_names[name]['K']
+            dic_gt = dic_names[name]
 
-    try:
-        kk = dic_names[name]['K']
-        dic_gt = dic_names[name]
-        if verbose:
-            logger.info("Matched ground-truth file!")
-    except KeyError:
-        dic_gt = None
+    # Without ground-truth-file
+    else:
         if im_size[0] / im_size[1] > 2.5:  # KITTI default
             kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
             logger.info("Using KITTI calibration matrix...")
