@@ -72,26 +72,27 @@ To check all the options:
 or check the file `monoloco/run.py`
 
 #  Predictions
-For a quick setup download a pifpaf and MonoLoco++ / MonStereo models from 
-[here](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing) and save them into `data/models`.
 
-## A) 3D Localization
-The predict script receives an image (or an entire folder using glob expressions), 
+The software receives an image (or an entire folder using glob expressions), 
 calls PifPaf for 2D human pose detection over the image
 and runs Monoloco++ or MonStereo for 3D localization &/or social distancing &/or orientation
 
-**Which Network** <br /> 
-The command `--net` defines if saving pifpaf outputs, MonoLoco++ outputs or MonStereo ones.
+**Which Modality** <br /> 
+The command `--mode` defines which network to run.
 
-- select `--net monstereo` if you have stereo images
-- select `--net monoloco_pp` if you have monocular (single) images
-- select `--net pifpaf` if you are interested in 2D keypoint outputs
+- select `--mode mono` (default) to predict 3D localization on monocular image(s)
+- select `--mode stereo` for stereo images
+- select `--moode keypoints` if just interested in 2D keypoints from OpenPifPaf
+
+Models are downloaded automatically. To use a specific model, use the command `--model`. Additional models can be downloaded from [here](https://drive.google.com/drive/folders/1jZToVMBEZQMdLB5BAIq2CdCLP5kzNo9t?usp=sharing)
 
 **Which Visualization** <br /> 
 - select `--output_types multi` if you want to visualize both frontal view or bird's eye view in the same picture
 - select `--output_types bird front` if you want to different pictures for the two views or just one view
 - select `--output_types json` if you'd like the ouput json file
 
+If you select `--mode keypoints`, use standard OpenPifPaf arguments
+For 
 Those options can be combined
 
 **Focal Length and Camera Parameters** <br /> 
@@ -100,31 +101,24 @@ When processing KITTI images, the network uses the provided intrinsic matrix of 
 In all the other cases, we use the parameters of nuScenes cameras, with "1/1.8'' CMOS sensors of size 7.2 x 5.4 mm.
 The default focal length is 5.7mm and this parameter can be modified using the argument `--focal`.
 
+## A) 3D Localization
+
 **Ground-truth comparison** <br /> 
 If you provide a ground-truth json file to compare the predictions of the network,
  the script will match every detection using Intersection over Union metric. 
- The ground truth file can be generated using the subparser `prep` and called with the command `--path_gt`. 
-As this step requires running the pose detector over all the training images and save the annotations, we 
-provide the resulting json file for the category *pedestrians* from 
-[Google Drive](https://drive.google.com/file/d/1e-wXTO460ip_Je2NdXojxrOrJ-Oirlgh/view?usp=sharing) 
-and save it into `data/arrays`.
- 
-If a ground-truth json file is not available, with the command `--show_all`, is possible to 
-show all the prediction for the image
+ The ground truth file can be generated using the subparser `prep`, or directly downloaded from [Google Drive](https://drive.google.com/file/d/1e-wXTO460ip_Je2NdXojxrOrJ-Oirlgh/view?usp=sharing) 
+ and called it with the command `--path_gt`. 
+
 
 **Monocular examples** <br>
 
 For an example image, run the following command:
 
 ```
-python -m monoloco.run predict \
-docs/002282.png \
---net monoloco_pp \
---output_types multi \
---model data/models/monoloco_pp-201203-1424.pkl \
---path_gt data/arrays/names-kitti-200615-1022.json \
+python -m monoloco.run predict docs/002282.png \
+--path_gt <to match results with ground-truths> \
 -o <output directory> \
---long-edge <rescale the image by providing dimension of long side. If None original resolution>
+--long-edge <rescale the image by providing dimension of long side>
 --n_dropout <50 to include epistemic uncertainty, 0 otherwise>
 ```
 
@@ -140,6 +134,7 @@ and can be checked with `python -m monstereo.run predict --help`.
 
 ![predict](docs/out_002282_pifpaf.jpg)
 
+
 **Stereo Examples** <br /> 
 To run MonStereo on stereo images, make sure the stereo pairs have the following name structure:
 - Left image: \<name>.\<extension>
@@ -150,11 +145,10 @@ To run MonStereo on stereo images, make sure the stereo pairs have the following
 You can load one or more image pairs using glob expressions. For example:
 
 ```
-python3 -m monoloco.run predict \
---glob docs/000840*.png --output_types multi \
- --model data/models/ms-200710-1511.pkl \
- --path_gt data/arrays/names-kitti-200615-1022.json \
- -o data/output  --scale 2 
+python3 -m monoloco.run predict --mode stereo \
+--glob docs/000840*.png
+ --path_gt <to match results with ground-truths> \
+ -o data/output  -long_edge 2500
  ```
  
 ![Crowded scene](docs/out_000840.jpg)
@@ -162,8 +156,8 @@ python3 -m monoloco.run predict \
 ```
 python3 -m monoloco.run predict --glob docs/005523*.png \ --output_types multi \
 --model data/models/ms-200710-1511.pkl \
---path_gt data/arrays/names-kitti-200615-1022.json \
- -o data/output  --scale 2 
+--path_gt <to match results with ground-truths> \
+ -o data/output  --long_edge 2500
  ```
 
 ![Occluded hard example](docs/out_005523.jpg)
@@ -182,12 +176,8 @@ An example from the Collective Activity Dataset is provided below.
 
 To visualize social distancing run the below, command:
 ```
-python -m monoloco.run predict \
-docs/frame0038.jpg \
---net monoloco_pp  \
---social_distance \
---output_types front bird --show_all \
---model data/models/monoloco_pp-201203-1424.pkl -o <output directory> 
+python -m monoloco.run predict docs/frame0038.jpg \
+--social_distance --output_types front bird 
 ```
 <img src="docs/out_frame0038.jpg.front_bird.jpg" width="700"/>
 
@@ -197,34 +187,29 @@ docs/frame0038.jpg \
 MonoLoco++ estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
 `--output_types json`. At the moment, the only visualization including orientation is the social distancing one.
 
+<br>
 
+## Training
+We train on the KITTI dataset (MonoLoco/Monoloco++/MonStereo) or the nuScenes dataset (MonoLoco) specifying the path of the json file containing the input joints. Please download them [heere](https://drive.google.com/file/d/1e-wXTO460ip_Je2NdXojxrOrJ-Oirlgh/view?usp=sharing) or follow [preprocessing instructions](#Preprocessing).
 
-### Ground truth matching
-* In case you provide a ground-truth json file to compare the predictions of MonSter,
- the script will match every detection using Intersection over Union metric. 
- The ground truth file can be generated using the subparser `prep` and called with the command `--path_gt`. 
-As this step requires running the pose detector over all the training images and save the annotations, we 
-provide the resulting json file for the category *pedestrians* from 
-[Google Drive](https://drive.google.com/file/d/1e-wXTO460ip_Je2NdXojxrOrJ-Oirlgh/view?usp=sharing) 
-and save it into `data/arrays`.
- 
-* In case the ground-truth json file is not available, with the command `--show_all`, is possible to 
-show all the prediction for the image
+Our results for MonoLoco++ are obtained with: 
 
-After downloading model and ground-truth file, a demo can be tested with the following commands:
+```
+python -m monoloco.run train --joints data/arrays/joints-kitti-201202-1743.json --save --monocular
+```
 
-`python3 -m monstereo.run predict --glob docs/000840*.png --output_types multi --scale 2
- --model data/models/ms-200710-1511.pkl --z_max 30 --checkpoint resnet152 --path_gt data/arrays/names-kitti-200615-1022.json
- -o data/output`
- 
-![Crowded scene](docs/out_000840.jpg)
+While for the MonStereo ones just change the input joints and remove the monocular flag:
+```
+python3 -m monoloco.run train --joints <json file path> --save`
+```
 
-`python3 -m monstereo.run predict --glob docs/005523*.png --output_types multi --scale 2
- --model data/models/ms-200710-1511.pkl --z_max 30 --checkpoint resnet152 --path_gt data/arrays/names-kitti-200615-1022.json
- -o data/output`
+If you are interested in the original results of the MonoLoco ICCV article (now improved with MonoLoco++), please refer to the tag v0.4.9 in this repository.
 
-![Occluded hard example](docs/out_005523.jpg)
+Finally, for a more extensive list of available parameters, run:
 
+`python -m monstereo.run train --help`
+
+<br>
 
 ## Preprocessing
 Preprocessing and training step are already fully supported by the code provided, 
@@ -303,29 +288,9 @@ python -m openpifpaf.predict \
 Finally, to evaluate activity using a MonoLoco++ pre-trained model trained either on nuSCENES or KITTI:
 ```
 python -m monstereo.run eval --activity \ 
---net monoloco_pp --dataset collective \
+ --dataset collective \
 --model <MonoLoco++ model path>  --dir_ann <pifpaf annotations directory>
 ```
-
-## Training
-We train on the KITTI dataset (MonoLoco/Monoloco++/MonStereo) or the nuScenes dataset (MonoLoco) specifying the path of the json file containing the input joints. Please download them here or follow preprocessing instructions.
-
-Our results for MonoLoco++ are obtained with: 
-
-```
-python -m monoloco.run train --joints data/arrays/joints-kitti-201202-1743.json --save --monocular
-```
-
-While for the MonStereo ones just change the input joints and remove the monocular flag:
-```
-python3 -m monoloco.run train --joints <json file path> --save`
-```
-
-If you are interested in the original results of the MonoLoco ICCV article (now improved with MonoLoco++), please refer to the tag v0.4.9 in this repository.
-
-Finally, for a more extensive list of available parameters, run:
-
-`python -m monstereo.run train --help`
 
 ## Evaluation
 
