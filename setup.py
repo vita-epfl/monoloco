@@ -37,6 +37,7 @@ setup(
             'pandas',
             'pylint',
             'pytest',
+            'gdown',
         ],
         'prep': [
             'nuscenes-devkit==1.0.2',

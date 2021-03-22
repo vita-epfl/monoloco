@@ -25,9 +25,22 @@ class Loco:
     LINEAR_SIZE_MONO = 256
     N_SAMPLES = 100
 
-    def __init__(self, model, net='monstereo', device=None, n_dropout=0, p_dropout=0.2, linear_size=1024):
-        self.net = net
-        assert self.net in ('monstereo', 'monoloco', 'monoloco_p', 'monoloco_pp')
+    def __init__(self, model, mode, net=None, device=None, n_dropout=0, p_dropout=0.2, linear_size=1024):
+
+        # Select networks
+        assert mode in ('mono', 'stereo'), "mode not recognized"
+        self.mode = mode
+        if net is None:
+            if mode == 'mono':
+                self.net = 'monoloco_pp'
+            else:
+                self.net = 'monstereo'
+        else:
+            assert self.net in ('monstereo', 'monoloco', 'monoloco_p', 'monoloco_pp')
+            if self.net != 'monstereo':
+                assert mode == 'stereo', "Assert arguments mode and net are in conflict"
+            self.net = net
+
         if self.net == 'monstereo':
             input_size = 68
             output_size = 10
