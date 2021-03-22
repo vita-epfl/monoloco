@@ -171,14 +171,14 @@ For more info, run:
 **Examples** <br>
 An example from the Collective Activity Dataset is provided below.
 
-<img src="docs/frame0038.jpg" width="500"/>
+<img src="docs/frame0032.jpg" width="500"/>
 
 To visualize social distancing run the below, command:
 ```
-python -m monoloco.run predict docs/frame0038.jpg \
+python -m monoloco.run predict docs/frame0032.jpg \
 --social_distance --output_types front bird 
 ```
-<img src="docs/out_frame0038.jpg.front_bird.jpg" width="700"/>
+<img src="docs/out_frame0032_front_bird.jpg" width="700"/>
 
 
 ## C) Orientation and Bounding Box dimensions 

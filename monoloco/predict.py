@@ -26,7 +26,8 @@ from .activity import show_social
 LOG = logging.getLogger(__name__)
 
 OPENPIFPAF_MODEL = 'https://drive.google.com/uc?id=1b408ockhh29OLAED8Tysd2yGZOo0N_SQ'
-MONOLOCO_MODEL = 'https://drive.google.com/uc?id=1krkB8J9JhgQp4xppmDu-YBRUxZvOs96r'
+MONOLOCO_MODEL_KI = 'https://drive.google.com/uc?id=1krkB8J9JhgQp4xppmDu-YBRUxZvOs96r'
+MONOLOCO_MODEL_NU = 'https://drive.google.com/uc?id=1BKZWJ1rmkg5AF9rmBEfxF1r8s8APwcyC'
 MONSTEREO_MODEL = 'https://drive.google.com/uc?id=1xztN07dmp2e_nHI6Lcn103SAzt-Ntg49'
 
 
@@ -54,18 +55,23 @@ def download_checkpoints(args):
 
     if args.mode == 'keypoints':
         return dic_models
-    elif args.model is not None:
+    if args.model is not None:
+        assert os.path.exists(args.model), "Model path not found"
         dic_models[args.mode] = args.model
         return dic_models
-    elif args.mode == 'mono':
-        model = os.path.join(torch_dir, 'monoloco_pp-201203-1424.pkl')
-        path = MONOLOCO_MODEL
-        dic_models[args.mode] = model
-    else:
-        model = os.path.join(torch_dir, 'monstereo-201202-1212.pkl')
+    if args.mode == 'stereo':
+        assert not args.social_distance, "Social distance not supported in stereo modality"
         path = MONSTEREO_MODEL
-        dic_models[args.mode] = model
+        name = 'monstereo-201202-1212.pkl'
+    elif args.social_distance:
+        path = MONOLOCO_MODEL_NU
+        name = 'monoloco_pp-201207-1350.pkl'
+    else:
+        path = MONOLOCO_MODEL_KI
+        name = 'monoloco_pp-201203-1424.pkl'
 
+    model = os.path.join(torch_dir, name)
+    dic_models[args.mode] = model
     if not os.path.exists(model):
         import gdown
         LOG.info(f'Downloading model (modality: {args.mode}) in {torch_dir}')
