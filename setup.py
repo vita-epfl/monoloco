@@ -28,7 +28,8 @@ setup(
 
     install_requires=[
         'openpifpaf>=v0.12.1',
-        'matplotlib'
+        'matplotlib',
+        'gdown',
     ],
     extras_require={
         'eval': [
@@ -37,7 +38,6 @@ setup(
             'pandas',
             'pylint',
             'pytest',
-            'gdown',
         ],
         'prep': [
             'nuscenes-devkit==1.0.2',
