@@ -77,16 +77,17 @@ def factory_for_gt(im_size, focal_length=5.7, name=None, path_gt=None):
             dic_gt = dic_names[name]
 
     # Without ground-truth-file
-    else:
-        if im_size[0] / im_size[1] > 2.5:  # KITTI default
+    elif im_size[0] / im_size[1] > 2.5:  # KITTI default
             kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
+            dic_gt = None
             logger.info("Using KITTI calibration matrix...")
-        else:  # nuScenes camera parameters
-            kk = [
-                [im_size[0]*focal_length/Sx, 0., im_size[0]/2],
-                [0., im_size[1]*focal_length/Sy, im_size[1]/2],
-                [0., 0., 1.]]
-            logger.info("Using a standard calibration matrix...")
+    else:  # nuScenes camera parameters
+        kk = [
+            [im_size[0]*focal_length/Sx, 0., im_size[0]/2],
+            [0., im_size[1]*focal_length/Sy, im_size[1]/2],
+            [0., 0., 1.]]
+        dic_gt = None
+        logger.info("Using a standard calibration matrix...")
 
     return kk, dic_gt
 

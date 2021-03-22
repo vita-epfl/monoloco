@@ -59,6 +59,7 @@ class Printer:
         self.kk = kk
         self.output_types = args.output_types
         self.z_max = args.z_max  # set max distance to show instances
+        self.show = args.show
         self.show_all = args.show_all
         self.save = not args.no_save
 
