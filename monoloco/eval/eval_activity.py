@@ -9,10 +9,10 @@ import torch
 from PIL import Image
 from sklearn.metrics import accuracy_score
 
-from monstereo.network import Loco
-from monstereo.network.process import factory_for_gt, preprocess_pifpaf
-from monstereo.activity import social_interactions
-from monstereo.utils import open_annotations, get_iou_matches, get_difficulty
+from monoloco.network import Loco
+from monoloco.network.process import factory_for_gt, preprocess_pifpaf
+from monoloco.activity import social_interactions
+from monoloco.utils import open_annotations, get_iou_matches, get_difficulty
 
 
 class ActivityEvaluator:

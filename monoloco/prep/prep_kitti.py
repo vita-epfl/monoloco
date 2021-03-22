@@ -283,7 +283,7 @@ class PreprocessKitti:
     def prep_activity(self):
         """Augment ground-truth with flag activity"""
 
-        from monstereo.activity import social_interactions
+        from monoloco.activity import social_interactions
         main_dir = os.path.join('data', 'kitti')
         dir_gt = os.path.join(main_dir, 'gt')
         dir_out = os.path.join(main_dir, 'gt_activity')
