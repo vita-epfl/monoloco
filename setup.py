@@ -32,7 +32,7 @@ setup(
     ],
     extras_require={
         'eval': [
-            'tabulate==0.8.3',
+            'tabulate',
             'sklearn',
             'pandas',
             'pylint',
