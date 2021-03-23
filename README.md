@@ -355,7 +355,7 @@ When using this library in your research, we will be happy if you cite us!
 @InProceedings{bertoni_2021_icra,
     author = {Bertoni, Lorenzo and Kreiss, Sven and Mordan, Taylor and Alahi, Alexandre},
     title = {MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization},
-    booktitle = {International Conference on Robotics and Automation},
+    booktitle = {International Conference on Robotics and Automation (ICRA)},
     year = {2021}
 }
 ```
