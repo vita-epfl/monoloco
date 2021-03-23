@@ -1,4 +1,4 @@
-# Monoloco library
+# Monoloco library  &nbsp;&nbsp; [![Downloads](https://pepy.tech/badge/monoloco)](https://pepy.tech/project/monoloco)
 
 <img src="docs/monoloco.gif" alt="gif" />
 
@@ -321,12 +321,9 @@ python -m monoloco.run eval \
 --save \
 ````
 
-#TODO add white table for monocular
-
 <img src="docs/results_monoloco_pp." width="550"/>
 By changing the net and the model, the same command evaluates MonStereo model.
 
-#TODO Add white  table for stereo
 <img src="docs/results_stereo.jpg" width="550"/>
 
 
