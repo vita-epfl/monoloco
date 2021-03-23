@@ -1,4 +1,4 @@
-# Monoloco library  &nbsp;&nbsp; [![Downloads](https://pepy.tech/badge/monoloco)](https://pepy.tech/project/monoloco)
+# Monoloco library  &nbsp;&nbsp; &nbsp; [![Downloads](https://pepy.tech/badge/monoloco)](https://pepy.tech/project/monoloco)
 
 <img src="docs/monoloco.gif" alt="gif" />
 
@@ -321,8 +321,6 @@ python -m monoloco.run eval \
 --save \
 ````
 
-<img src="docs/results_monoloco_pp." width="550"/>
-By changing the net and the model, the same command evaluates MonStereo model.
 
 <img src="docs/results_stereo.jpg" width="550"/>
 
