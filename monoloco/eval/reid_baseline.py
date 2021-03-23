@@ -29,7 +29,7 @@ def get_reid_features(reid_net, boxes, boxes_r, path_image, path_image_r):
 
 class ReID(object):
     def __init__(self, weights_path, device, num_classes=751, height=256, width=128):
-        super(ReID, self).__init__()
+        super().__init__()
         torch.manual_seed(1)
         self.device = device
 
@@ -90,7 +90,7 @@ class ReID(object):
 
 class ResNet50(nn.Module):
     def __init__(self, num_classes, loss):
-        super(ResNet50, self).__init__()
+        super().__init__()
         self.loss = loss
         resnet50 = torchvision.models.resnet50(pretrained=True)
         self.base = nn.Sequential(*list(resnet50.children())[:-2])

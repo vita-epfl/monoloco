@@ -1,4 +1,6 @@
 
+import math
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -30,10 +32,9 @@ def pixel_to_camera(uv_tensor, kk, z_met):
 def project_to_pixels(xyz, kk):
     """Project a single point in space into the image"""
     xx, yy, zz = np.dot(kk, xyz)
-    uu = int(xx / zz)
-    vv = int(yy / zz)
-
-    return uu, vv
+    uu = round(xx / zz)
+    vv = round(yy / zz)
+    return [uu, vv]
 
 
 def project_3d(box_obj, kk):
@@ -180,3 +181,70 @@ def open_image(path_image):
     with open(path_image, 'rb') as f:
         pil_image = Image.open(f).convert('RGB')
         return pil_image
+
+
+def correct_angle(yaw, xyz):
+    """
+    Correct the angle from the egocentric (global/ rotation_y)
+    to allocentric (camera perspective / observation angle)
+    and to be -pi < angle < pi
+    """
+    correction = math.atan2(xyz[0], xyz[2])
+    yaw = yaw - correction
+    if yaw > np.pi:
+        yaw -= 2 * np.pi
+    elif yaw < -np.pi:
+        yaw += 2 * np.pi
+    assert -2 * np.pi <= yaw <= 2 * np.pi
+    return math.sin(yaw), math.cos(yaw), yaw
+
+
+def back_correct_angles(yaws, xyz):
+    corrections = torch.atan2(xyz[:, 0], xyz[:, 2])
+    yaws = yaws + corrections.view(-1, 1)
+    mask_up = yaws > math.pi
+    yaws[mask_up] -= 2 * math.pi
+    mask_down = yaws < -math.pi
+    yaws[mask_down] += 2 * math.pi
+    assert torch.all(yaws < math.pi) & torch.all(yaws > - math.pi)
+    return yaws
+
+
+def to_spherical(xyz):
+    """convert from cartesian to spherical"""
+    xyz = np.array(xyz)
+    r = np.linalg.norm(xyz)
+    theta = math.atan2(xyz[2], xyz[0])
+
+    assert 0 <= theta < math.pi   # 0 when positive x and no z.
+    psi = math.acos(xyz[1] / r)
+    assert 0 <= psi <= math.pi
+    return [r, theta, psi]
+
+
+def to_cartesian(rtp, mode=None):
+    """convert from spherical to cartesian"""
+
+    if isinstance(rtp, torch.Tensor):
+        if mode in ('x', 'y'):
+            r = rtp[:, 2]
+            t = rtp[:, 0]
+            p = rtp[:, 1]
+        if mode == 'x':
+            x = r * torch.sin(p) * torch.cos(t)
+            return x.view(-1, 1)
+
+        if mode == 'y':
+            y = r * torch.cos(p)
+            return y.view(-1, 1)
+
+        xyz = rtp.clone()
+        xyz[:, 0] = rtp[:, 0] * torch.sin(rtp[:, 2]) * torch.cos(rtp[:, 1])
+        xyz[:, 1] = rtp[:, 0] * torch.cos(rtp[:, 2])
+        xyz[:, 2] = rtp[:, 0] * torch.sin(rtp[:, 2]) * torch.sin(rtp[:, 1])
+        return xyz
+
+    x = rtp[0] * math.sin(rtp[2]) * math.cos(rtp[1])
+    y = rtp[0] * math.cos(rtp[2])
+    z = rtp[0] * math.sin(rtp[2]) * math.sin(rtp[1])
+    return[x, y, z]

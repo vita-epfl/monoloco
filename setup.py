@@ -18,7 +18,7 @@ setup(
         'monoloco.utils'
     ],
     license='GNU AGPLv3',
-    description='MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation',
+    description=' A 3D vision library from 2D keypoints',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author='Lorenzo Bertoni',
@@ -27,19 +27,20 @@ setup(
     zip_safe=False,
 
     install_requires=[
-        'torch<=1.1.0',
-        'Pillow<=6.3',
-        'torchvision<=0.3.0',
-        'openpifpaf<=0.9.0',
-        'tabulate<=0.8.3',   # For evaluation
+        'openpifpaf>=v0.12.1',
+        'matplotlib',
+        'gdown',
     ],
     extras_require={
-        'test': [
-            'pylint<=2.4.2',
-            'pytest<=4.6.3',
+        'eval': [
+            'tabulate',
+            'sklearn',
+            'pandas',
+            'pylint',
+            'pytest',
         ],
         'prep': [
-            'nuscenes-devkit<=1.0.2',
+            'nuscenes-devkit==1.0.2',
         ],
     },
 )

@@ -5,6 +5,11 @@ import numpy as np
 def calculate_iou(box1, box2):
 
     # Calculate the (x1, y1, x2, y2) coordinates of the intersection of box1 and box2. Calculate its Area.
+    # box1 = [-3, 8.5, 3, 11.5]
+    # box2 = [-3, 9.5, 3, 12.5]
+    # box1 = [1086.84, 156.24, 1181.62, 319.12]
+    # box2 = [1078.333357, 159.086347, 1193.771014, 322.239107]
+
     xi1 = max(box1[0], box2[0])
     yi1 = max(box1[1], box2[1])
     xi2 = min(box1[2], box2[2])
@@ -34,7 +39,30 @@ def get_iou_matrix(boxes, boxes_gt):
     return iou_matrix
 
 
-def get_iou_matches(boxes, boxes_gt, thresh):
+def get_iou_matches(boxes, boxes_gt, iou_min=0.3):
+    """From 2 sets of boxes and a minimum threshold, compute the matching indices for IoU matches"""
+
+    matches = []
+    used = []
+    if not boxes or not boxes_gt:
+        return []
+    confs = [box[4] for box in boxes]
+
+    indices = list(np.argsort(confs))
+    for idx in indices[::-1]:
+        box = boxes[idx]
+        ious = []
+        for idx_gt, box_gt in enumerate(boxes_gt):
+            iou = calculate_iou(box, box_gt)
+            ious.append(iou)
+        idx_gt_max = int(np.argmax(ious))
+        if (ious[idx_gt_max] >= iou_min) and (idx_gt_max not in used):
+            matches.append((int(idx), idx_gt_max))
+            used.append(idx_gt_max)
+    return matches
+
+
+def get_iou_matches_matrix(boxes, boxes_gt, thresh):
     """From 2 sets of boxes and a minimum threshold, compute the matching indices for IoU matchings"""
 
     iou_matrix = get_iou_matrix(boxes, boxes_gt)
@@ -65,6 +93,6 @@ def reorder_matches(matches, boxes, mode='left_rigth'):
 
     # Order the boxes based on the left-right position in the image and
     ordered_boxes = np.argsort([box[0] for box in boxes])  # indices of boxes ordered from left to right
-    matches_left = [idx for (idx, _) in matches]
+    matches_left = [int(idx) for (idx, _) in matches]
 
     return [matches[matches_left.index(idx_boxes)] for idx_boxes in ordered_boxes if idx_boxes in matches_left]

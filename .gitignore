@@ -2,10 +2,13 @@
 data/
 .DS_store
 __pycache__
-Monoloco/*.pyc
+monoloco/*.pyc
 .pytest*
-dist/
 build/
+dist/
 *.egg-info
 tests/*.png
-kitti-eval/*
+kitti-eval/build
+kitti-eval/cmake-build-debug
+figures/
+visual_tests/

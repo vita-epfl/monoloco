@@ -9,10 +9,10 @@ sys.path.insert(0, os.path.join('..', 'monoloco'))
 
 from PIL import Image
 
-from monoloco.train import Trainer
-from monoloco.network import MonoLoco
-from monoloco.network.process import preprocess_pifpaf, factory_for_gt
-from monoloco.visuals.printer import Printer
+from stereoloco.train import Trainer
+from stereoloco.network import MonoLoco
+from stereoloco.network.process import preprocess_pifpaf, factory_for_gt
+from stereoloco.visuals.printer import Printer
 
 JOINTS = 'tests/joints_sample.json'
 PIFPAF_KEYPOINTS = 'tests/002282.png.pifpaf.json'
@@ -44,7 +44,7 @@ def tst_printer(dic_out, kk, image_path):
     """Draw a fake figure"""
     with open(image_path, 'rb') as f:
         pil_image = Image.open(f).convert('RGB')
-    printer = Printer(image=pil_image, output_path='tests/test_image', kk=kk, output_types=['combined'], z_max=15)
+    printer = Printer(image=pil_image, output_path='tests/test_image', kk=kk, output_types=['multi'], z_max=15)
     figures, axes = printer.factory_axes()
     printer.draw(figures, axes, dic_out, pil_image, save=True)
 
