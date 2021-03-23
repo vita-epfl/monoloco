@@ -15,20 +15,7 @@ def cli():
     training_parser = subparsers.add_parser("train")
     eval_parser = subparsers.add_parser("eval")
 
-    # Preprocess input data
-    prep_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints', required=True)
-    prep_parser.add_argument('--dataset',
-                             help='datasets to preprocess: nuscenes, nuscenes_teaser, nuscenes_mini, kitti',
-                             default='kitti')
-    prep_parser.add_argument('--dir_nuscenes', help='directory of nuscenes devkit', default='data/nuscenes/')
-    prep_parser.add_argument('--iou_min', help='minimum iou to match ground truth', type=float, default=0.3)
-    prep_parser.add_argument('--variance', help='new', action='store_true')
-    prep_parser.add_argument('--activity', help='new', action='store_true')
-    prep_parser.add_argument('--monocular', help='new', action='store_true')
-
     # Predict (2D pose and/or 3D location from images)
-    # General
-
     predict_parser.add_argument('images', nargs='*', help='input images')
     predict_parser.add_argument('--glob', help='glob expression for input images (for many images)')
     predict_parser.add_argument('-o', '--output-directory', help='Output directory')
@@ -52,14 +39,12 @@ def cli():
                                 help='focal length in mm for a sensor size of 7.2x5.4 mm. Default nuScenes sensor',
                                 type=float, default=5.7)
 
-    # Pifpaf parsers
     decoder.cli(parser)
     logger.cli(parser)
     network.Factory.cli(parser)
     show.cli(parser)
     visualizer.cli(parser)
 
-    # Monoloco
     predict_parser.add_argument('--mode', help='keypoints, mono, stereo', default='mono')
     predict_parser.add_argument('--model', help='path of MonoLoco/MonStereo model to load')
     predict_parser.add_argument('--net', help='only to select older MonoLoco model, otherwise use --mode')
@@ -75,10 +60,20 @@ def cli():
     predict_parser.add_argument('--threshold_dist', type=float, help='min distance of people', default=2.5)
     predict_parser.add_argument('--radii', type=tuple, help='o-space radii', default=(0.3, 0.5, 1))
 
+    # Preprocess input data
+    prep_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints', required=True)
+    prep_parser.add_argument('--dataset',
+                             help='datasets to preprocess: nuscenes, nuscenes_teaser, nuscenes_mini, kitti',
+                             default='kitti')
+    prep_parser.add_argument('--dir_nuscenes', help='directory of nuscenes devkit', default='data/nuscenes/')
+    prep_parser.add_argument('--iou_min', help='minimum iou to match ground truth', type=float, default=0.3)
+    prep_parser.add_argument('--variance', help='new', action='store_true')
+    prep_parser.add_argument('--activity', help='new', action='store_true')
+    prep_parser.add_argument('--monocular', help='new', action='store_true')
+
     # Training
-    training_parser.add_argument('--joints', help='Json file with input joints',
-                                 default='data/arrays/joints-nuscenes_teaser-190513-1846.json')
-    training_parser.add_argument('--no_save', help='to not save model and log file', action='store_true')
+    training_parser.add_argument('--joints', help='Json file with input joints', required=True)
+    training_parser.add_argument('--mode', help='mono, stereo', default='mono')
     training_parser.add_argument('-e', '--epochs', type=int, help='number of epochs to train for', default=500)
     training_parser.add_argument('--bs', type=int, default=512, help='input batch size')
     training_parser.add_argument('--monocular', help='whether to train monoloco', action='store_true')
@@ -94,9 +89,12 @@ def cli():
     training_parser.add_argument('--print_loss', help='print training and validation losses', action='store_true')
     training_parser.add_argument('--auto_tune_mtl', help='whether to use uncertainty to autotune losses',
                                  action='store_true')
+    training_parser.add_argument('--no_save', help='to not save model and log file', action='store_true')
 
     # Evaluation
+    eval_parser.add_argument('--mode', help='mono, stereo', default='mono')
     eval_parser.add_argument('--dataset', help='datasets to evaluate, kitti or nuscenes', default='kitti')
+    eval_parser.add_argument('--activity', help='evaluate activities', action='store_true')
     eval_parser.add_argument('--geometric', help='to evaluate geometric distance', action='store_true')
     eval_parser.add_argument('--generate', help='create txt files for KITTI evaluation', action='store_true')
     eval_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints (for KITTI evaluation)')
@@ -109,10 +107,9 @@ def cli():
     eval_parser.add_argument('--show', help='whether to show statistic graphs', action='store_true')
     eval_parser.add_argument('--save', help='whether to save statistic graphs', action='store_true')
     eval_parser.add_argument('--verbose', help='verbosity of statistics', action='store_true')
-    eval_parser.add_argument('--monocular', help='whether to train using the baseline', action='store_true')
     eval_parser.add_argument('--new', help='new', action='store_true')
     eval_parser.add_argument('--variance', help='evaluate keypoints variance', action='store_true')
-    eval_parser.add_argument('--activity', help='evaluate activities', action='store_true')
+
     eval_parser.add_argument('--net', help='Choose network: monoloco, monoloco_p, monoloco_pp, monstereo')
     eval_parser.add_argument('--baselines', help='whether to evaluate stereo baselines', action='store_true')
     eval_parser.add_argument('--generate_official', help='whether to add empty txt files for official evaluation',
@@ -149,15 +146,12 @@ def main():
                                    multiplier=args.multiplier, r_seed=args.r_seed)
             hyp_tuning.train(args)
         else:
-
             from .train import Trainer
             training = Trainer(args)
-
             _ = training.train()
             _ = training.evaluate()
 
     elif args.command == 'eval':
-
         if args.activity:
             from .eval.eval_activity import ActivityEvaluator
             evaluator = ActivityEvaluator(args)
