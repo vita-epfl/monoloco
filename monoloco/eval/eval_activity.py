@@ -81,7 +81,7 @@ class ActivityEvaluator:
                 extension = '.predictions.json'
                 path_pif = os.path.join(self.dir_ann, basename + extension)
                 annotations = open_annotations(path_pif)
-                kk, _ = factory_for_gt(im_size, verbose=False)
+                kk, _ = factory_for_gt(im_size)
 
                 # Collect corresponding gt files (ys_gt: 1 or 0)
                 boxes_gt, ys_gt = parse_gt_collective(self.dir_data, seq, path_pif)

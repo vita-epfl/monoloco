@@ -45,11 +45,12 @@ class PreprocessKitti:
     dic_names = defaultdict(lambda: defaultdict(list))
     dic_std = defaultdict(lambda: defaultdict(list))
 
-    def __init__(self, dir_ann, iou_min, monocular=False):
+    def __init__(self, dir_ann, mode='mono', iou_min=0.3):
 
         self.dir_ann = dir_ann
         self.iou_min = iou_min
-        self.monocular = monocular
+        self.mode = mode
+        assert self.mode in ('mono', 'stereo'), "modality not recognized"
         self.names_gt = tuple(os.listdir(self.dir_gt))
         self.dir_kk = os.path.join('data', 'kitti', 'calib')
         self.list_gt = glob.glob(self.dir_gt + '/*.txt')
@@ -160,7 +161,7 @@ class PreprocessKitti:
                         lab = ys[idx_gt][:-1]
 
                         # Preprocess MonoLoco++
-                        if self.monocular:
+                        if self.mode == 'mono':
                             inp = preprocess_monoloco(keypoint, kk).view(-1).tolist()
                             lab = normalize_hwl(lab)
                             if ys[idx_gt][10] < 0.5:
@@ -270,7 +271,7 @@ class PreprocessKitti:
         print("Ambiguous instances removed: {}".format(cnt_ambiguous))
         print("Extra pairs created with horizontal flipping: {}\n".format(cnt_extra_pair))
 
-        if not self.monocular:
+        if self.mode == 'stereo':
             print('Instances with stereo correspondence: {:.1f}% '.format(100 * cnt_pair / cnt_pair_tot))
             for phase in ['train', 'val']:
                 cnt = cnt_mono[phase] + cnt_stereo[phase]

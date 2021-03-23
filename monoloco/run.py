@@ -62,6 +62,7 @@ def cli():
 
     # Preprocess input data
     prep_parser.add_argument('--dir_ann', help='directory of annotations of 2d joints', required=True)
+    prep_parser.add_argument('--mode', help='mono, stereo', default='mono')
     prep_parser.add_argument('--dataset',
                              help='datasets to preprocess: nuscenes, nuscenes_teaser, nuscenes_mini, kitti',
                              default='kitti')
@@ -69,7 +70,6 @@ def cli():
     prep_parser.add_argument('--iou_min', help='minimum iou to match ground truth', type=float, default=0.3)
     prep_parser.add_argument('--variance', help='new', action='store_true')
     prep_parser.add_argument('--activity', help='new', action='store_true')
-    prep_parser.add_argument('--monocular', help='new', action='store_true')
 
     # Training
     training_parser.add_argument('--joints', help='Json file with input joints', required=True)
@@ -132,7 +132,7 @@ def main():
             prep.run()
         else:
             from .prep.prep_kitti import PreprocessKitti
-            prep = PreprocessKitti(args.dir_ann, args.iou_min, args.monocular)
+            prep = PreprocessKitti(args.dir_ann, mode=args.mode, iou_min=args.iou_min)
             if args.activity:
                 prep.prep_activity()
             else:

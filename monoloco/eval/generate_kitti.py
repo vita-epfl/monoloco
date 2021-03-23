@@ -32,14 +32,13 @@ class GenerateKitti:
     def __init__(self, args):
 
         # Load Network
-        self.net = args.net
-        assert args.net in ('monstereo', 'monoloco_pp'), "net not recognized"
-
+        assert args.mode in ('mono', 'stereo'), "mode not recognized"
+        self.net = 'monstereo' if args.mode == 'mono' else 'monoloco_pp'
         use_cuda = torch.cuda.is_available()
         device = torch.device("cuda" if use_cuda else "cpu")
         self.model = Loco(
             model=args.model,
-            net=args.net,
+            mode=args.mode,
             device=device,
             n_dropout=args.n_dropout,
             p_dropout=args.dropout,
@@ -60,7 +59,6 @@ class GenerateKitti:
 
         # Add monocular and stereo baselines (they require monoloco as backbone)
         if args.baselines:
-
             # Load MonoLoco
             self.baselines['mono'] = ['monoloco', 'geometric']
             self.monoloco = Loco(
@@ -72,7 +70,7 @@ class GenerateKitti:
                 linear_size=256
             )
             # Stereo baselines
-            if args.net == 'monstereo':
+            if args.mode == 'stereo':
                 self.baselines['stereo'] = ['pose', 'reid']
                 self.cnt_disparity = defaultdict(int)
                 self.cnt_no_stereo = 0
