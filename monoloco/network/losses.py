@@ -12,7 +12,7 @@ class CustomL1Loss(torch.nn.Module):
     """
 
     def __init__(self, dic_norm, device, beta=1):
-        super(CustomL1Loss, self).__init__()
+        super().__init__()
 
         self.dic_norm = dic_norm
         self.device = device
@@ -60,7 +60,7 @@ class LaplacianLoss(torch.nn.Module):
     """1D Gaussian with std depending on the absolute distance
     """
     def __init__(self, size_average=True, reduce=True, evaluate=False):
-        super(LaplacianLoss, self).__init__()
+        super().__init__()
         self.size_average = size_average
         self.reduce = reduce
         self.evaluate = evaluate
@@ -101,7 +101,7 @@ class GaussianLoss(torch.nn.Module):
     """1D Gaussian with std depending on the absolute distance
     """
     def __init__(self, device, size_average=True, reduce=True, evaluate=False):
-        super(GaussianLoss, self).__init__()
+        super().__init__()
         self.size_average = size_average
         self.reduce = reduce
         self.evaluate = evaluate

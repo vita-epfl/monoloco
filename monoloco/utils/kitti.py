@@ -266,3 +266,12 @@ def read_and_rewrite(path_orig, path_new):
     except FileNotFoundError:
         ff = open(path_new, "a+")
         ff.close()
+
+
+def find_cluster(dd, clusters):
+    """Find the correct cluster. Above the last cluster goes into "excluded (together with the ones from kitti cat"""
+
+    for idx, clst in enumerate(clusters[:-1]):
+        if int(clst) < dd <= int(clusters[idx+1]):
+            return clst
+    return 'excluded'

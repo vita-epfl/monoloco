@@ -63,6 +63,7 @@ class GenerateKitti:
             self.baselines['mono'] = ['monoloco', 'geometric']
             self.monoloco = Loco(
                 model=self.monoloco_checkpoint,
+                mode='mono',
                 net='monoloco',
                 device=device,
                 n_dropout=args.n_dropout,

@@ -99,7 +99,7 @@ class Trainer:
         if not self.no_save:
             self.path_model = os.path.join(dir_out, name_out + '.pkl')
             self.logger = set_logger(os.path.join(dir_logs, name_out))
-            self.logger.info(
+            self.logger.info(  # pylint: disable=logging-fstring-interpolation
                 f'Training arguments: \ninput_file: {self.joints} \nmode: {self.mode} '
                 f'\nlearning rate: {args.lr}  \nbatch_size: {args.bs}'
                 f'\nepochs: {args.epochs} \ndropout: {args.dropout} '

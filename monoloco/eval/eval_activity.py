@@ -57,8 +57,13 @@ class ActivityEvaluator:
         device = torch.device('cpu')
         if torch.cuda.is_available():
             device = torch.device('cuda')
-        self.monoloco = Loco(model=args.model, net=args.net,
-                             device=device, n_dropout=args.n_dropout, p_dropout=args.dropout)
+        self.monoloco = Loco(
+            model=args.model,
+            mode=args.mode,
+            device=device,
+            n_dropout=args.n_dropout,
+            p_dropout=args.dropout)
+
         self.all_pred = defaultdict(list)
         self.all_gt = defaultdict(list)
         assert args.dataset in ('collective', 'kitti')

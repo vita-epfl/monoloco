@@ -13,7 +13,7 @@ from collections import defaultdict
 from tabulate import tabulate
 
 from ..utils import get_iou_matches, get_task_error, get_pixel_error, check_conditions, \
-    get_difficulty, split_training, parse_ground_truth, get_iou_matches_matrix
+    get_difficulty, split_training, parse_ground_truth, get_iou_matches_matrix, average, find_cluster
 from ..visuals import show_results, show_spread, show_task_error, show_box_plot
 
 
@@ -417,15 +417,6 @@ def add_true_negatives(err, cnt_gt):
     err['matched'] = 100 * matched / cnt_gt
 
 
-def find_cluster(dd, clusters):
-    """Find the correct cluster. Above the last cluster goes into "excluded (together with the ones from kitti cat"""
-
-    for idx, clst in enumerate(clusters[:-1]):
-        if int(clst) < dd <= int(clusters[idx+1]):
-            return clst
-    return 'excluded'
-
-
 def extract_indices(idx_to_check, *args):
     """
     Look if a given index j_gt is present in all the other series of indices (_, j)
@@ -446,11 +437,6 @@ def extract_indices(idx_to_check, *args):
                 checks[idx_method] = True
                 indices.append(idx_pred)
     return all(checks), indices
-
-
-def average(my_list):
-    """calculate mean of a list"""
-    return sum(my_list) / len(my_list)
 
 
 def filter_directories(main_dir, methods):

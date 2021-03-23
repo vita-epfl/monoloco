@@ -72,3 +72,8 @@ def normalize_hwl(lab):
     hwl_new = list((np.array(hwl) - np.array([AV_H, AV_W, AV_L])) / HLW_STD)
     lab_new = lab[0:4] + hwl_new + lab[7:]
     return lab_new
+
+
+def average(my_list):
+    """calculate mean of a list"""
+    return sum(my_list) / len(my_list)

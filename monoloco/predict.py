@@ -50,7 +50,7 @@ def download_checkpoints(args):
     dic_models = {'keypoints': pifpaf_model}
     if not os.path.exists(pifpaf_model):
         import gdown
-        LOG.info(f'Downloading OpenPifPaf model in {torch_dir}')
+        LOG.info('Downloading OpenPifPaf model in %s', torch_dir)
         gdown.download(OPENPIFPAF_MODEL, pifpaf_model, quiet=False)
 
     if args.mode == 'keypoints':
@@ -74,7 +74,7 @@ def download_checkpoints(args):
     dic_models[args.mode] = model
     if not os.path.exists(model):
         import gdown
-        LOG.info(f'Downloading model (modality: {args.mode}) in {torch_dir}')
+        LOG.info('Downloading model in %s', torch_dir)
         gdown.download(path, model, quiet=False)
     return dic_models
 
@@ -117,7 +117,7 @@ def factory_from_args(args):
     # Patch for stereo images with batch_size = 2
     if args.batch_size == 2 and not args.long_edge:
         args.long_edge = 1238
-        LOG.info("Long-edge set to %i".format(args.long_edge))
+        LOG.info("Long-edge set to %i", args.long_edge)
 
     # Make default pifpaf argument
     args.force_complete_pose = True
@@ -165,7 +165,7 @@ def predict(args):
 
         # unbatch (only for MonStereo)
         for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
-            LOG.info('batch %d: %s'.format(batch_i, meta['file_name']))
+            LOG.info('batch %d: %s', batch_i, meta['file_name'])
             pred = [ann.inverse_transform(meta) for ann in pred]
 
             # Load image and collect pifpaf results
@@ -219,7 +219,7 @@ def predict(args):
 
         # Outputs
         factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=kk)
-        LOG.info('Image {}\n'.format(cnt) + '-' * 120)
+        print(f'Image {cnt}\n' + '-' * 120)
         cnt += 1
 
 

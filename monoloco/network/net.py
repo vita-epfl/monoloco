@@ -1,4 +1,4 @@
-# pylint: disable=too-many-statements
+# pylint: disable=too-many-statements, too-many-branches
 
 """
 Loco super class for MonStereo, MonoLoco, MonoLoco++ nets.

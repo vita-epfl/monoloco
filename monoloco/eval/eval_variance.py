@@ -1,4 +1,4 @@
-# pylint: disable=too-many-statements,too-many-branches,cyclic-import
+# pylint: disable=too-many-statements,too-many-branches
 
 """Joints Analysis: Supplementary material of MonStereo"""
 
@@ -9,7 +9,7 @@ from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .eval_kitti import find_cluster, average
+from ..utils import find_cluster, average
 from ..visuals.figures import get_distances
 
 COCO_KEYPOINTS = [
