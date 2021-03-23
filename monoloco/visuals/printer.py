@@ -8,6 +8,7 @@ from collections import OrderedDict
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
+from .pifpaf_show import KeypointPainter, get_pifpaf_outputs, draw_orientation, social_distance_colors
 from ..utils import pixel_to_camera
 
 
@@ -59,21 +60,25 @@ class Printer:
         self.kk = kk
         self.output_types = args.output_types
         self.z_max = args.z_max  # set max distance to show instances
-        self.show = args.show
-        self.show_all = args.show_all
-        self.save = not args.no_save
+        self.show_all = args.show_all or args.webcam
+        self.show = args.show_all or args.webcam
+        self.save = not args.no_save and not args.webcam
+        self.plt_close = not args.webcam
+        self.args = args
 
         # define image attributes
         self.attr = image_attributes(args.dpi, args.output_types)
 
     def _process_results(self, dic_ann):
         # Include the vectors inside the interval given by z_max
+        self.angles = dic_ann['angles']
         self.stds_ale = dic_ann['stds_ale']
         self.stds_epi = dic_ann['stds_epi']
         self.gt = dic_ann['gt']  # regulate ground-truth matching
         self.xx_gt = [xx[0] for xx in dic_ann['xyz_real']]
         self.xx_pred = [xx[0] for xx in dic_ann['xyz_pred']]
 
+        self.xz_centers = [[xx[0], xx[2]] for xx in dic_ann['xyz_pred']]
         # Set maximum distance
         self.dd_pred = dic_ann['dds_pred']
         self.dd_real = dic_ann['dds_real']
@@ -86,6 +91,10 @@ class Printer:
                         for idx, xx in enumerate(dic_ann['xyz_pred'])]
 
         self.uv_heads = dic_ann['uv_heads']
+        self.centers = self.uv_heads
+        if 'multi' in self.output_types:
+            for center in self.centers:
+                center[1] = center[1] * self.y_scale
         self.uv_shoulders = dic_ann['uv_shoulders']
         self.boxes = dic_ann['boxes']
         self.boxes_gt = dic_ann['boxes_gt']
@@ -107,7 +116,8 @@ class Printer:
         figures = []
 
         # Process the annotation dictionary of monoloco
-        self._process_results(dic_out)
+        if dic_out:
+            self._process_results(dic_out)
 
         #  Initialize multi figure, resizing it for aesthetic proportion
         if 'multi' in self.output_types:
@@ -165,7 +175,31 @@ class Printer:
             axes.append(ax1)
         return figures, axes
 
-    def draw(self, figures, axes, image):
+
+    def social_distance_front(self, axis, colors, annotations, dic_out):
+        sizes = [abs(self.centers[idx][1] - uv_s[1]*self.y_scale) / 1.5 for idx, uv_s in
+                 enumerate(self.uv_shoulders)]
+
+        keypoint_sets, _ = get_pifpaf_outputs(annotations)
+        keypoint_painter = KeypointPainter(show_box=False, y_scale=self.y_scale)
+        r_h = 'none'
+        if 'raise_hand' in self.args.activities:
+            r_h = dic_out['raising_hand']
+        keypoint_painter.keypoints(
+            axis, keypoint_sets, scores=self.dd_pred,colors=colors, raise_hand=r_h)
+        draw_orientation(axis, self.centers,
+                             sizes, self.angles, colors, mode='front')
+
+
+    def social_distance_bird(self, axis, colors):
+        draw_orientation(axis, self.xz_centers, [], self.angles, colors, mode='bird')
+
+    def draw(self, figures, axes, image, dic_out, annotations):
+
+        if self.args.activities:
+            colors = ['deepskyblue' for _ in self.uv_heads]
+            if 'social_distance' in self.args.activities:
+                colors = social_distance_colors(colors, dic_out)
 
         # whether to include instances that don't match the ground-truth
         iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))
@@ -176,13 +210,20 @@ class Printer:
         number = dict(flag=False, num=97)
         if any(xx in self.output_types for xx in ['front', 'multi']):
             number['flag'] = True  # add numbers
-            self.mpl_im0.set_data(image)
+            if not self.args.activities or 'social_distance' not in self.args.activities:
+                self.mpl_im0.set_data(image)
         for idx in iterator:
             if any(xx in self.output_types for xx in ['front', 'multi']) and self.zz_pred[idx] > 0:
-                self._draw_front(axes[0],
-                                 self.dd_pred[idx],
-                                 idx,
-                                 number)
+                if self.args.activities:
+                    if 'social_distance' in self.args.activities:
+                        self.social_distance_front(axes[0], colors, annotations, dic_out)
+                    elif 'raise_hand' in self.args.activities:
+                        self.social_distance_front(axes[0], colors, annotations, dic_out)
+                else:
+                    self._draw_front(axes[0],
+                                     self.dd_pred[idx],
+                                     idx,
+                                     number)
                 number['num'] += 1
 
         # Draw the bird figure
@@ -190,6 +231,9 @@ class Printer:
         for idx in iterator:
             if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
 
+                if self.args.activities:
+                    if 'social_distance' in self.args.activities:
+                        self.social_distance_bird(axes[1], colors)
                 # Draw ground truth and uncertainty
                 self._draw_uncertainty(axes, idx)
 
@@ -206,7 +250,10 @@ class Printer:
                 fig.savefig(self.output_path + self.extensions[idx], bbox_inches='tight', dpi=self.attr['dpi'])
             if self.show:
                 fig.show()
-            plt.close(fig)
+            if self.plt_close:
+                plt.close(fig)
+
+    
 
     def _draw_front(self, ax, z, idx, number):
 
@@ -360,7 +407,8 @@ class Printer:
             ax.set_axis_off()
             ax.set_xlim(0, self.width)
             ax.set_ylim(self.height, 0)
-            self.mpl_im0 = ax.imshow(self.im)
+            if not self.args.activities or 'social_distance' not in self.args.activities:
+                self.mpl_im0 = ax.imshow(self.im)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
 

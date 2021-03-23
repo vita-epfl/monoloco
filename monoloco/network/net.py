@@ -14,7 +14,7 @@ import torch
 from ..utils import get_iou_matches, reorder_matches, get_keypoints, pixel_to_camera, xyz_from_distance
 from .process import preprocess_monstereo, preprocess_monoloco, extract_outputs, extract_outputs_mono,\
     filter_outputs, cluster_outputs, unnormalize_bi
-from ..activity import social_interactions
+from ..activity import social_interactions, is_raising_hand
 from .architectures import MonolocoModel, MonStereoModel
 
 
@@ -262,6 +262,12 @@ class Loco:
                                                                threshold_dist=args.threshold_dist,
                                                                radii=args.radii))
                                       for idx, _ in enumerate(dic_out['xyz_pred'])]
+        return dic_out
+
+
+    @staticmethod
+    def raising_hand(dic_out, keypoints):
+        dic_out['raising_hand'] = [is_raising_hand(keypoint) for keypoint in keypoints]
         return dic_out
 
 
