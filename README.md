@@ -100,7 +100,7 @@ In all the other cases, we use the parameters of nuScenes cameras, with "1/1.8''
 The default focal length is 5.7mm and this parameter can be modified using the argument `--focal`.
 
 **Webcam** <br />
-You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam. 
+You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--scale` is set to 0.2. 
 For example, the following command :
 ```
 python -m monoloco.run predict \
@@ -109,9 +109,19 @@ python -m monoloco.run predict \
 ```
 Yields the following result :
 
-![webcam](docs/)
+![webcam](docs/webcam.gif)
 
 With `social_distance` in `--activities`, only the keypoints will be shown, allowing total anonimity.
+For instance, using : 
+```
+python -m monoloco.run predict \
+--webcam \
+--activities social_distance \
+--output_types multi
+```
+We have :
+
+![webcam](docs/webcam_social.png)
 
 ## A) 3D Localization
 
@@ -204,10 +214,13 @@ For more info, run:
 
 To visualize raised hand with the webcam, run the below command:
 ```
-python -m monoloco.run predict docs/frame0032.jpg \
---activities raise_hand --output_types front bird 
+python -m monoloco.run predict \
+--webcam \
+--activities raise_hand \
+--output_types multi 
 ```
-![webcam_raise_hand]()
+
+![webcam_raise_hand](docs/webcam_raisehand.gif)
 
 
 ## D) Orientation and Bounding Box dimensions 
