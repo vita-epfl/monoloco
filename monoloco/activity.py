@@ -72,18 +72,17 @@ def is_raising_hand(keypoint):
     l_hand = 9
     r_shoulder = 6
     r_hand = 10
-    h_offset = 10
+    l_ear = 3
+    r_ear = 4
+    h_offset = 20
 
-    if ((keypoint[1][l_hand] < keypoint[1][l_shoulder] and
-         keypoint[1][r_hand] < keypoint[1][r_shoulder]) and
-            (keypoint[0][l_hand] - h_offset > keypoint[0][l_shoulder] and
-             keypoint[0][r_hand] + h_offset < keypoint[0][r_shoulder])):
+    if keypoint[1][l_hand] < keypoint[1][l_shoulder] and keypoint[1][r_hand] < keypoint[1][r_shoulder]: 
         return 'both'
 
-    if (keypoint[1][l_hand] < keypoint[1][l_shoulder]) and (keypoint[0][l_hand] - h_offset > keypoint[0][l_shoulder]):
+    if keypoint[1][l_hand] < keypoint[1][l_shoulder]: 
         return 'left'
 
-    if keypoint[1][r_hand] < keypoint[1][r_shoulder] and keypoint[0][r_hand] + h_offset < keypoint[0][r_shoulder]:
+    if keypoint[1][r_hand] < keypoint[1][r_shoulder]: 
         return 'right'
 
     return 'none'
@@ -157,6 +156,7 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
         r_h = 'none'
         if 'raise_hand' in args.activities:
             r_h = dic_out['raising_hand']
+        print("RAISE_HAND :", r_h)
 
         with image_canvas(image_t,
                           output_path + '.front.png',

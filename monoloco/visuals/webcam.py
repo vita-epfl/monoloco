@@ -8,31 +8,31 @@ Implementation adapted from https://github.com/vita-epfl/openpifpaf/blob/master/
 
 import time
 import os
+import logging
 
 import torch
 import matplotlib.pyplot as plt
 from PIL import Image
 import cv2
 
-from openpifpaf import decoder, network, visualizer, show
+from openpifpaf import decoder, network, visualizer, show, logger
 import openpifpaf.datasets as datasets
 from openpifpaf.predict import processor_factory, preprocess_factory
 
 from ..visuals import Printer
 from ..network import Loco
 from ..network.process import preprocess_pifpaf, factory_for_gt
+from ..predict import download_checkpoints
 
-OPENPIFPAF_PATH = 'data/models/shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl'
-
+LOG = logging.getLogger(__name__)
 
 def factory_from_args(args):
 
     # Model
-    if not args.checkpoint:
-        if os.path.exists(OPENPIFPAF_PATH):
-            args.checkpoint = OPENPIFPAF_PATH
-        else:
-            args.checkpoint = 'shufflenetv2k30'
+    dic_models = download_checkpoints(args)
+    args.checkpoint = dic_models['keypoints']
+
+    logger.configure(args, LOG)  # logger first
 
     # Devices
     args.device = torch.device('cpu')
@@ -40,18 +40,20 @@ def factory_from_args(args):
     if torch.cuda.is_available():
         args.device = torch.device('cuda')
         args.pin_memory = True
+    LOG.debug('neural network device: %s', args.device)
 
     # Add visualization defaults
     args.figure_width = 10
     args.dpi_factor = 1.0
 
-    if args.net == 'monstereo':
-        args.batch_size = 2
-    else:
-        args.batch_size = 1
+    args.z_max = 10
+    args.show_all = True
+    args.no_save = True
+    args.batch_size = 1
 
     # Make default pifpaf argument
     args.force_complete_pose = True
+    LOG.info("Force complete pose is active")
 
     # Configure
     decoder.configure(args)
@@ -59,22 +61,24 @@ def factory_from_args(args):
     show.configure(args)
     visualizer.configure(args)
 
-    return args
+    return args, dic_models
 
 
 def webcam(args):
+    
+    assert args.mode in ('mono')
+    args, dic_models = factory_from_args(args)
 
-    args = factory_from_args(args)
     # Load Models
-    net = Loco(model=args.model, net=args.net, device=args.device,
+    net = Loco(model=dic_models[args.mode], mode=args.mode, device=args.device,
                n_dropout=args.n_dropout, p_dropout=args.dropout)
 
-    processor, model = processor_factory(args)
+    processor, pifpaf_model = processor_factory(args)
     preprocess = preprocess_factory(args)
 
     # Start recording
     cam = cv2.VideoCapture(0)
-    visualizer_monstereo = None
+    visualizer_mono = None
 
     while True:
         start = time.time()
@@ -86,7 +90,7 @@ def webcam(args):
         pil_image = Image.fromarray(image)
 
         data = datasets.PilImageList(
-            make_list(pil_image), preprocess=preprocess)
+            [pil_image], preprocess=preprocess)
 
         data_loader = torch.utils.data.DataLoader(
             data, batch_size=1, shuffle=False,
@@ -94,7 +98,7 @@ def webcam(args):
 
         for (image_tensors_batch, _, meta_batch) in data_loader:
             pred_batch = processor.batch(
-                model, image_tensors_batch, device=args.device)
+                pifpaf_model, image_tensors_batch, device=args.device)
 
             for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
                 pred = [ann.inverse_transform(meta) for ann in pred]
@@ -104,8 +108,6 @@ def webcam(args):
                         'pred': pred,
                         'left': [ann.json_data() for ann in pred],
                         'image': image}
-                else:
-                    pifpaf_outs['right'] = [ann.json_data() for ann in pred]
 
         if not ret:
             break
@@ -114,10 +116,9 @@ def webcam(args):
             # ESC pressed
             print("Escape hit, closing...")
             break
+
         intrinsic_size = [xx * 1.3 for xx in pil_image.size]
-        kk, dic_gt = factory_for_gt(intrinsic_size,
-                                    focal_length=args.focal,
-                                    path_gt=args.path_gt)  # better intrinsics for mac camera
+        kk, dic_gt = factory_for_gt(intrinsic_size, focal_length=args.focal)  # better intrinsics for mac camera
         boxes, keypoints = preprocess_pifpaf(
             pifpaf_outs['left'], (width, height))
 
@@ -129,13 +130,12 @@ def webcam(args):
                 dic_out = net.social_distance(dic_out, args)
             if 'raise_hand' in args.activities:
                 dic_out = net.raising_hand(dic_out, keypoints)
-        if visualizer_monstereo is None:  # it is, at the beginning
-            visualizer_monstereo = VisualizerMonstereo(kk,
-                                                       args)(pil_image)  # create it with the first image
-            visualizer_monstereo.send(None)
+        if visualizer_mono is None:  # it is, at the beginning
+            visualizer_mono = Visualizer(kk, args)(pil_image)  # create it with the first image
+            visualizer_mono.send(None)
 
         print(dic_out)
-        visualizer_monstereo.send((pil_image, dic_out, pifpaf_outs))
+        visualizer_mono.send((pil_image, dic_out, pifpaf_outs))
 
         end = time.time()
         print("run-time: {:.2f} ms".format((end-start)*1000))
@@ -145,7 +145,7 @@ def webcam(args):
     cv2.destroyAllWindows()
 
 
-class VisualizerMonstereo:
+class Visualizer:
     def __init__(self, kk, args):
         self.kk = kk
         self.args = args
@@ -190,7 +190,3 @@ def mypause(interval):
         canvas.start_event_loop(interval)
     else:
         time.sleep(interval)
-
-
-def make_list(*args):
-    return list(args)

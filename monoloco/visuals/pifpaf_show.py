@@ -200,11 +200,15 @@ class KeypointPainter(object):
             if isinstance(color, (int, np.integer)):
                 color = matplotlib.cm.get_cmap('tab20')((color % 20 + 0.05) / 20)
 
-            self._draw_skeleton(ax, x, y, v, color=color, raise_hand=raise_hand[:][i])
+            if raise_hand is not 'none':
+                self._draw_skeleton(ax, x, y, v, color=color, raise_hand=raise_hand[:][i])
+            else:
+                self._draw_skeleton(ax, x, y, v, color=color)
             score = scores[i] if scores is not None else None
-            z_str = str(score).split(sep='.')
-            text = z_str[0] + '.' + z_str[1][0]
-            self._draw_text(ax, x-2, y, v, text, color)
+            if score is not None:
+                z_str = str(score).split(sep='.')
+                text = z_str[0] + '.' + z_str[1][0]
+                self._draw_text(ax, x-2, y, v, text, color)
             if self.show_box:
                 score = scores[i] if scores is not None else None
                 self._draw_box(ax, x, y, v, color, score)

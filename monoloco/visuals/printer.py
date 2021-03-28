@@ -139,6 +139,7 @@ class Printer:
 
             fig, (ax0, ax1) = plt.subplots(1, 2, sharey=False, gridspec_kw={'width_ratios': [width_ratio, 1]},
                                            figsize=(fig_width, fig_height))
+           
             ax1.set_aspect(fig_ar_1)
             fig.set_tight_layout(True)
             fig.subplots_adjust(left=0.02, right=0.98, bottom=0, top=1, hspace=0, wspace=0.02)
@@ -194,7 +195,7 @@ class Printer:
     def social_distance_bird(self, axis, colors):
         draw_orientation(axis, self.xz_centers, [], self.angles, colors, mode='bird')
 
-    def draw(self, figures, axes, image, dic_out, annotations):
+    def draw(self, figures, axes, image, dic_out=None, annotations=None):
 
         if self.args.activities:
             colors = ['deepskyblue' for _ in self.uv_heads]

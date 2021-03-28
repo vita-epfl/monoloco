@@ -21,7 +21,7 @@ from openpifpaf import decoder, network, visualizer, show, logger
 from .visuals.printer import Printer
 from .network import Loco
 from .network.process import factory_for_gt, preprocess_pifpaf
-from .activity import show_activities, show_social
+from .activity import show_activities
 
 LOG = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ def download_checkpoints(args):
         assert not args.social_distance, "Social distance not supported in stereo modality"
         path = MONSTEREO_MODEL
         name = 'monstereo-201202-1212.pkl'
-    elif args.social_distance:
+    elif args.social_distance or (args.activities and 'social_distance' in args.activities) or args.webcam:
         path = MONOLOCO_MODEL_NU
         name = 'monoloco_pp-201207-1350.pkl'
     else:
@@ -204,8 +204,10 @@ def predict(args):
                 LOG.info("Prediction with MonoLoco++")
                 dic_out = net.forward(keypoints, kk)
                 dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt)
-                if args.social_distance:
+                if args.social_distance or (args.activities and 'social_distance' in args.activities):
                     dic_out = net.social_distance(dic_out, args)
+                if args.activities and 'raise_hand' in args.activities:
+                    dic_out = net.raising_hand(dic_out, keypoints)
 
             else:
                 LOG.info("Prediction with MonStereo")
