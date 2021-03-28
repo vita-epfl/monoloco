@@ -99,6 +99,20 @@ When processing KITTI images, the network uses the provided intrinsic matrix of 
 In all the other cases, we use the parameters of nuScenes cameras, with "1/1.8'' CMOS sensors of size 7.2 x 5.4 mm.
 The default focal length is 5.7mm and this parameter can be modified using the argument `--focal`.
 
+**Webcam** <br />
+You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam. 
+For example, the following command :
+```
+python -m monoloco.run predict \
+--webcam \
+--output_types multi
+```
+Yields the following result :
+
+![webcam](docs/)
+
+With `social_distance` in `--activities`, only the keypoints will be shown, allowing total anonimity.
+
 ## A) 3D Localization
 
 **Ground-truth comparison** <br /> 
@@ -162,7 +176,7 @@ python3 -m monoloco.run predict --glob docs/005523*.png \ --output_types multi \
 ![Occluded hard example](docs/out_005523.png.multi.jpg)
 
 ## B) Social Distancing (and Talking activity)
-To visualize social distancing compliance, simply add the argument `--social-distance` to the predict command. This visualization is not supported with a stereo camera.
+To visualize social distancing compliance, simply add the argument `social_distance` to `--activities`. This visualization is not supported with a stereo camera.
 Threshold distance and radii (for F-formations) can be set using `--threshold-dist` and `--radii`, respectively.
 
 For more info, run:
@@ -176,12 +190,27 @@ An example from the Collective Activity Dataset is provided below.
 To visualize social distancing run the below, command:
 ```
 python -m monoloco.run predict docs/frame0032.jpg \
---social_distance --output_types front bird 
+--activities social_distance --output_types front bird 
 ```
 <img src="docs/out_frame0032_front_bird.jpg" width="700"/>
 
+## C) Raise hand detection
+To detect a risen hand, you can add `raise_hand` to `--activities`.
 
-## C) Orientation and Bounding Box dimensions 
+For more info, run:
+`python -m monoloco.run predict --help`
+
+**Examples** <br>
+
+To visualize raised hand with the webcam, run the below command:
+```
+python -m monoloco.run predict docs/frame0032.jpg \
+--activities raise_hand --output_types front bird 
+```
+![webcam_raise_hand]()
+
+
+## D) Orientation and Bounding Box dimensions 
 The network estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
 `--output_types json`. At the moment, the only visualization including orientation is the social distancing one.
 
