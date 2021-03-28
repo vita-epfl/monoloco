@@ -22,9 +22,11 @@ def social_interactions(idx, centers, angles, dds, stds=None, social_distance=Fa
     # A) Check whether people are close together
     xx = centers[idx][0]
     zz = centers[idx][1]
-    distances = [math.sqrt((xx - centers[i][0]) ** 2 + (zz - centers[i][1]) ** 2) for i, _ in enumerate(centers)]
+    distances = [math.sqrt((xx - centers[i][0]) ** 2 + (zz - centers[i][1]) ** 2)
+                 for i, _ in enumerate(centers)]
     sorted_idxs = np.argsort(distances)
-    indices = [idx_t for idx_t in sorted_idxs[1:] if distances[idx_t] <= threshold_dist]
+    indices = [idx_t for idx_t in sorted_idxs[1:]
+               if distances[idx_t] <= threshold_dist]
 
     # B) Check whether people are looking inwards and whether there are no intrusions
     # Deterministic
@@ -72,17 +74,14 @@ def is_raising_hand(keypoint):
     l_hand = 9
     r_shoulder = 6
     r_hand = 10
-    l_ear = 3
-    r_ear = 4
-    h_offset = 20
 
-    if keypoint[1][l_hand] < keypoint[1][l_shoulder] and keypoint[1][r_hand] < keypoint[1][r_shoulder]: 
+    if keypoint[1][l_hand] < keypoint[1][l_shoulder] and keypoint[1][r_hand] < keypoint[1][r_shoulder]:
         return 'both'
 
-    if keypoint[1][l_hand] < keypoint[1][l_shoulder]: 
+    if keypoint[1][l_hand] < keypoint[1][l_shoulder]:
         return 'left'
 
-    if keypoint[1][r_hand] < keypoint[1][r_shoulder]: 
+    if keypoint[1][r_hand] < keypoint[1][r_shoulder]:
         return 'right'
 
     return 'none'
@@ -96,7 +95,8 @@ def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False
     """
 
     # Extract centers and angles
-    other_centers = np.array([cent for l, cent in enumerate(centers) if l not in (idx, idx_t)])
+    other_centers = np.array(
+        [cent for l, cent in enumerate(centers) if l not in (idx, idx_t)])
     theta0 = angles[idx]
     theta1 = angles[idx_t]
 
@@ -115,15 +115,18 @@ def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False
 
         # 1) Verify they are looking inwards.
         # The distance between mus and the center should be less wrt the original position and the center
-        d_new = np.linalg.norm(mu_0 - mu_1) / 2 if social_distance else np.linalg.norm(mu_0 - mu_1)
+        d_new = np.linalg.norm(
+            mu_0 - mu_1) / 2 if social_distance else np.linalg.norm(mu_0 - mu_1)
         d_0 = np.linalg.norm(x_0 - o_c)
         d_1 = np.linalg.norm(x_1 - o_c)
 
         # 2) Verify no intrusion for third parties
         if other_centers.size:
-            other_distances = np.linalg.norm(other_centers - o_c.reshape(1, -1), axis=1)
+            other_distances = np.linalg.norm(
+                other_centers - o_c.reshape(1, -1), axis=1)
         else:
-            other_distances = 100 * np.ones((1, 1))  # Condition verified if no other people
+            # Condition verified if no other people
+            other_distances = 100 * np.ones((1, 1))
 
         # Binary Classification
         # if np.min(other_distances) > radius:  # Ablation without orientation
@@ -163,8 +166,10 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
                           show=args.show,
                           fig_width=10,
                           dpi_factor=1.0) as ax:
-            keypoint_painter.keypoints(ax, keypoint_sets, colors=colors, raise_hand=r_h)
-            draw_orientation(ax, uv_centers, sizes, angles, colors, mode='front')
+            keypoint_painter.keypoints(
+                ax, keypoint_sets, colors=colors, raise_hand=r_h)
+            draw_orientation(ax, uv_centers, sizes,
+                             angles, colors, mode='front')
 
     if 'bird' in args.output_types:
         z_max = min(args.z_max, 4 + max([el[1] for el in xz_centers]))

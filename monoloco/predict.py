@@ -46,7 +46,8 @@ def get_torch_checkpoints_dir():
 
 def download_checkpoints(args):
     torch_dir = get_torch_checkpoints_dir()
-    pifpaf_model = os.path.join(torch_dir, 'shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl')
+    pifpaf_model = os.path.join(
+        torch_dir, 'shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl')
     dic_models = {'keypoints': pifpaf_model}
     if not os.path.exists(pifpaf_model):
         import gdown
@@ -154,14 +155,16 @@ def predict(args):
     # data
     data = datasets.ImageList(args.images, preprocess=preprocess)
     if args.mode == 'stereo':
-        assert len(data.image_paths) % 2 == 0, "Odd number of images in a stereo setting"
+        assert len(
+            data.image_paths) % 2 == 0, "Odd number of images in a stereo setting"
 
     data_loader = torch.utils.data.DataLoader(
         data, batch_size=args.batch_size, shuffle=False,
         pin_memory=False, collate_fn=datasets.collate_images_anns_meta)
 
     for batch_i, (image_tensors_batch, _, meta_batch) in enumerate(data_loader):
-        pred_batch = processor.batch(pifpaf_model, image_tensors_batch, device=args.device)
+        pred_batch = processor.batch(
+            pifpaf_model, image_tensors_batch, device=args.device)
 
         # unbatch (only for MonStereo)
         for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
@@ -183,7 +186,8 @@ def predict(args):
                     output_path = os.path.join(splits[0], 'out_' + splits[1])
                 else:
                     file_name = os.path.basename(meta['file_name'])
-                    output_path = os.path.join(args.output_directory, 'out_' + file_name)
+                    output_path = os.path.join(
+                        args.output_directory, 'out_' + file_name)
 
                 im_name = os.path.basename(meta['file_name'])
                 print(f'{batch_i} image {im_name} saved as {output_path}')
@@ -195,15 +199,18 @@ def predict(args):
         # 3D Predictions
         if args.mode != 'keypoints':
             im_size = (cpu_image.size[0], cpu_image.size[1])  # Original
-            kk, dic_gt = factory_for_gt(im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
+            kk, dic_gt = factory_for_gt(
+                im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
 
             # Preprocess pifpaf outputs and run monoloco
-            boxes, keypoints = preprocess_pifpaf(pifpaf_outs['left'], im_size, enlarge_boxes=False)
+            boxes, keypoints = preprocess_pifpaf(
+                pifpaf_outs['left'], im_size, enlarge_boxes=False)
 
             if args.mode == 'mono':
                 LOG.info("Prediction with MonoLoco++")
                 dic_out = net.forward(keypoints, kk)
-                dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt)
+                dic_out = net.post_process(
+                    dic_out, boxes, keypoints, kk, dic_gt)
                 if args.social_distance or (args.activities and 'social_distance' in args.activities):
                     dic_out = net.social_distance(dic_out, args)
                 if args.activities and 'raise_hand' in args.activities:
@@ -211,9 +218,11 @@ def predict(args):
 
             else:
                 LOG.info("Prediction with MonStereo")
-                boxes_r, keypoints_r = preprocess_pifpaf(pifpaf_outs['right'], im_size)
+                boxes_r, keypoints_r = preprocess_pifpaf(
+                    pifpaf_outs['right'], im_size)
                 dic_out = net.forward(keypoints, kk, keypoints_r=keypoints_r)
-                dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt)
+                dic_out = net.post_process(
+                    dic_out, boxes, keypoints, kk, dic_gt)
 
         else:
             dic_out = defaultdict(list)
@@ -242,7 +251,8 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
     elif any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
         LOG.info(output_path)
         if args.activities:
-            show_activities(args, pifpaf_outs['image'], output_path, pifpaf_outs['left'], dic_out)
+            show_activities(
+                args, pifpaf_outs['image'], output_path, pifpaf_outs['left'], dic_out)
         else:
             printer = Printer(pifpaf_outs['image'], output_path, kk, args)
             figures, axes = printer.factory_axes(dic_out)
@@ -253,4 +263,5 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
             json.dump(dic_out, ff)
 
     else:
-        LOG.info("No output saved, please select one among front, bird, multi, or pifpaf options")
+        LOG.info(
+            "No output saved, please select one among front, bird, multi, or pifpaf options")
