@@ -3,7 +3,9 @@
 <img src="docs/monoloco.gif" alt="gif" />
 
 
-This library is based on three research projects for monocular/stereo 3D human localization (detection), body orientation, and social distancing. Check the video teaser of the library on [__YouTube__](https://www.youtube.com/watch?v=O5zhzi8mwJ4).
+This library is based on three research projects for monocular/stereo 3D human localization (detection), body orientation, and social distancing. Check the __video teaser__ of the library on [__YouTube__](https://www.youtube.com/watch?v=O5zhzi8mwJ4).
+
+---
 
 > __MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization__<br /> 
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), 
@@ -293,10 +295,13 @@ python -m monstereo.run eval --activity \
 ## Evaluation
 
 ### 3D Localization
-We provide evaluation on KITTI for models trained on nuScenes or KITTI. We compare them with other monocular 
-and stereo baselines, depending whether you are evaluating stereo or monocular settings. For some of the baselines, we have obtained the annotations directly from the authors and we don't have yet the permission to publish them.
+We provide evaluation on KITTI for models trained on nuScenes or KITTI. Download the ground-truths of KITTI dataset and the calibration files from their [website](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d). Save the training labels (one .txt file for each image) into the folder `data/kitti/gt` and the camera calibration matrices (one .txt file for each image) into `data/kitti/calib`.  
 
-[MonoLoco](https://github.com/vita-epfl/monoloco), 
+__Baselines__
+
+We compare ourr results with other monocular 
+and stereo baselines, depending whether you are evaluating stereo or monocular settings. For some of the baselines, we have obtained the annotations directly from the authors and we don't have yet the permission to publish them. 
+
 [Mono3D](https://www.cs.toronto.edu/~urtasun/publications/chen_etal_cvpr16.pdf), 
 [3DOP](https://xiaozhichen.github.io/papers/nips15chen.pdf), 
 [MonoDepth](https://arxiv.org/abs/1609.03677) 
@@ -313,6 +318,10 @@ and save them into `data/kitti/3dop`
 and save them into `data/kitti/monodepth`
 * **Geometrical Baseline and MonoLoco**:
 To include also geometric baselines and MonoLoco, add the flag ``--baselines`` to the evaluation command
+
+
+
+The evaluation file will run the model over all the annotations and compare the results with KITTI  ground-truth and the downloaded baselines. For this run:
 ```
 python -m monoloco.run eval \
 --dir_ann <annotation directory> \
