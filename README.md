@@ -3,7 +3,7 @@
 <img src="docs/monoloco.gif" alt="gif" />
 
 
-This library is based on three research projects for monocular/stereo 3D human localization (detection), body orientation, and social distancing. Check the [demo video](https://www.youtube.com/watch?v=O5zhzi8mwJ4)!
+This library is based on three research projects for monocular/stereo 3D human localization (detection), body orientation, and social distancing. Check the video teaser of the library on [__YouTube__](https://www.youtube.com/watch?v=O5zhzi8mwJ4).
 
 > __MonStereo: When Monocular and Stereo Meet at the Tail of 3D Human Localization__<br /> 
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), 
@@ -188,7 +188,7 @@ The network estimates orientation and box dimensions as well. Results are saved 
 <br /> 
 
 ## Training
-We train on the KITTI dataset (MonoLoco/Monoloco++/MonStereo) or the nuScenes dataset (MonoLoco) specifying the path of the json file containing the input joints. Please download them [here](https://drive.google.com/file/d/1bJPyA1HuX9uyJYf1IhiDqzhkvSokd4l0/view?usp=sharing) or follow [preprocessing instructions](#Preprocessing).
+We train on the KITTI dataset (MonoLoco/Monoloco++/MonStereo) or the nuScenes dataset (MonoLoco) specifying the path of the json file containing the input joints. Please download them [here](https://drive.google.com/drive/folders/1j0riwbS9zuEKQ_3oIs_dWlYBnfuN2WVN?usp=sharing) or follow [preprocessing instructions](#Preprocessing).
 
 Results for MonoLoco++ are obtained with: 
 
