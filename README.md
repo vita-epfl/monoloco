@@ -317,7 +317,7 @@ and save them into `data/kitti/3dop`
 [here](https://github.com/Parrotlife/pedestrianDepth-baseline/tree/master/MonoDepth-PyTorch) 
 and save them into `data/kitti/monodepth`
 * **Geometrical Baseline and MonoLoco**:
-To include also geometric baselines and MonoLoco, add the flag ``--baselines`` to the evaluation command
+To include also geometric baselines and MonoLoco, download a monoloco model, save it in `data/models`, and add the flag ``--baselines`` to the evaluation command
 
 
 
