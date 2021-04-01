@@ -61,9 +61,3 @@ def test_package():
 
     # Visualization test
     tst_printer(dic_out, kk, IMAGE)
-
-
-
-
-
-
