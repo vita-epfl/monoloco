@@ -13,7 +13,8 @@ from collections import defaultdict
 from tabulate import tabulate
 
 from ..utils import get_iou_matches, get_task_error, get_pixel_error, check_conditions, \
-    get_difficulty, split_training, parse_ground_truth, get_iou_matches_matrix, average, find_cluster
+    get_difficulty, split_training, get_iou_matches_matrix, average, find_cluster
+from ..prep import parse_ground_truth
 from ..visuals import show_results, show_spread, show_task_error, show_box_plot
 
 

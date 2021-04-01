@@ -1,4 +1,3 @@
-import json
 import shutil
 import os
 
@@ -42,15 +41,6 @@ def get_pixel_error(zz_gt):
     disp = 0.54 * 721 / zz_gt
     error = abs(zz_gt - 0.54 * 721 / (disp - 1))
     return error
-
-
-def open_annotations(path_ann):
-    try:
-        with open(path_ann, 'r') as f:
-            annotations = json.load(f)
-    except FileNotFoundError:
-        annotations = []
-    return annotations
 
 
 def make_new_directory(dir_out):

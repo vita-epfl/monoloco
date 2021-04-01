@@ -9,10 +9,10 @@ import torch
 from PIL import Image
 from sklearn.metrics import accuracy_score
 
-from monoloco.network import Loco
-from monoloco.network.process import factory_for_gt, preprocess_pifpaf
-from monoloco.activity import social_interactions
-from monoloco.utils import open_annotations, get_iou_matches, get_difficulty
+from ..network import Loco
+from ..network.process import factory_for_gt, preprocess_pifpaf
+from ..activity import social_interactions
+from ..utils import open_annotations, get_iou_matches, get_difficulty
 
 
 class ActivityEvaluator:
@@ -107,8 +107,7 @@ class ActivityEvaluator:
 
     def eval_kitti(self):
         """Parse KITTI Dataset and predict if people are talking or not"""
-
-        from ..utils import factory_file
+        from ..prep import factory_file
         files = glob.glob(self.dir_data + '/*.txt')
         # files = [self.dir_gt_kitti + '/001782.txt']
         assert files, "Empty directory"

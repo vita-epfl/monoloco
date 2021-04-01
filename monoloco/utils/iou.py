@@ -1,4 +1,6 @@
 
+import json
+
 import numpy as np
 
 
@@ -96,3 +98,48 @@ def reorder_matches(matches, boxes, mode='left_rigth'):
     matches_left = [int(idx) for (idx, _) in matches]
 
     return [matches[matches_left.index(idx_boxes)] for idx_boxes in ordered_boxes if idx_boxes in matches_left]
+
+
+def get_category(keypoints, path_byc):
+    """Find the category for each of the keypoints"""
+
+    dic_byc = open_annotations(path_byc)
+    boxes_byc = dic_byc['boxes'] if dic_byc else []
+    boxes_ped = make_lower_boxes(keypoints)
+
+    matches = get_matches_bikes(boxes_ped, boxes_byc)
+    list_byc = [match[0] for match in matches]
+    categories = [1.0 if idx in list_byc else 0.0 for idx, _ in enumerate(boxes_ped)]
+    return categories
+
+
+def get_matches_bikes(boxes_ped, boxes_byc):
+    matches = get_iou_matches_matrix(boxes_ped, boxes_byc, thresh=0.15)
+    matches_b = []
+    for idx, idx_byc in matches:
+        box_ped = boxes_ped[idx]
+        box_byc = boxes_byc[idx_byc]
+        width_ped = box_ped[2] - box_ped[0]
+        width_byc = box_byc[2] - box_byc[0]
+        center_ped = (box_ped[2] + box_ped[0]) / 2
+        center_byc = (box_byc[2] + box_byc[0]) / 2
+        if abs(center_ped - center_byc) < min(width_ped, width_byc) / 4:
+            matches_b.append((idx, idx_byc))
+    return matches_b
+
+
+def make_lower_boxes(keypoints):
+    lower_boxes = []
+    keypoints = np.array(keypoints)
+    for kps in keypoints:
+        lower_boxes.append([min(kps[0, 9:]), min(kps[1, 9:]), max(kps[0, 9:]), max(kps[1, 9:])])
+    return lower_boxes
+
+
+def open_annotations(path_ann):
+    try:
+        with open(path_ann, 'r') as f:
+            annotations = json.load(f)
+    except FileNotFoundError:
+        annotations = []
+    return annotations

@@ -9,10 +9,10 @@ sys.path.insert(0, os.path.join('..', 'monoloco'))
 
 from PIL import Image
 
-from stereoloco.train import Trainer
-from stereoloco.network import MonoLoco
-from stereoloco.network.process import preprocess_pifpaf, factory_for_gt
-from stereoloco.visuals.printer import Printer
+from monoloco.train import Trainer
+from monoloco.network import MonoLoco
+from monoloco.network.process import preprocess_pifpaf, factory_for_gt
+from monoloco.visuals.printer import Printer
 
 JOINTS = 'tests/joints_sample.json'
 PIFPAF_KEYPOINTS = 'tests/002282.png.pifpaf.json'

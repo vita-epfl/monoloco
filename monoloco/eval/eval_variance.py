@@ -1,4 +1,4 @@
-# pylint: disable=too-many-statements,too-many-branches
+# pylint: disable=too-many-statements
 
 """Joints Analysis: Supplementary material of MonStereo"""
 

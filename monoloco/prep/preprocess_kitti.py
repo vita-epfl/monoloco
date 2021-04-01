@@ -1,4 +1,3 @@
-
 # pylint: disable=too-many-statements, too-many-branches, too-many-nested-blocks
 
 """Preprocess annotations with KITTI ground-truth"""
@@ -6,6 +5,7 @@
 import os
 import glob
 import copy
+import math
 import logging
 from collections import defaultdict
 import json
@@ -15,8 +15,9 @@ from PIL import Image
 import torch
 import cv2
 
-from ..utils import split_training, parse_ground_truth, get_iou_matches, append_cluster, factory_file, \
-    extract_stereo_matches, get_category, normalize_hwl, make_new_directory
+from ..utils import split_training, get_iou_matches, append_cluster, get_calibration, open_annotations, \
+    extract_stereo_matches, get_category, normalize_hwl, make_new_directory, \
+    check_conditions, to_spherical, correct_angle
 from ..network.process import preprocess_pifpaf, preprocess_monoloco
 from .transforms import flip_inputs, flip_labels, height_augmentation
 
@@ -348,3 +349,65 @@ def crop_and_draw(im, box, keypoint):
     w_crop = crop.shape[1]
 
     return crop, h_crop, w_crop
+
+
+def parse_ground_truth(path_gt, category, spherical=False, verbose=False):
+    """Parse KITTI ground truth files"""
+
+    boxes_gt = []
+    ys = []
+    truncs_gt = []  # Float from 0 to 1
+    occs_gt = []  # Either 0,1,2,3 fully visible, partly occluded, largely occluded, unknown
+    lines = []
+
+    with open(path_gt, "r") as f_gt:
+        for line_gt in f_gt:
+            line = line_gt.split()
+            if check_conditions(line_gt, category, method='gt'):
+                truncs_gt.append(float(line[1]))
+                occs_gt.append(int(line[2]))
+                boxes_gt.append([float(x) for x in line[4:8]])
+                xyz = [float(x) for x in line[11:14]]
+                hwl = [float(x) for x in line[8:11]]
+                dd = float(math.sqrt(xyz[0] ** 2 + xyz[1] ** 2 + xyz[2] ** 2))
+                yaw = float(line[14])
+                assert - math.pi <= yaw <= math.pi
+                alpha = float(line[3])
+                sin, cos, yaw_corr = correct_angle(yaw, xyz)
+                assert min(abs(-yaw_corr - alpha), (abs(yaw_corr - alpha))) < 0.15, "more than 10 degrees of error"
+                if spherical:
+                    rtp = to_spherical(xyz)
+                    loc = rtp[1:3] + xyz[2:3] + rtp[0:1]  # [theta, psi, z, r]
+                else:
+                    loc = xyz + [dd]
+                # cat = 0 if line[0] in ('Pedestrian', 'Person_sitting') else 1
+                if line[0] in ('Pedestrian', 'Person_sitting'):
+                    cat = 0
+                else:
+                    cat = 1
+                output = loc + hwl + [sin, cos, yaw, cat]
+                ys.append(output)
+                if verbose:
+                    lines.append(line_gt)
+    if verbose:
+        return boxes_gt, ys, truncs_gt, occs_gt, lines
+    return boxes_gt, ys, truncs_gt, occs_gt
+
+
+def factory_file(path_calib, dir_ann, basename, mode='left'):
+    """Choose the annotation and the calibration files. Stereo option with ite = 1"""
+
+    assert mode in ('left', 'right')
+    p_left, p_right = get_calibration(path_calib)
+
+    if mode == 'left':
+        kk, tt = p_left[:]
+        path_ann = os.path.join(dir_ann, basename + '.png.predictions.json')
+
+    else:
+        kk, tt = p_right[:]
+        path_ann = os.path.join(dir_ann + '_right', basename + '.png.predictions.json')
+
+    annotations = open_annotations(path_ann)
+
+    return annotations, kk, tt
