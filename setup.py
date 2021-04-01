@@ -32,12 +32,14 @@ setup(
         'gdown',
     ],
     extras_require={
+        'test': [
+            'pylint',
+            'pytest',
+        ],
         'eval': [
             'tabulate',
             'sklearn',
             'pandas',
-            'pylint',
-            'pytest',
         ],
         'prep': [
             'nuscenes-devkit==1.0.2',
