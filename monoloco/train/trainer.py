@@ -85,7 +85,7 @@ class Trainer:
             self.mt_loss = MultiTaskLoss(losses_tr, losses_val, self.lambdas, self.tasks)
         self.mt_loss.to(self.device)
 
-        if not self.mode == 'stereo':
+        if self.mode == 'stereo':
             input_size = 68
             output_size = 10
         else:

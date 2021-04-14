@@ -33,7 +33,8 @@ class GenerateKitti:
 
         # Load Network
         assert args.mode in ('mono', 'stereo'), "mode not recognized"
-        self.net = 'monstereo' if args.mode == 'mono' else 'monoloco_pp'
+        self.mode = args.mode
+        self.net = 'monstereo' if args.mode == 'stereo' else 'monoloco_pp'
         use_cuda = torch.cuda.is_available()
         device = torch.device("cuda" if use_cuda else "cpu")
         self.model = Loco(
@@ -153,7 +154,7 @@ class GenerateKitti:
 
         print("\nSaved in {} txt {} annotations. Not found {} images".format(cnt_file, cnt_ann, cnt_no_file))
 
-        if self.net == 'monstereo':
+        if self.baselines[self.mode] and self.net == 'monstereo':
             print("STEREO:")
             for key in self.baselines['stereo']:
                 print("Annotations corrected using {} baseline: {:.1f}%".format(

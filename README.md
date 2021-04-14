@@ -186,7 +186,6 @@ python -m monoloco.run predict docs/frame0032.jpg \
 ## C) Orientation and Bounding Box dimensions 
 The network estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
 `--output_types json`. At the moment, the only visualization including orientation is the social distancing one.
-
 <br /> 
 
 ## Training
@@ -195,12 +194,12 @@ We train on the KITTI dataset (MonoLoco/Monoloco++/MonStereo) or the nuScenes da
 Results for MonoLoco++ are obtained with: 
 
 ```
-python -m monoloco.run train --joints data/arrays/joints-kitti-201202-1743.json --save --monocular
+python -m monoloco.run train --joints data/arrays/joints-kitti-201202-1743.json
 ```
 
-While for the MonStereo ones just change the input joints and remove the monocular flag:
+While for the MonStereo ones just change the input joints and add `--mode stereo`
 ```
-python3 -m monoloco.run train --joints <json file path> --save`
+python3 -m monoloco.run train --joints data/arrays/joints-kitti-201202-1022.json --mode stereo
 ```
 
 If you are interested in the original results of the MonoLoco ICCV article (now improved with MonoLoco++), please refer to the tag v0.4.9 in this repository.
@@ -244,12 +243,17 @@ python -m openpifpaf.predict \
 --checkpoint=shufflenetv2k30 \
 --instance-threshold=0.05 --seed-threshold 0.05 --force-complete-pose 
 ```
-Once the step is complete, the below commands transform all the annotations into a single json file that will used for training
+Once the step is complete, the below commands transform all the annotations into a single json file that will used for training.
 
+For MonoLoco++:
 ```
 python -m monoloco.run prep --dir_ann <directory that contains annotations>
 ```
-!Add the flag `--monocular` for MonoLoco(++)!
+
+For MonStereo:
+```
+python -m monoloco.run prep --mode stereo --dir_ann <directory that contains annotations> 
+```
 
 ### Collective Activity Dataset
 To evaluate on of the [collective activity dataset](http://vhosts.eecs.umich.edu/vision//activity-dataset.html)
