@@ -107,7 +107,7 @@ class GenerateKitti:
             boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1242, 374))
             cat = get_category(keypoints, os.path.join(self.dir_byc, basename + '.json'))
             if keypoints:
-                annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, mode='right')
+                annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
                 _, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
 
                 if self.net == 'monstereo':
@@ -167,7 +167,7 @@ class GenerateKitti:
 
     def _run_stereo_baselines(self, basename, boxes, keypoints, zzs, path_calib):
 
-        annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, mode='right')
+        annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
         boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
         _, kk, tt = factory_file(path_calib, self.dir_ann, basename)
 

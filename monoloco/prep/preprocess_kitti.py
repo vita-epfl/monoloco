@@ -13,7 +13,10 @@ import datetime
 from PIL import Image
 
 import torch
-import cv2
+try:
+    import cv2
+except ImportError:
+    pass
 
 from ..utils import split_training, get_iou_matches, append_cluster, get_calibration, open_annotations, \
     extract_stereo_matches, get_category, normalize_hwl, make_new_directory, \
@@ -25,8 +28,10 @@ from .transforms import flip_inputs, flip_labels, height_augmentation
 class PreprocessKitti:
     """Prepare arrays with same format as nuScenes preprocessing but using ground truth txt files"""
 
+    # KITTI Dataset files
     dir_gt = os.path.join('data', 'kitti', 'gt')
-    dir_images = '/data/lorenzo-data/kitti/original_images/training/image_2'
+    dir_images = os.path.join('data', 'kitti', 'images')
+    dir_kk = os.path.join('data', 'kitti', 'calib')
     dir_byc_l = '/data/lorenzo-data/kitti/object_detection/left'
 
     # SOCIAL DISTANCING PARAMETERS
@@ -53,7 +58,6 @@ class PreprocessKitti:
         self.mode = mode
         assert self.mode in ('mono', 'stereo'), "modality not recognized"
         self.names_gt = tuple(os.listdir(self.dir_gt))
-        self.dir_kk = os.path.join('data', 'kitti', 'calib')
         self.list_gt = glob.glob(self.dir_gt + '/*.txt')
         assert os.path.exists(self.dir_gt), "Ground truth dir does not exist"
         assert os.path.exists(self.dir_ann), "Annotation dir does not exist"
@@ -106,6 +110,7 @@ class PreprocessKitti:
             path_calib = os.path.join(self.dir_kk, basename + '.txt')
             annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
 
+            # Save them in separate file to compare predictions with ground-truth
             self.dic_names[basename + '.png']['boxes'] = copy.deepcopy(boxes_gt)
             self.dic_names[basename + '.png']['ys'] = copy.deepcopy(ys)
             self.dic_names[basename + '.png']['K'] = copy.deepcopy(kk)
@@ -117,7 +122,7 @@ class PreprocessKitti:
             boxes, keypoints = preprocess_pifpaf(annotations, im_size=(width, height), min_conf=min_conf)
 
             if keypoints:
-                annotations_r, kk_r, tt_r = factory_file(path_calib, self.dir_ann, basename, mode='right')
+                annotations_r, kk_r, tt_r = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
                 boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(width, height), min_conf=min_conf)
                 cat = get_category(keypoints, os.path.join(self.dir_byc_l, basename + '.json'))
 
@@ -127,7 +132,6 @@ class PreprocessKitti:
                     all_boxes, all_keypoints = [boxes], [keypoints]
                     all_keypoints_r = [keypoints_r]
                 else:
-
                     # Horizontal Flipping for training
                     if phase == 'train':
                         # GT)
@@ -160,6 +164,7 @@ class PreprocessKitti:
                     for (idx, idx_gt) in matches:
                         keypoint = keypoints[idx:idx + 1]
                         lab = ys[idx_gt][:-1]
+                        cnt_match_l += 1
 
                         # Preprocess MonoLoco++
                         if self.mode == 'mono':
@@ -177,10 +182,12 @@ class PreprocessKitti:
                         # Preprocess MonStereo
                         else:
                             zz = ys[idx_gt][2]
-                            stereo_matches, cnt_amb = extract_stereo_matches(keypoint, keypoints_r, zz,
-                                                                             phase=phase, seed=cnt_pair_tot)
-                            cnt_match_l += 1 if ii < 0.1 else 0  # matched instances
-                            cnt_match_r += 1 if ii > 0.9 else 0
+                            stereo_matches, flag_stereo, cnt_amb = extract_stereo_matches(keypoint,
+                                                                                          keypoints_r,
+                                                                                          zz,
+                                                                                          phase=phase,
+                                                                                          seed=cnt_pair_tot)
+                            cnt_match_r += 1 if flag_stereo else 0
                             cnt_ambiguous += cnt_amb
 
                             # Monitor precision of classes
@@ -338,19 +345,6 @@ class PreprocessKitti:
         return phase, flag
 
 
-def crop_and_draw(im, box, keypoint):
-
-    box = [round(el) for el in box[:-1]]
-    center = (int((keypoint[0][0])), int((keypoint[1][0])))
-    radius = round((box[3]-box[1]) / 20)
-    im = cv2.circle(im, center, radius, color=(0, 255, 0), thickness=1)
-    crop = im[box[1]:box[3], box[0]:box[2]]
-    h_crop = crop.shape[0]
-    w_crop = crop.shape[1]
-
-    return crop, h_crop, w_crop
-
-
 def parse_ground_truth(path_gt, category, spherical=False, verbose=False):
     """Parse KITTI ground truth files"""
 
@@ -394,16 +388,17 @@ def parse_ground_truth(path_gt, category, spherical=False, verbose=False):
     return boxes_gt, ys, truncs_gt, occs_gt
 
 
-def factory_file(path_calib, dir_ann, basename, mode='left'):
-    """Choose the annotation and the calibration files. Stereo option with ite = 1"""
+def factory_file(path_calib, dir_ann, basename, ann_type='left'):
+    """Choose the annotation and the calibration files"""
 
-    assert mode in ('left', 'right')
+    assert ann_type in ('left', 'right')
     p_left, p_right = get_calibration(path_calib)
 
-    if mode == 'left':
+    if ann_type == 'left':
         kk, tt = p_left[:]
         path_ann = os.path.join(dir_ann, basename + '.png.predictions.json')
 
+    # The right folder is called <NameOfLeftFolder>_right
     else:
         kk, tt = p_right[:]
         path_ann = os.path.join(dir_ann + '_right', basename + '.png.predictions.json')

@@ -234,16 +234,28 @@ mkdir arrays models kitti logs output
 
 
 ### Kitti Dataset
-Annotations from a pose detector needs to be stored in a folder. With PifPaf:
+Download kitti images, ground-truth files (labels), and calibration files from their [website](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d) and save them inside the `data` folder as shown below.
+
+    data         
+    ├── kitti
+            ├── gt
+            ├── calib
+            ├── images
+            ├── images_right (only if using MonStereo)
+
+
+Also, annotations from a pose detector needs to be stored in a folder. To create them, run PifPaf:
 
 ```
 python -m openpifpaf.predict \
---glob "<kitti images directory>/*.png" \
+--glob data/kitti/images/*.png" \
 --json-output <directory to contain predictions> \
 --checkpoint=shufflenetv2k30 \
 --instance-threshold=0.05 --seed-threshold 0.05 --force-complete-pose 
 ```
-Once the step is complete, the below commands transform all the annotations into a single json file that will used for training.
+To maximize the recall (at the cost of the computational time), it's possible to upscale the images with the command `--long_edge 2500` (\~scale 2). 
+
+Once this step is complete, the below commands transform all the annotations into a single json file that will used for training.
 
 For MonoLoco++:
 ```
@@ -251,8 +263,10 @@ python -m monoloco.run prep --dir_ann <directory that contains annotations>
 ```
 
 For MonStereo:
+
+If you'd like to preprocess stereo annotations, run pifpaf over the folder of left images and the one of right images. Make sure to save annotations into two separate folders, and call the right folder: `<NameOfLeftFolder>_right`
 ```
-python -m monoloco.run prep --mode stereo --dir_ann <directory that contains annotations> 
+python -m monoloco.run prep --mode stereo --dir_ann <directory that contains left annotations> 
 ```
 
 ### Collective Activity Dataset
