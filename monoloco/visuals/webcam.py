@@ -13,7 +13,10 @@ import logging
 import torch
 import matplotlib.pyplot as plt
 from PIL import Image
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None
 
 from openpifpaf import decoder, network, visualizer, show, logger
 import openpifpaf.datasets as datasets
@@ -33,6 +36,15 @@ def factory_from_args(args):
     args.checkpoint = dic_models['keypoints']
 
     logger.configure(args, LOG)  # logger first
+    
+    if args.output_types is None:
+        args.output_types = ['multi']
+
+    assert 'bird' not in args.output_types
+    if 'json' not in args.output_types:
+        assert len(args.output_types) is 1
+    else:
+        assert len(args.output_types) < 3
 
     # Devices
     args.device = torch.device('cpu')
@@ -67,6 +79,7 @@ def factory_from_args(args):
 def webcam(args):
     
     assert args.mode in ('mono')
+
     args, dic_models = factory_from_args(args)
 
     # Load Models
@@ -175,7 +188,7 @@ class Visualizer:
                 axes[1].lines = [axes[1].lines[0], axes[1].lines[1]]
                 axes[1].texts = []
 
-            if dic_out:
+            if dic_out and dic_out['dds_pred']:
                 printer._process_results(dic_out)
                 printer.draw(figures, axes, image, dic_out, pifpaf_outs['left'])
                 mypause(0.01)

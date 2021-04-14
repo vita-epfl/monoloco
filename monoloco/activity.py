@@ -66,22 +66,51 @@ def social_interactions(idx, centers, angles, dds, stds=None, social_distance=Fa
     return False
 
 
-def is_raising_hand(keypoint):
+def is_raising_hand(kp):
     """
     Returns flag of alert if someone raises their hand
     """
+    x=0
+    y=1
+
+    nose = 0
+    l_ear = 3
     l_shoulder = 5
+    l_elbow = 7
     l_hand = 9
+    r_ear = 4
     r_shoulder = 6
+    r_elbow = 8
     r_hand = 10
 
-    if keypoint[1][l_hand] < keypoint[1][l_shoulder] and keypoint[1][r_hand] < keypoint[1][r_shoulder]:
+    head_width = kp[x][l_ear]- kp[x][r_ear]
+    head_top = (4/5) * (kp[y][nose] - head_width)
+    
+    l_forearm = [kp[x][l_hand] - kp[x][l_elbow], kp[y][l_hand] - kp[y][l_elbow]]
+    l_arm = [kp[x][l_shoulder] - kp[x][l_elbow], kp[y][l_shoulder] - kp[y][l_elbow]]     
+
+    r_forearm = [kp[x][r_hand] - kp[x][r_elbow], kp[y][r_hand] - kp[y][r_elbow]]
+    r_arm = [kp[x][r_shoulder] - kp[x][r_elbow], kp[y][r_shoulder] - kp[y][r_elbow]]     
+
+    l_angle = (90/np.pi) * np.arccos(np.dot(l_forearm/np.linalg.norm(l_forearm), l_arm/np.linalg.norm(l_arm)))
+    r_angle = (90/np.pi) * np.arccos(np.dot(r_forearm/np.linalg.norm(r_forearm), r_arm/np.linalg.norm(r_arm)))
+
+    is_l_up = kp[y][l_hand] < kp[y][l_shoulder] 
+    is_r_up = kp[y][r_hand] < kp[y][r_shoulder] 
+    
+    l_too_close = kp[x][l_hand] <= kp[x][l_shoulder] and kp[y][l_hand]>=head_top
+    r_too_close = kp[x][r_hand] >= kp[x][r_shoulder] and kp[y][r_hand]>=head_top
+
+    is_left_risen = is_l_up and l_angle >= 30 and not l_too_close 
+    is_right_risen = is_r_up and r_angle >= 30 and not r_too_close
+
+    if is_left_risen and is_right_risen:
         return 'both'
 
-    if keypoint[1][l_hand] < keypoint[1][l_shoulder]:
+    if is_left_risen:
         return 'left'
 
-    if keypoint[1][r_hand] < keypoint[1][r_shoulder]:
+    if is_right_risen:
         return 'right'
 
     return 'none'

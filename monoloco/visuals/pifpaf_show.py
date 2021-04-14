@@ -103,7 +103,7 @@ class KeypointPainter(object):
                     linewidth = np.sqrt((x[9]-x[7])**2 + (y[9]-y[7])**2)
                 if ((connection[0] == 6 and connection[1] == 8) or (connection[0] == 8 and connection[1] == 10)) and raise_hand in ['right', 'both']:
                     c = 'yellow'
-                    linewidth = np.sqrt((x[9]-x[7])**2 + (y[9]-y[7])**2)
+                    linewidth = np.sqrt((x[10]-x[8])**2 + (y[10]-y[8])**2)
                 if self.color_connections:
                     c = matplotlib.cm.get_cmap('tab20')(ci / len(self.skeleton))
                 if np.all(v[connection] > self.dashed_threshold):
@@ -153,7 +153,7 @@ class KeypointPainter(object):
             ax.text(x1, y1, '{:.4f}'.format(score), fontsize=8, color=color)
 
     @staticmethod
-    def _draw_text(ax, x, y, v, text, color):
+    def _draw_text(ax, x, y, v, text, color, fontsize=8):
         if not np.any(v > 0):
             return
 
@@ -167,7 +167,7 @@ class KeypointPainter(object):
             y1 -= 2.0
             y2 += 2.0
 
-        ax.text(x1 + 2, y1 - 2, text, fontsize=8,
+        ax.text(x1 + 2, y1 - 2, text, fontsize=fontsize,
                 color='white', bbox={'facecolor': color, 'alpha': 0.5, 'linewidth': 0})
 
     @staticmethod
@@ -208,7 +208,7 @@ class KeypointPainter(object):
             if score is not None:
                 z_str = str(score).split(sep='.')
                 text = z_str[0] + '.' + z_str[1][0]
-                self._draw_text(ax, x-2, y, v, text, color)
+                self._draw_text(ax, x[1:3], y[1:3]-5, v[1:3], text, color, fontsize=16)
             if self.show_box:
                 score = scores[i] if scores is not None else None
                 self._draw_box(ax, x, y, v, color, score)

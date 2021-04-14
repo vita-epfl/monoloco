@@ -19,7 +19,7 @@ def cli():
     predict_parser.add_argument('images', nargs='*', help='input images')
     predict_parser.add_argument('--glob', help='glob expression for input images (for many images)')
     predict_parser.add_argument('-o', '--output-directory', help='Output directory')
-    predict_parser.add_argument('--output_types', nargs='+', default=['json'],
+    predict_parser.add_argument('--output_types', nargs='+',
                                 help='what to output: json keypoints skeleton for Pifpaf'
                                      'json bird front or multi for MonStereo')
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
@@ -131,6 +131,8 @@ def main():
             from .visuals.webcam import webcam
             webcam(args)
         else:
+            if args.output_types is None:
+                args.output_types = ['json']
             from .predict import predict
             predict(args)
 

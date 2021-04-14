@@ -417,6 +417,7 @@ class Printer:
             uv_max = [0., float(self.height)]
             xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
             x_max = abs(xyz_max[0])  # shortcut to avoid oval circles in case of different kk
+            x_max=6
             corr = round(float(x_max / 3))
             ax.plot([0, x_max], [0, self.z_max], 'k--')
             ax.plot([0, -x_max], [0, self.z_max], 'k--')
