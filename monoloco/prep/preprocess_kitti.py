@@ -73,7 +73,7 @@ class PreprocessKitti:
         self.stats_stereo = defaultdict(int)
 
     def run(self):
-        # self.names_gt = ('003603.txt',)
+        self.names_gt = ('002282.txt',)
         for self.name in self.names_gt:
             # Extract ground truth
             path_gt = os.path.join(self.dir_gt, self.name)
@@ -240,10 +240,10 @@ class PreprocessKitti:
                     labels_aug = [label]
 
                 for i, lab in enumerate(labels_aug):
-                    (kps, kps_r) = kps_aug[i]
-                    input_l = preprocess_monoloco(kps, kk).view(-1)
-                    input_r = preprocess_monoloco(kps_r, kk).view(-1)
-                    keypoint = torch.cat((kps, kps_r), dim=2).tolist()
+                    (kp_aug, kp_aug_r) = kps_aug[i]
+                    input_l = preprocess_monoloco(kp_aug, kk).view(-1)
+                    input_r = preprocess_monoloco(kp_aug_r, kk).view(-1)
+                    keypoint = torch.cat((kp_aug_r, kp_aug_r), dim=2).tolist()
                     inp = torch.cat((input_l, input_l - input_r)).tolist()
 
                     # Only relative distances
@@ -262,6 +262,8 @@ class PreprocessKitti:
                             self.stats_stereo[self.phase] += 1
                         else:
                             self.stats_mono[self.phase] += 1
+        print(stereo_matches)
+        print(labels_aug)
 
     def _cout(self):
         print(
@@ -273,17 +275,16 @@ class PreprocessKitti:
             f"{100 * self.stats_stereo['match_l'] / (self.stats_gt['train'] + self.stats_gt['train']):.1f} "
             f"% for left images (train and val)")
 
-        print(
-            f"Ground truth matches : "
-            f"{100 * self.stats_stereo['match_r'] / self.stats_gt['train']:.1f} "
-            f"% for right images (train)")
-
-        print(f"Total annotations: {self.stats_files['tot']}")
-        print(f"Total number of cyclists: {self.stats_stereo['cyclists']}\n")
-        print(f"Ambiguous instances removed: {self.stats_stereo['ambiguous']}")
-        print(f"Extra pairs created with horizontal flipping: {self.stats_stereo['flipped_pair']}\n")
-
         if self.mode == 'stereo':
+            print(
+                f"Ground truth matches : "
+                f"{100 * self.stats_stereo['match_r'] / self.stats_gt['train']:.1f} "
+                f"% for right images (train)")
+            print(
+                f"Total number of cyclists: {self.stats_stereo['cyclists']}\n")
+            print(
+                f"Ambiguous instances removed: {self.stats_stereo['ambiguous']}")
+
             print('Instances with stereo correspondence: {:.1f}% '
                   .format(100 * self.stats_stereo['pair'] / self.stats_stereo['pair_tot']))
             for phase in ['train', 'val']:
@@ -291,6 +292,9 @@ class PreprocessKitti:
                 print("{}: annotations: {}. Stereo pairs {:.1f}% "
                       .format(phase.upper(), cnt, 100 * self.stats_stereo[self.phase] / cnt))
 
+        print(f"Total annotations: {self.stats_files['tot']}")
+        print(
+            f"Extra pairs created with horizontal flipping: {self.stats_stereo['flipped_pair']}\n")
         print("\nOutput files:\n{}\n{}".format(self.path_names, self.path_joints))
         print('-' * 120)
 
