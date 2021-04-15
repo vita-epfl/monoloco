@@ -262,8 +262,10 @@ class PreprocessKitti:
                             self.stats_stereo[self.phase] += 1
                         else:
                             self.stats_mono[self.phase] += 1
-        print(stereo_matches)
-        print(labels_aug)
+                    print(inp)
+                    print('---' * 60)
+                    print(lab)
+                    print('---' * 60)
 
     def _cout(self):
         print(
