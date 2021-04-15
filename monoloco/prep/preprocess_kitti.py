@@ -73,7 +73,7 @@ class PreprocessKitti:
         self.stats_stereo = defaultdict(int)
 
     def run(self):
-        # self.names_gt = ('002282.txt',)
+        # self.names_gt = ('003603.txt',)
         for self.name in self.names_gt:
             # Extract ground truth
             path_gt = os.path.join(self.dir_gt, self.name)
@@ -93,6 +93,8 @@ class PreprocessKitti:
 
             # Extract annotations
             dic_boxes, dic_kps, dic_gt = self.parse_annotations(boxes_gt, labels, basename)
+            if dic_boxes is None:  # No annotations
+                continue
             self.dic_names[basename + '.png']['K'] = copy.deepcopy(dic_gt['K'])
             self.dic_jo[self.phase]['K'].append(dic_gt['K'])
 
@@ -104,8 +106,8 @@ class PreprocessKitti:
                 for (idx, idx_gt) in matches:
                     kp = kps[idx:idx + 1]
                     label = dic_gt['labels'][ii][idx_gt]
-                    kk = dic_gt['K'][idx_gt]
-                    cat = dic_gt['cat'][idx]
+                    kk = dic_gt['K']
+                    cat = dic_gt['cat'][idx] if self.phase == 'val' else None
                     self._process_location(kp, kps_r, label, kk, cat)
 
         with open(self.path_joints, 'w') as file:
@@ -129,6 +131,8 @@ class PreprocessKitti:
         annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
         boxes, keypoints = preprocess_pifpaf(annotations, im_size=(width, height), min_conf=min_conf)
         cat = get_category(keypoints, os.path.join(self.dir_byc_l, basename + '.json'))
+        if not keypoints:
+            return None, None, None
 
         # Stereo-based horizontal flipping for training (obtaining ground truth for right images)
         annotations_r, kk_r, tt_r = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
@@ -171,11 +175,11 @@ class PreprocessKitti:
 
         if self.mode == 'mono':
             inp = preprocess_monoloco(kp, kk).view(-1).tolist()
-            label = normalize_hwl(label[:-1])
+            label = normalize_hwl(label)
             if label[10] < 0.5:
                 self.dic_jo[self.phase]['kps'].append(kp.tolist())
                 self.dic_jo[self.phase]['X'].append(inp)
-                self.dic_jo[self.phase]['Y'].append(label)
+                self.dic_jo[self.phase]['Y'].append(label[:-1])
                 self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
                 append_cluster(self.dic_jo, self.phase, inp, label, kp.tolist())
                 self.stats_mono[self.phase] += 1
@@ -184,9 +188,7 @@ class PreprocessKitti:
         # Preprocess MonStereo
         else:
             zz = label[2]
-            stereo_matches, flag_stereo, cnt_amb = extract_stereo_matches(kp,
-                                                                          kps_r,
-                                                                          zz,
+            stereo_matches, flag_stereo, cnt_amb = extract_stereo_matches(kp, kps_r, zz,
                                                                           phase=self.phase,
                                                                           seed=self.stats_stereo['pair_tot'])
             self.stats_stereo['match_r'] += 1 if flag_stereo else 0
