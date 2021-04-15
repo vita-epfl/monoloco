@@ -73,7 +73,7 @@ class PreprocessKitti:
         self.stats_stereo = defaultdict(int)
 
     def run(self):
-        self.names_gt = ('002282.txt',)
+        # self.names_gt = ('002282.txt',)
         for self.name in self.names_gt:
             # Extract ground truth
             path_gt = os.path.join(self.dir_gt, self.name)
@@ -172,14 +172,17 @@ class PreprocessKitti:
         return dic_boxes, dic_kps, dic_gt
 
     def _process_location(self, kp, kps_r, label, kk, cat):
+        """For a single annotation, process all the labels and, in case of stereo"""
 
+        label, cat_gt = label[:-1], label[-1]  # split cat_gt
+        assert len(label) == 10, 'dimensions of monocular label is wrong'
         if self.mode == 'mono':
             inp = preprocess_monoloco(kp, kk).view(-1).tolist()
             label = normalize_hwl(label)
-            if label[10] < 0.5:
+            if cat_gt in ('Pedestrian', 'Person_sitting'):
                 self.dic_jo[self.phase]['kps'].append(kp.tolist())
                 self.dic_jo[self.phase]['X'].append(inp)
-                self.dic_jo[self.phase]['Y'].append(label[:-1])
+                self.dic_jo[self.phase]['Y'].append(label)
                 self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
                 append_cluster(self.dic_jo, self.phase, inp, label, kp.tolist())
                 self.stats_mono[self.phase] += 1
@@ -195,20 +198,20 @@ class PreprocessKitti:
             self.stats_stereo['ambiguous'] += cnt_amb
 
             # Monitor precision of classes
-            if self.phase == 'val':
-                if label[10] == cat == 1:
-                    self.stats_stereo['correct_byc'] += 1
-                elif label[10] == cat == 0:
-                    self.stats_stereo['correct_ped'] += 1
-                elif label[10] != cat and label[10] == 1:
-                    self.stats_stereo['wrong_byc'] += 1
-                elif label[10] != cat and label[10] == 0:
-                    self.stats_stereo['wrong_ped'] += 1
-
-            self.stats_stereo['cyclists'] += 1 if label[10] == 1 else 0
+            # if self.phase == 'val':
+            #     if label[10] == cat == 1:
+            #         self.stats_stereo['correct_byc'] += 1
+            #     elif label[10] == cat == 0:
+            #         self.stats_stereo['correct_ped'] += 1
+            #     elif label[10] != cat and label[10] == 1:
+            #         self.stats_stereo['wrong_byc'] += 1
+            #     elif label[10] != cat and label[10] == 0:
+            #         self.stats_stereo['wrong_ped'] += 1
+            #
+            # self.stats_stereo['cyclists'] += 1 if label[10] == 1 else 0
 
             for num, (idx_r, s_match) in enumerate(stereo_matches):
-                label = label[:-1] + [s_match]
+                label_s = label + [s_match]  # add flag to distinguish "true pairs and false pairs"
                 if s_match > 0.9:
                     self.stats_stereo['pair'] += 1
 
@@ -233,11 +236,11 @@ class PreprocessKitti:
 
                 if flag_aug:
                     kps_aug, labels_aug = height_augmentation(
-                        kp, kps_r[idx_r:idx_r + 1], label, s_match,
-                        seed=self.stats_stereo['pair_tot'])
+                        kp, kps_r[idx_r:idx_r + 1], label_s,
+                        seed=self.stats_stereo['tot_pair'])
                 else:
                     kps_aug = [(kp, kps_r[idx_r:idx_r + 1])]
-                    labels_aug = [label]
+                    labels_aug = [label_s]
 
                 for i, lab in enumerate(labels_aug):
                     (kp_aug, kp_aug_r) = kps_aug[i]
@@ -251,21 +254,15 @@ class PreprocessKitti:
                     # inp = torch.cat((inp_x, input - input_r)).tolist()
 
                     # lab = normalize_hwl(lab)
-                    if label[10] < 0.5:
+                    if cat_gt in ('Pedestrian', 'Person_sitting'):  # TODO
+                        assert len(lab) == 11, 'dimensions of stereo label is wrong'
                         self.dic_jo[self.phase]['kps'].append(keypoint)
                         self.dic_jo[self.phase]['X'].append(inp)
                         self.dic_jo[self.phase]['Y'].append(lab)
                         self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
                         append_cluster(self.dic_jo, self.phase, inp, lab, keypoint)
-                        self.stats_stereo['tot'] += 1
-                        if s_match > 0.9:
-                            self.stats_stereo[self.phase] += 1
-                        else:
-                            self.stats_mono[self.phase] += 1
-                    print(inp)
-                    print('---' * 60)
-                    print(lab)
-                    print('---' * 60)
+                        self.stats_stereo['true_pair'] += 1 if lab[-1] > 0.9 else 0
+                        self.stats_stereo['tot_pair'] += 1
 
     def _cout(self):
         print(
@@ -287,17 +284,19 @@ class PreprocessKitti:
             print(
                 f"Ambiguous instances removed: {self.stats_stereo['ambiguous']}")
 
-            print('Instances with stereo correspondence: {:.1f}% '
-                  .format(100 * self.stats_stereo['pair'] / self.stats_stereo['pair_tot']))
+            print(
+                f'Instances with stereo correspondence: '
+                f'{100 * self.stats_stereo["true_pair"] / self.stats_stereo["tot_pair"]:.1f}% ')
             for phase in ['train', 'val']:
                 cnt = self.stats_mono[self.phase] + self.stats_stereo[self.phase]
-                print("{}: annotations: {}. Stereo pairs {:.1f}% "
-                      .format(phase.upper(), cnt, 100 * self.stats_stereo[self.phase] / cnt))
+                print(
+                    f"{phase.upper()}: annotations: {cnt}. "
+                    f"Stereo pairs {100 * self.stats_stereo[self.phase] / cnt:.1f}% ")
 
         print(f"Total annotations: {self.stats_files['tot']}")
         print(
             f"Extra pairs created with horizontal flipping: {self.stats_stereo['flipped_pair']}\n")
-        print("\nOutput files:\n{}\n{}".format(self.path_names, self.path_joints))
+        print(f"\nOutput files:\n{self.path_names}\n{self.path_joints}")
         print('-' * 120)
 
     def process_activity(self):
@@ -386,11 +385,7 @@ def parse_ground_truth(path_gt, category, spherical=False, verbose=False):
                 loc = rtp[1:3] + xyz[2:3] + rtp[0:1]  # [theta, psi, z, r]
             else:
                 loc = xyz + [dd]
-            # cat = 0 if line[0] in ('Pedestrian', 'Person_sitting') else 1
-            if line[0] in ('Pedestrian', 'Person_sitting'):
-                cat = 0
-            else:
-                cat = 1
+            cat = line[0]  # 'Pedestrian', or 'Person_sitting' for people
             output = loc + hwl + [sin, cos, yaw, cat]
             labels.append(output)
             if verbose:
