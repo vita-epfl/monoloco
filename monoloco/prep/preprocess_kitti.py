@@ -61,15 +61,13 @@ class PreprocessKitti:
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
         dir_out = os.path.join('data', 'arrays')
-        self.path_joints = os.path.join(dir_out, 'joints-kitti-' + now_time + '.json')
-        self.path_names = os.path.join(dir_out, 'names-kitti-' + now_time + '.json')
+        self.path_joints = os.path.join(dir_out, 'joints-kitti-' + self.mode + '-' + now_time + '.json')
+        self.path_names = os.path.join(dir_out, 'names-kitti-' + self.mode + '-' + now_time + '.json')
         path_train = os.path.join('splits', 'kitti_train.txt')
         path_val = os.path.join('splits', 'kitti_val.txt')
         self.set_train, self.set_val = split_training(self.names_gt, path_train, path_val)
         self.phase, self.name = None, None
-        self.stats_files = defaultdict(int)
-        self.stats_gt = defaultdict(int)
-        self.stats_mono = defaultdict(int)
+        self.stats = defaultdict(int)
         self.stats_stereo = defaultdict(int)
 
     def run(self):
@@ -81,13 +79,13 @@ class PreprocessKitti:
             self.phase, file_not_found = self._factory_phase(self.name)
             category = 'all' if self.phase == 'train' else 'pedestrian'
             if file_not_found:
-                self.stats_files['fnf'] += 1
+                self.stats['fnf'] += 1
                 continue
 
             boxes_gt, labels, _, _ = parse_ground_truth(path_gt, category=category, spherical=True)
-            self.stats_gt[self.phase] += len(boxes_gt)
-            self.stats_files['files'] += 1
-            self.stats_files['files_ped'] += min(len(boxes_gt), 1)  # if no boxes 0 else 1
+            self.stats['gt_' + self.phase] += len(boxes_gt)
+            self.stats['gt_files'] += 1
+            self.stats['gt_files_ped'] += min(len(boxes_gt), 1)  # if no boxes 0 else 1
             self.dic_names[basename + '.png']['boxes'] = copy.deepcopy(boxes_gt)
             self.dic_names[basename + '.png']['ys'] = copy.deepcopy(labels)
 
@@ -102,13 +100,19 @@ class PreprocessKitti:
             for ii, boxes_gt in enumerate(dic_boxes['gt']):
                 kps, kps_r = torch.tensor(dic_kps['left'][ii]), torch.tensor(dic_kps['right'][ii])
                 matches = get_iou_matches(dic_boxes['left'][ii], boxes_gt, self.iou_min)
-                self.stats_stereo['flipped_pair'] += 1 if ii == 1 else 0
+                self.stats['flipping_match'] += len(matches) if ii == 1 else 0
                 for (idx, idx_gt) in matches:
                     kp = kps[idx:idx + 1]
-                    label = dic_gt['labels'][ii][idx_gt]
                     kk = dic_gt['K']
+                    label = dic_gt['labels'][ii][idx_gt][:-1]
+                    cat_gt = dic_gt['labels'][ii][idx_gt][-1]
                     cat = dic_gt['cat'][idx] if self.phase == 'val' else None
-                    self._process_location(kp, kps_r, label, kk, cat)
+                    self.stats['match'] += 1
+                    assert len(label) == 10, 'dimensions of monocular label is wrong'
+                    if self.mode == 'mono':
+                        self._process_annotation_mono(kp, kk, label, cat_gt)
+                    else:
+                        self._process_annotation_stereo(kp, kk, label, cat_gt, kps_r, cat)
 
         with open(self.path_joints, 'w') as file:
             json.dump(self.dic_jo, file)
@@ -135,6 +139,7 @@ class PreprocessKitti:
             return None, None, None
 
         # Stereo-based horizontal flipping for training (obtaining ground truth for right images)
+        self.stats['instances'] += len(keypoints)
         annotations_r, kk_r, tt_r = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
         boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(width, height), min_conf=min_conf)
 
@@ -171,133 +176,119 @@ class PreprocessKitti:
         dic_gt = dict(K=kk, labels=all_labels, cat=cat)
         return dic_boxes, dic_kps, dic_gt
 
-    def _process_location(self, kp, kps_r, label, kk, cat):
-        """For a single annotation, process all the labels and, in case of stereo"""
+    def _process_annotation_mono(self, kp, kk, label, cat_gt):
+        """For a single annotation, process all the labels and save them"""
 
-        label, cat_gt = label[:-1], label[-1]  # split cat_gt
-        assert len(label) == 10, 'dimensions of monocular label is wrong'
-        if self.mode == 'mono':
-            inp = preprocess_monoloco(kp, kk).view(-1).tolist()
-            label = normalize_hwl(label)
-            if cat_gt in ('Pedestrian', 'Person_sitting'):
-                self.dic_jo[self.phase]['kps'].append(kp.tolist())
-                self.dic_jo[self.phase]['X'].append(inp)
-                self.dic_jo[self.phase]['Y'].append(label)
-                self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
-                append_cluster(self.dic_jo, self.phase, inp, label, kp.tolist())
-                self.stats_mono[self.phase] += 1
-                self.stats_files['tot'] += 1
+        inp = preprocess_monoloco(kp, kk).view(-1).tolist()
+        label = normalize_hwl(label)
+        if cat_gt in ('Pedestrian', 'Person_sitting'):
+            self.dic_jo[self.phase]['kps'].append(kp.tolist())
+            self.dic_jo[self.phase]['X'].append(inp)
+            self.dic_jo[self.phase]['Y'].append(label)
+            self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
+            append_cluster(self.dic_jo, self.phase, inp, label, kp.tolist())
+            self.stats['total_' + self.phase] += 1
 
-        # Preprocess MonStereo
-        else:
-            zz = label[2]
-            stereo_matches, flag_stereo, cnt_amb = extract_stereo_matches(kp, kps_r, zz,
-                                                                          phase=self.phase,
-                                                                          seed=self.stats_stereo['pair_tot'])
-            self.stats_stereo['match_r'] += 1 if flag_stereo else 0
-            self.stats_stereo['ambiguous'] += cnt_amb
+    def _process_annotation_stereo(self, kp, kk, label, cat_gt, kps_r, cat):
+        """For a reference annotation, combine it with some (right) annotations and save it"""
 
-            # Monitor precision of classes
-            # if self.phase == 'val':
-            #     if label[10] == cat == 1:
-            #         self.stats_stereo['correct_byc'] += 1
-            #     elif label[10] == cat == 0:
-            #         self.stats_stereo['correct_ped'] += 1
-            #     elif label[10] != cat and label[10] == 1:
-            #         self.stats_stereo['wrong_byc'] += 1
-            #     elif label[10] != cat and label[10] == 0:
-            #         self.stats_stereo['wrong_ped'] += 1
-            #
-            # self.stats_stereo['cyclists'] += 1 if label[10] == 1 else 0
+        zz = label[2]
+        stereo_matches, cnt_amb = extract_stereo_matches(kp, kps_r, zz,
+                                                         phase=self.phase,
+                                                         seed=self.stats_stereo['pair'])
+        self.stats_stereo['ambiguous'] += cnt_amb
 
-            for num, (idx_r, s_match) in enumerate(stereo_matches):
-                label_s = label + [s_match]  # add flag to distinguish "true pairs and false pairs"
-                if s_match > 0.9:
-                    self.stats_stereo['pair'] += 1
+        # Monitor precision of classes
+        # if self.phase == 'val':
+        #     if label[10] == cat == 1:
+        #         self.stats_stereo['correct_byc'] += 1
+        #     elif label[10] == cat == 0:
+        #         self.stats_stereo['correct_ped'] += 1
+        #     elif label[10] != cat and label[10] == 1:
+        #         self.stats_stereo['wrong_byc'] += 1
+        #     elif label[10] != cat and label[10] == 0:
+        #         self.stats_stereo['wrong_ped'] += 1
+        #
+        # self.stats_stereo['cyclists'] += 1 if label[10] == 1 else 0
 
-                # Remove noise of very far instances for validation
-                # if (phase == 'val') and (ys[idx_gt][3] >= 50):
-                #     continue
+        for num, (idx_r, s_match) in enumerate(stereo_matches):
+            label_s = label + [s_match]  # add flag to distinguish "true pairs and false pairs"
+            self.stats_stereo['true_pair'] += 1 if s_match > 0.9 else 0
+            self.stats_stereo['pair'] += 1  # before augmentation
 
-                #  ---> Save only positives unless there is no positive (keep positive flip and augm)
-                # if num > 0 and s_match < 0.9:
-                #     continue
+            # Remove noise of very far instances for validation
+            # if (phase == 'val') and (ys[idx_gt][3] >= 50):
+            #     continue
 
-                # Height augmentation
-                self.stats_stereo['pair_tot'] += 1
-                flag_aug = False
-                if self.phase == 'train' and 3 < label[2] < 30 and s_match > 0.9:
-                    flag_aug = True
-                elif self.phase == 'train' and 3 < label[2] < 30 and self.stats_stereo['pair_tot'] % 2 == 0:
-                    flag_aug = True
+            #  ---> Save only positives unless there is no positive (keep positive flip and augm)
+            # if num > 0 and s_match < 0.9:
+            #     continue
 
-                # Remove height augmentation
-                # flag_aug = False
+            # Height augmentation
+            flag_aug = False
+            if self.phase == 'train' and 3 < label[2] < 30 and (s_match > 0.9 or self.stats_stereo['pair'] % 2 == 0):
+                flag_aug = True
 
-                if flag_aug:
-                    kps_aug, labels_aug = height_augmentation(
-                        kp, kps_r[idx_r:idx_r + 1], label_s,
-                        seed=self.stats_stereo['tot_pair'])
-                else:
-                    kps_aug = [(kp, kps_r[idx_r:idx_r + 1])]
-                    labels_aug = [label_s]
+            # Remove height augmentation
+            # flag_aug = False
 
-                for i, lab in enumerate(labels_aug):
-                    (kp_aug, kp_aug_r) = kps_aug[i]
-                    input_l = preprocess_monoloco(kp_aug, kk).view(-1)
-                    input_r = preprocess_monoloco(kp_aug_r, kk).view(-1)
-                    keypoint = torch.cat((kp_aug_r, kp_aug_r), dim=2).tolist()
-                    inp = torch.cat((input_l, input_l - input_r)).tolist()
+            if flag_aug:
+                kps_aug, labels_aug = height_augmentation(kp, kps_r[idx_r:idx_r + 1], label_s,
+                                                          seed=self.stats_stereo['pair'])
+            else:
+                kps_aug = [(kp, kps_r[idx_r:idx_r + 1])]
+                labels_aug = [label_s]
 
-                    # Only relative distances
-                    # inp_x = input[::2]
-                    # inp = torch.cat((inp_x, input - input_r)).tolist()
+            for i, lab in enumerate(labels_aug):
+                (kp_aug, kp_aug_r) = kps_aug[i]
+                input_l = preprocess_monoloco(kp_aug, kk).view(-1)
+                input_r = preprocess_monoloco(kp_aug_r, kk).view(-1)
+                keypoint = torch.cat((kp_aug_r, kp_aug_r), dim=2).tolist()
+                inp = torch.cat((input_l, input_l - input_r)).tolist()
+                self.stats_stereo['pair_aug'] += 1
 
-                    # lab = normalize_hwl(lab)
-                    if cat_gt in ('Pedestrian', 'Person_sitting'):  # TODO
-                        assert len(lab) == 11, 'dimensions of stereo label is wrong'
-                        self.dic_jo[self.phase]['kps'].append(keypoint)
-                        self.dic_jo[self.phase]['X'].append(inp)
-                        self.dic_jo[self.phase]['Y'].append(lab)
-                        self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
-                        append_cluster(self.dic_jo, self.phase, inp, lab, keypoint)
-                        self.stats_stereo['true_pair'] += 1 if lab[-1] > 0.9 else 0
-                        self.stats_stereo['tot_pair'] += 1
+                # Only relative distances
+                # inp_x = input[::2]
+                # inp = torch.cat((inp_x, input - input_r)).tolist()
+
+                # lab = normalize_hwl(lab)
+                if cat_gt in ('Pedestrian', 'Person_sitting'):  # TODO
+                    assert len(lab) == 11, 'dimensions of stereo label is wrong'
+                    self.dic_jo[self.phase]['kps'].append(keypoint)
+                    self.dic_jo[self.phase]['X'].append(inp)
+                    self.dic_jo[self.phase]['Y'].append(lab)
+                    self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
+                    append_cluster(self.dic_jo, self.phase, inp, lab, keypoint)
+                    self.stats_stereo['total_' + self.phase] += 1  # including height augmentation
 
     def _cout(self):
-        print(
-            f"Number of GT files: {self.stats_files['files']}. "
-            f"Files with at least one pedestrian: {self.stats_files['files_ped']}.  "
-            f"Files not found: {self.stats_files['fnf']}")
-        print(
-            f"Ground truth matches : "
-            f"{100 * self.stats_stereo['match_l'] / (self.stats_gt['train'] + self.stats_gt['train']):.1f} "
-            f"% for left images (train and val)")
+        print('-' * 100)
+        print(f"Number of GT files: {self.stats['gt_files']} ")
+        print(f"Files with at least one pedestrian: {self.stats['gt_files_ped']}")
+        print(f"Files not found: {self.stats['fnf']}")
+        print('-' * 100)
+        our = self.stats['match'] - self.stats['flipping_match']
+        gt = self.stats['gt_train'] + self.stats['gt_val']
+        print(f"Ground truth matches: {100 * our  / gt:.1f} for left images (train and val)")
+        print(f"Parsed instances: {self.stats['instances']}")
+        print(f"Ground truth instances: {gt}")
+        print(f"Matched instances: {our}")
+        print(f"Including horizontal flipping: {self.stats['match']}")
 
         if self.mode == 'stereo':
-            print(
-                f"Ground truth matches : "
-                f"{100 * self.stats_stereo['match_r'] / self.stats_gt['train']:.1f} "
-                f"% for right images (train)")
-            print(
-                f"Total number of cyclists: {self.stats_stereo['cyclists']}\n")
-            print(
-                f"Ambiguous instances removed: {self.stats_stereo['ambiguous']}")
-
-            print(
-                f'Instances with stereo correspondence: '
-                f'{100 * self.stats_stereo["true_pair"] / self.stats_stereo["tot_pair"]:.1f}% ')
-            for phase in ['train', 'val']:
-                cnt = self.stats_mono[self.phase] + self.stats_stereo[self.phase]
-                print(
-                    f"{phase.upper()}: annotations: {cnt}. "
-                    f"Stereo pairs {100 * self.stats_stereo[self.phase] / cnt:.1f}% ")
-
-        print(f"Total annotations: {self.stats_files['tot']}")
-        print(
-            f"Extra pairs created with horizontal flipping: {self.stats_stereo['flipped_pair']}\n")
+            print('-' * 100)
+            print(f"Total number of cyclists: {self.stats_stereo['cyclists']}")
+            print(f"Ambiguous instances removed: {self.stats_stereo['ambiguous']}")
+            print(f"Stereo matches: {100 * self.stats_stereo['true_pair'] / self.stats_stereo['pair']:.1f}% ")
+            print(f"Height augmentation pairs: {self.stats_stereo['pair_aug'] - self.stats_stereo['pair']} ")
+            print('-' * 100)
+        total_train = self.stats_stereo['total_train'] if self.mode == 'stereo' else self.stats['total_train']
+        total_val = self.stats_stereo['total_val'] if self.mode == 'stereo' else self.stats['total_val']
+        print(f"Total annotations for TRAINING: {total_train}")
+        print(f"Total annotations for VALIDATION: {total_val}")
+        print('-' * 100)
         print(f"\nOutput files:\n{self.path_names}\n{self.path_joints}")
-        print('-' * 120)
+        print('-' * 100)
 
     def process_activity(self):
         """Augment ground-truth with flag activity"""

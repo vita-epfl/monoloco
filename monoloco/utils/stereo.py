@@ -24,7 +24,6 @@ def extract_stereo_matches(keypoint, keypoints_r, zz, phase='train', seed=0, met
     """
 
     stereo_matches = []
-    flag = False
     cnt_ambiguous = 0
     if method == 'mask':
         conf_min = 0.1
@@ -52,7 +51,6 @@ def extract_stereo_matches(keypoint, keypoints_r, zz, phase='train', seed=0, met
         # Positive matches
         if conditions:
             stereo_matches.append((idx_match, 1))
-            flag = True
         # Ambiguous
         elif match < depth_to_pixel_error(zz, depth_error=error_min_mono):
             cnt_ambiguous += 1
@@ -85,7 +83,7 @@ def extract_stereo_matches(keypoint, keypoints_r, zz, phase='train', seed=0, met
             break
         used.append(idx_match)
 
-    return stereo_matches, flag, cnt_ambiguous
+    return stereo_matches, cnt_ambiguous
 
 
 def depth_to_pixel_error(zz, depth_error=1):
