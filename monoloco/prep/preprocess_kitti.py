@@ -102,23 +102,31 @@ class PreprocessKitti:
                 matches = get_iou_matches(dic_boxes['left'][ii], boxes_gt, self.iou_min)
                 self.stats['flipping_match'] += len(matches) if ii == 1 else 0
                 for (idx, idx_gt) in matches:
+                    cat_gt = dic_gt['labels'][ii][idx_gt][-1]
+                    if cat_gt not in ('Pedestrian', 'Person_sitting'):
+                        continue
                     kp = kps[idx:idx + 1]
                     kk = dic_gt['K']
                     label = dic_gt['labels'][ii][idx_gt][:-1]
-                    cat_gt = dic_gt['labels'][ii][idx_gt][-1]
                     cat = dic_gt['cat'][idx] if self.phase == 'val' else None
                     self.stats['match'] += 1
                     assert len(label) == 10, 'dimensions of monocular label is wrong'
+
                     if self.mode == 'mono':
-                        self._process_annotation_mono(kp, kk, label, cat_gt)
+                        kp, inp, label = self._process_annotation_mono(kp, kk, label)
                     else:
                         self._process_annotation_stereo(kp, kk, label, cat_gt, kps_r, cat)
+                    # Save
+                    self.dic_jo[self.phase]['kps'].append(kp)
+                    self.dic_jo[self.phase]['X'].append(inp)
+                    self.dic_jo[self.phase]['Y'].append(label)
+                    self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
+                    append_cluster(self.dic_jo, self.phase, inp, label, kp)
 
         with open(self.path_joints, 'w') as file:
             json.dump(self.dic_jo, file)
         with open(os.path.join(self.path_names), 'w') as file:
             json.dump(self.dic_names, file)
-
         self._cout()
 
     def parse_annotations(self, boxes_gt, labels, basename):
@@ -176,18 +184,13 @@ class PreprocessKitti:
         dic_gt = dict(K=kk, labels=all_labels, cat=cat)
         return dic_boxes, dic_kps, dic_gt
 
-    def _process_annotation_mono(self, kp, kk, label, cat_gt):
+    def _process_annotation_mono(self, kp, kk, label):
         """For a single annotation, process all the labels and save them"""
-
+        kp = kp.tolist()
         inp = preprocess_monoloco(kp, kk).view(-1).tolist()
         label = normalize_hwl(label)
-        if cat_gt in ('Pedestrian', 'Person_sitting'):
-            self.dic_jo[self.phase]['kps'].append(kp.tolist())
-            self.dic_jo[self.phase]['X'].append(inp)
-            self.dic_jo[self.phase]['Y'].append(label)
-            self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
-            append_cluster(self.dic_jo, self.phase, inp, label, kp.tolist())
-            self.stats['total_' + self.phase] += 1
+        self.stats['total_' + self.phase] += 1
+        return kp, inp, label
 
     def _process_annotation_stereo(self, kp, kk, label, cat_gt, kps_r, cat):
         """For a reference annotation, combine it with some (right) annotations and save it"""
@@ -198,37 +201,34 @@ class PreprocessKitti:
                                                          seed=self.stats_stereo['pair'])
         self.stats_stereo['ambiguous'] += cnt_amb
 
-        # Monitor precision of classes
-        # if self.phase == 'val':
-        #     if label[10] == cat == 1:
-        #         self.stats_stereo['correct_byc'] += 1
-        #     elif label[10] == cat == 0:
-        #         self.stats_stereo['correct_ped'] += 1
-        #     elif label[10] != cat and label[10] == 1:
-        #         self.stats_stereo['wrong_byc'] += 1
-        #     elif label[10] != cat and label[10] == 0:
-        #         self.stats_stereo['wrong_ped'] += 1
-        #
-        # self.stats_stereo['cyclists'] += 1 if label[10] == 1 else 0
-
         for num, (idx_r, s_match) in enumerate(stereo_matches):
             label_s = label + [s_match]  # add flag to distinguish "true pairs and false pairs"
             self.stats_stereo['true_pair'] += 1 if s_match > 0.9 else 0
             self.stats_stereo['pair'] += 1  # before augmentation
 
-            # Remove noise of very far instances for validation
+            # ---> Remove noise of very far instances for validation
             # if (phase == 'val') and (ys[idx_gt][3] >= 50):
             #     continue
-
             #  ---> Save only positives unless there is no positive (keep positive flip and augm)
             # if num > 0 and s_match < 0.9:
             #     continue
+            
+            # Monitor precision of classes
+            # if self.phase == 'val':
+            #     if label[10] == cat == 1:
+            #         self.stats_stereo['correct_byc'] += 1
+            #     elif label[10] == cat == 0:
+            #         self.stats_stereo['correct_ped'] += 1
+            #     elif label[10] != cat and label[10] == 1:
+            #         self.stats_stereo['wrong_byc'] += 1
+            #     elif label[10] != cat and label[10] == 0:
+            #         self.stats_stereo['wrong_ped'] += 1
+            # self.stats_stereo['cyclists'] += 1 if label[10] == 1 else 0
 
             # Height augmentation
             flag_aug = False
             if self.phase == 'train' and 3 < label[2] < 30 and (s_match > 0.9 or self.stats_stereo['pair'] % 2 == 0):
                 flag_aug = True
-
             # Remove height augmentation
             # flag_aug = False
 
@@ -252,14 +252,9 @@ class PreprocessKitti:
                 # inp = torch.cat((inp_x, input - input_r)).tolist()
 
                 # lab = normalize_hwl(lab)
-                if cat_gt in ('Pedestrian', 'Person_sitting'):  # TODO
-                    assert len(lab) == 11, 'dimensions of stereo label is wrong'
-                    self.dic_jo[self.phase]['kps'].append(keypoint)
-                    self.dic_jo[self.phase]['X'].append(inp)
-                    self.dic_jo[self.phase]['Y'].append(lab)
-                    self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
-                    append_cluster(self.dic_jo, self.phase, inp, lab, keypoint)
-                    self.stats_stereo['total_' + self.phase] += 1  # including height augmentation
+                assert len(lab) == 11, 'dimensions of stereo label is wrong'
+                self.stats_stereo['total_' + self.phase] += 1  # including height augmentation
+                return keypoint, inp, lab
 
     def _cout(self):
         print('-' * 100)
