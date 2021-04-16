@@ -46,6 +46,7 @@ class PreprocessKitti:
                            clst=defaultdict(lambda: defaultdict(list)))}
     dic_names = defaultdict(lambda: defaultdict(list))
     dic_std = defaultdict(lambda: defaultdict(list))
+    categories_gt = dict(train=['Pedestrian', 'Person_sitting'], val=['Pedestrian'])
 
     def __init__(self, dir_ann, mode='mono', iou_min=0.3):
 
@@ -82,7 +83,7 @@ class PreprocessKitti:
                 self.stats['fnf'] += 1
                 continue
 
-            boxes_gt, labels, _, _ = parse_ground_truth(path_gt, category=category, spherical=True)
+            boxes_gt, labels, _, _ = parse_ground_truth(path_gt, category='all', spherical=True)
             self.stats['gt_' + self.phase] += len(boxes_gt)
             self.stats['gt_files'] += 1
             self.stats['gt_files_ped'] += min(len(boxes_gt), 1)  # if no boxes 0 else 1
@@ -103,7 +104,7 @@ class PreprocessKitti:
                 self.stats['flipping_match'] += len(matches) if ii == 1 else 0
                 for (idx, idx_gt) in matches:
                     cat_gt = dic_gt['labels'][ii][idx_gt][-1]
-                    if cat_gt not in ('Pedestrian', 'Person_sitting'):
+                    if cat_gt not in self.categories_gt[self.phase]:
                         continue
                     kp = kps[idx:idx + 1]
                     kk = dic_gt['K']
@@ -113,15 +114,9 @@ class PreprocessKitti:
                     assert len(label) == 10, 'dimensions of monocular label is wrong'
 
                     if self.mode == 'mono':
-                        kp, inp, label = self._process_annotation_mono(kp, kk, label)
+                        self._process_annotation_mono(kp, kk, label)
                     else:
                         self._process_annotation_stereo(kp, kk, label, cat_gt, kps_r, cat)
-                    # Save
-                    self.dic_jo[self.phase]['kps'].append(kp)
-                    self.dic_jo[self.phase]['X'].append(inp)
-                    self.dic_jo[self.phase]['Y'].append(label)
-                    self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
-                    append_cluster(self.dic_jo, self.phase, inp, label, kp)
 
         with open(self.path_joints, 'w') as file:
             json.dump(self.dic_jo, file)
@@ -189,8 +184,14 @@ class PreprocessKitti:
         kp = kp.tolist()
         inp = preprocess_monoloco(kp, kk).view(-1).tolist()
         label = normalize_hwl(label)
+
+        # Save
+        self.dic_jo[self.phase]['kps'].append(kp)
+        self.dic_jo[self.phase]['X'].append(inp)
+        self.dic_jo[self.phase]['Y'].append(label)
+        self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
+        append_cluster(self.dic_jo, self.phase, inp, label, kp)
         self.stats['total_' + self.phase] += 1
-        return kp, inp, label
 
     def _process_annotation_stereo(self, kp, kk, label, cat_gt, kps_r, cat):
         """For a reference annotation, combine it with some (right) annotations and save it"""
@@ -212,18 +213,6 @@ class PreprocessKitti:
             #  ---> Save only positives unless there is no positive (keep positive flip and augm)
             # if num > 0 and s_match < 0.9:
             #     continue
-            
-            # Monitor precision of classes
-            # if self.phase == 'val':
-            #     if label[10] == cat == 1:
-            #         self.stats_stereo['correct_byc'] += 1
-            #     elif label[10] == cat == 0:
-            #         self.stats_stereo['correct_ped'] += 1
-            #     elif label[10] != cat and label[10] == 1:
-            #         self.stats_stereo['wrong_byc'] += 1
-            #     elif label[10] != cat and label[10] == 0:
-            #         self.stats_stereo['wrong_ped'] += 1
-            # self.stats_stereo['cyclists'] += 1 if label[10] == 1 else 0
 
             # Height augmentation
             flag_aug = False
@@ -243,7 +232,7 @@ class PreprocessKitti:
                 (kp_aug, kp_aug_r) = kps_aug[i]
                 input_l = preprocess_monoloco(kp_aug, kk).view(-1)
                 input_r = preprocess_monoloco(kp_aug_r, kk).view(-1)
-                keypoint = torch.cat((kp_aug_r, kp_aug_r), dim=2).tolist()
+                kp= torch.cat((kp_aug_r, kp_aug_r), dim=2).tolist()
                 inp = torch.cat((input_l, input_l - input_r)).tolist()
                 self.stats_stereo['pair_aug'] += 1
 
@@ -253,8 +242,12 @@ class PreprocessKitti:
 
                 # lab = normalize_hwl(lab)
                 assert len(lab) == 11, 'dimensions of stereo label is wrong'
+                self.dic_jo[self.phase]['kps'].append(kp)
+                self.dic_jo[self.phase]['X'].append(inp)
+                self.dic_jo[self.phase]['Y'].append(label)
+                self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
+                append_cluster(self.dic_jo, self.phase, inp, label, kp)
                 self.stats_stereo['total_' + self.phase] += 1  # including height augmentation
-                return keypoint, inp, lab
 
     def _cout(self):
         print('-' * 100)
