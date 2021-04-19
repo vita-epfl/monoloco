@@ -344,7 +344,6 @@ and save them into `data/kitti/monodepth`
 To include also geometric baselines and MonoLoco, download a monoloco model, save it in `data/models`, and add the flag ``--baselines`` to the evaluation command
 
 
-
 The evaluation file will run the model over all the annotations and compare the results with KITTI  ground-truth and the downloaded baselines. For this run:
 ```
 python -m monoloco.run eval \
@@ -353,9 +352,11 @@ python -m monoloco.run eval \
 --generate \
 --save \
 ````
+As usual, add `--mode stereo` for stereo results. Below, the resulting table of results and an example of the saved figures when using the command `--save`
 
+<img src="docs/results.jpg" width="700"/>
 
-<img src="docs/results_stereo.jpg" width="550"/>
+<img src="docs/results_monstereo.jpg" width="700"/>
 
 
 ### Relative Average Precision Localization: RALP-5% (MonStereo)
