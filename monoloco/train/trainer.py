@@ -89,8 +89,6 @@ class Trainer:
             self.mt_loss = MultiTaskLoss(losses_tr, losses_val, self.lambdas, self.tasks)
         self.mt_loss.to(self.device)
 
-        # Set_logger
-
         # Dataloader
         self.dataloaders = {phase: DataLoader(KeypointsDataset(self.joints, phase=phase),
                                               batch_size=args.bs, shuffle=True) for phase in ['train', 'val']}
@@ -98,6 +96,8 @@ class Trainer:
         self.dataset_sizes = {phase: len(KeypointsDataset(self.joints, phase=phase))
                               for phase in ['train', 'val']}
         self.dataset_version = KeypointsDataset(self.joints, phase='train').get_version
+
+        self._set_logger(args)
 
         # Define the model
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
@@ -346,8 +346,9 @@ class Trainer:
             self.logger.info(  # pylint: disable=logging-fstring-interpolation
                 f'\nVERSION: {__version__}\n'
                 f'\nINPUT_FILE: {args.joints}'
-                f'\nInput file version: {self.dataset_version}\n'
-                f'\nTraining arguments: '
+                f'\nInput file version: {self.dataset_version}'
+                f'\nTorch version: {torch.__version__}\n'
+                f'\nTraining arguments:'
                 f'\nmode: {self.mode} \nlearning rate: {args.lr} \nbatch_size: {args.bs}'
                 f'\nepochs: {args.epochs} \ndropout: {args.dropout} '
                 f'\nscheduler step: {args.sched_step} \nscheduler gamma: {args.sched_gamma} '
