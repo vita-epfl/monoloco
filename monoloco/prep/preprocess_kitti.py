@@ -15,7 +15,7 @@ from PIL import Image
 import torch
 
 from ..utils import split_training, get_iou_matches, append_cluster, get_calibration, open_annotations, \
-    extract_stereo_matches, get_category, normalize_hwl, make_new_directory, \
+    extract_stereo_matches, normalize_hwl, make_new_directory, \
     check_conditions, to_spherical, correct_angle
 from ..network.process import preprocess_pifpaf, preprocess_monoloco
 from .transforms import flip_inputs, flip_labels, height_augmentation
@@ -50,14 +50,22 @@ class PreprocessKitti:
     def __init__(self, dir_ann, mode='mono', iou_min=0.3):
 
         self.dir_ann = dir_ann
-        self.iou_min = iou_min
         self.mode = mode
+        self.iou_min = iou_min
+
+        assert os.path.isdir(self.dir_ann), "Annotation directory not found"
+        assert any(os.scandir(self.dir_ann)), "Annotation directory empty"
+        assert os.path.isdir(self.dir_gt), "Ground truth directory not found"
+        assert any(os.scandir(self.dir_gt)), "Ground-truth directory empty"
+        if self.mode == 'stereo':
+            assert os.path.isdir(self.dir_ann + '_right'), "Annotation directory for right images not found"
+            assert any(os.scandir(self.dir_ann + '_right')), "Annotation directory for right images empty"
+        elif not os.path.isdir(self.dir_ann + '_right') or not any(os.scandir(self.dir_ann + '_right')):
+            print("!! Horizontal flipping not applied as annotation directory for right images not found/empty !!")
         assert self.mode in ('mono', 'stereo'), "modality not recognized"
+
         self.names_gt = tuple(os.listdir(self.dir_gt))
         self.list_gt = glob.glob(self.dir_gt + '/*.txt')
-        assert os.path.exists(self.dir_gt), "Ground truth dir does not exist"
-        assert os.path.exists(self.dir_ann), "Annotation dir does not exist"
-
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
         dir_out = os.path.join('data', 'arrays')
