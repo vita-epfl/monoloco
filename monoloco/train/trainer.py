@@ -38,6 +38,8 @@ class Trainer:
     val_task = 'd'
     lambdas = (1, 1, 1, 1, 1, 1, 1, 1)
     clusters = ['10', '20', '30', '40']
+    input_size = dict(mono=34, stereo=68)
+    output_size = dict(mono=9, stereo=10)
 
     dir_out = os.path.join('data', 'models')
     if not os.path.exists(dir_out):
@@ -87,32 +89,7 @@ class Trainer:
             self.mt_loss = MultiTaskLoss(losses_tr, losses_val, self.lambdas, self.tasks)
         self.mt_loss.to(self.device)
 
-        if self.mode == 'stereo':
-            input_size = 68
-            output_size = 10
-        else:
-            input_size = 34
-            output_size = 9
-
-        name = 'monoloco_pp' if self.mode == 'mono' else 'monstereo'
-        now = datetime.datetime.now()
-        now_time = now.strftime("%Y%m%d-%H%M")[2:]
-        name_out = name + '-' + now_time
-        if not self.no_save:
-            self.path_model = os.path.join(self.dir_out, name_out + '.pkl')
-            self.logger = set_logger(os.path.join(self.dir_logs, name_out))
-            self.logger.info(  # pylint: disable=logging-fstring-interpolation
-                f'Version: {__version__} \ninput_file: {self.joints} '
-                f'\nTraining arguments: \ninput_file: {self.joints} \nmode: {self.mode} '
-                f'\nlearning rate: {args.lr}  \nbatch_size: {args.bs}'
-                f'\nepochs: {args.epochs} \ndropout: {args.dropout} '
-                f'\nscheduler step: {args.sched_step} \nscheduler gamma: {args.sched_gamma} '
-                f'\ninput_size: {input_size} \noutput_size: {output_size} \nhidden_size: {args.hidden_size}'
-                f' \nn_stages: {args.n_stage} \n r_seed: {args.r_seed} \nlambdas: {self.lambdas}'
-            )
-        else:
-            logging.basicConfig(level=logging.INFO)
-            self.logger = logging.getLogger(__name__)
+        # Set_logger
 
         # Dataloader
         self.dataloaders = {phase: DataLoader(KeypointsDataset(self.joints, phase=phase),
@@ -120,14 +97,15 @@ class Trainer:
 
         self.dataset_sizes = {phase: len(KeypointsDataset(self.joints, phase=phase))
                               for phase in ['train', 'val']}
+        self.dataset_version = KeypointsDataset(self.joints, phase='train').get_version
 
         # Define the model
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
         print(">>> creating model")
 
         self.model = LocoModel(
-            input_size=input_size,
-            output_size=output_size,
+            input_size=self.input_size[self.mode],
+            output_size=self.output_size[self.mode],
             linear_size=args.hidden_size,
             p_dropout=args.dropout,
             num_stage=self.n_stage,
@@ -353,6 +331,30 @@ class Trainer:
                 plt.plot(epoch_losses[phase][el][10:], label='{} Loss: {}'.format(phase, el))
                 plt.savefig(os.path.join(self.dir_figures, '{}_loss_{}.png'.format(phase, el)))
                 plt.close()
+
+    def _set_logger(self, args):
+        name = 'monoloco_pp' if self.mode == 'mono' else 'monstereo'
+        now = datetime.datetime.now()
+        now_time = now.strftime("%Y%m%d-%H%M")[2:]
+        name_out = name + '-' + now_time
+        if self.no_save:
+            logging.basicConfig(level=logging.INFO)
+            self.logger = logging.getLogger(__name__)
+        else:
+            self.path_model = os.path.join(self.dir_out, name_out + '.pkl')
+            self.logger = set_logger(os.path.join(self.dir_logs, name_out))
+            self.logger.info(  # pylint: disable=logging-fstring-interpolation
+                f'\nVERSION: {__version__}\n'
+                f'\nINPUT_FILE: {args.joints}'
+                f'\nInput file version: {self.dataset_version}\n'
+                f'\nTraining arguments: '
+                f'\nmode: {self.mode} \nlearning rate: {args.lr} \nbatch_size: {args.bs}'
+                f'\nepochs: {args.epochs} \ndropout: {args.dropout} '
+                f'\nscheduler step: {args.sched_step} \nscheduler gamma: {args.sched_gamma} '
+                f'\ninput_size: {self.input_size[self.mode]} \noutput_size: {self.output_size[self.mode]} '
+                f'\nhidden_size: {args.hidden_size}'
+                f' \nn_stages: {args.n_stage} \n r_seed: {args.r_seed} \nlambdas: {self.lambdas}'
+            )
 
 
 def debug_plots(inputs, labels):
