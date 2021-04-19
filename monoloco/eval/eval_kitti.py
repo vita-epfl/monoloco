@@ -30,7 +30,7 @@ class EvalKitti:
     METHODS_STEREO = ['3dop', 'psf', 'pseudo-lidar', 'e2e', 'oc-stereo']
     BASELINES = ['task_error', 'pixel_error']
     HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
-    CATEGORIES = ('pedestrian',)
+    CATEGORIES = ('pedestrian',)  # extendable with person_sitting and/or cyclists
     methods = OUR_METHODS + METHODS_MONO + METHODS_STEREO
 
     # Set directories

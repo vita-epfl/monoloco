@@ -28,7 +28,6 @@ class PreprocessKitti:
     dir_gt = os.path.join('data', 'kitti', 'gt')
     dir_images = os.path.join('data', 'kitti', 'images')
     dir_kk = os.path.join('data', 'kitti', 'calib')
-    dir_byc_l = '/data/lorenzo-data/kitti/object_detection/left'
 
     # SOCIAL DISTANCING PARAMETERS
     THRESHOLD_DIST = 2  # Threshold to check distance of people
@@ -83,7 +82,7 @@ class PreprocessKitti:
                 self.stats['fnf'] += 1
                 continue
 
-            boxes_gt, labels, _, _ = parse_ground_truth(path_gt, category='all', spherical=True)
+            boxes_gt, labels, _, _ = parse_ground_truth(path_gt, category=category, spherical=True)
             self.stats['gt_' + self.phase] += len(boxes_gt)
             self.stats['gt_files'] += 1
             self.stats['gt_files_ped'] += min(len(boxes_gt), 1)  # if no boxes 0 else 1
@@ -104,19 +103,18 @@ class PreprocessKitti:
                 self.stats['flipping_match'] += len(matches) if ii == 1 else 0
                 for (idx, idx_gt) in matches:
                     cat_gt = dic_gt['labels'][ii][idx_gt][-1]
-                    if cat_gt not in self.categories_gt[self.phase]:
+                    if cat_gt not in self.categories_gt[self.phase]: # only for training as cyclists are also extracted
                         continue
                     kp = kps[idx:idx + 1]
                     kk = dic_gt['K']
                     label = dic_gt['labels'][ii][idx_gt][:-1]
-                    cat = dic_gt['cat'][idx] if self.phase == 'val' else None
                     self.stats['match'] += 1
                     assert len(label) == 10, 'dimensions of monocular label is wrong'
 
                     if self.mode == 'mono':
                         self._process_annotation_mono(kp, kk, label)
                     else:
-                        self._process_annotation_stereo(kp, kk, label, cat_gt, kps_r, cat)
+                        self._process_annotation_stereo(kp, kk, label, kps_r)
 
         with open(self.path_joints, 'w') as file:
             json.dump(self.dic_jo, file)
@@ -137,7 +135,6 @@ class PreprocessKitti:
         # Extract left keypoints
         annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
         boxes, keypoints = preprocess_pifpaf(annotations, im_size=(width, height), min_conf=min_conf)
-        cat = get_category(keypoints, os.path.join(self.dir_byc_l, basename + '.json'))
         if not keypoints:
             return None, None, None
 
@@ -176,7 +173,7 @@ class PreprocessKitti:
 
         dic_boxes = dict(left=all_boxes, gt=all_boxes_gt)
         dic_kps = dict(left=all_keypoints, right=all_keypoints_r)
-        dic_gt = dict(K=kk, labels=all_labels, cat=cat)
+        dic_gt = dict(K=kk, labels=all_labels)
         return dic_boxes, dic_kps, dic_gt
 
     def _process_annotation_mono(self, kp, kk, label):
@@ -193,7 +190,7 @@ class PreprocessKitti:
         append_cluster(self.dic_jo, self.phase, inp, label, kp)
         self.stats['total_' + self.phase] += 1
 
-    def _process_annotation_stereo(self, kp, kk, label, cat_gt, kps_r, cat):
+    def _process_annotation_stereo(self, kp, kk, label, kps_r):
         """For a reference annotation, combine it with some (right) annotations and save it"""
 
         zz = label[2]
@@ -210,6 +207,7 @@ class PreprocessKitti:
             # ---> Remove noise of very far instances for validation
             # if (phase == 'val') and (ys[idx_gt][3] >= 50):
             #     continue
+
             #  ---> Save only positives unless there is no positive (keep positive flip and augm)
             # if num > 0 and s_match < 0.9:
             #     continue
@@ -218,6 +216,7 @@ class PreprocessKitti:
             flag_aug = False
             if self.phase == 'train' and 3 < label[2] < 30 and (s_match > 0.9 or self.stats_stereo['pair'] % 2 == 0):
                 flag_aug = True
+
             # Remove height augmentation
             # flag_aug = False
 
@@ -232,7 +231,7 @@ class PreprocessKitti:
                 (kp_aug, kp_aug_r) = kps_aug[i]
                 input_l = preprocess_monoloco(kp_aug, kk).view(-1)
                 input_r = preprocess_monoloco(kp_aug_r, kk).view(-1)
-                kp= torch.cat((kp_aug_r, kp_aug_r), dim=2).tolist()
+                keypoint = torch.cat((kp_aug, kp_aug_r), dim=2).tolist()
                 inp = torch.cat((input_l, input_l - input_r)).tolist()
                 self.stats_stereo['pair_aug'] += 1
 
@@ -242,17 +241,17 @@ class PreprocessKitti:
 
                 # lab = normalize_hwl(lab)
                 assert len(lab) == 11, 'dimensions of stereo label is wrong'
-                self.dic_jo[self.phase]['kps'].append(kp)
+                self.dic_jo[self.phase]['kps'].append(keypoint)
                 self.dic_jo[self.phase]['X'].append(inp)
-                self.dic_jo[self.phase]['Y'].append(label)
+                self.dic_jo[self.phase]['Y'].append(lab)
                 self.dic_jo[self.phase]['names'].append(self.name)  # One image name for each annotation
-                append_cluster(self.dic_jo, self.phase, inp, label, kp)
+                append_cluster(self.dic_jo, self.phase, inp, lab, keypoint)
                 self.stats_stereo['total_' + self.phase] += 1  # including height augmentation
 
     def _cout(self):
         print('-' * 100)
         print(f"Number of GT files: {self.stats['gt_files']} ")
-        print(f"Files with at least one pedestrian: {self.stats['gt_files_ped']}")
+        print(f"Files with at least one pedestrian/cyclist: {self.stats['gt_files_ped']}")
         print(f"Files not found: {self.stats['fnf']}")
         print('-' * 100)
         our = self.stats['match'] - self.stats['flipping_match']
