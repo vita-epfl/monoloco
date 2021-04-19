@@ -348,11 +348,11 @@ The evaluation file will run the model over all the annotations and compare the 
 ```
 python -m monoloco.run eval \
 --dir_ann <annotation directory> \
---model <model path> \
+--model #TODO \
 --generate \
 --save \
 ````
-As usual, add `--mode stereo` for stereo results. Below, the resulting table of results and an example of the saved figures when using the command `--save`
+For stereo results add `--mode stereo` and select `--model #TODO.  Below, the resulting table of results and an example of the saved figures.
 
 <img src="docs/results.jpg" width="700"/>
 

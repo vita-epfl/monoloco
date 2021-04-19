@@ -1,13 +1,12 @@
-from setuptools import setup
 
-# extract version from __init__.py
-with open('monoloco/__init__.py', 'r') as f:
-    VERSION_LINE = [l for l in f if l.startswith('__version__')][0]
-    VERSION = VERSION_LINE.split('=')[1].strip()[1:-1]
+from setuptools import setup
+import versioneer
+
 
 setup(
     name='monoloco',
-    version=VERSION,
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     packages=[
         'monoloco',
         'monoloco.network',
