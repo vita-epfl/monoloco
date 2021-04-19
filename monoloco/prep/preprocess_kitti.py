@@ -272,9 +272,8 @@ class PreprocessKitti:
 
         if self.mode == 'stereo':
             print('-' * 100)
-            print(f"Total number of cyclists: {self.stats_stereo['cyclists']}")
             print(f"Ambiguous instances removed: {self.stats_stereo['ambiguous']}")
-            print(f"Stereo matches: {100 * self.stats_stereo['true_pair'] / self.stats_stereo['pair']:.1f}% ")
+            print(f"True pairs ratio: {100 * self.stats_stereo['true_pair'] / self.stats_stereo['pair']:.1f}% ")
             print(f"Height augmentation pairs: {self.stats_stereo['pair_aug'] - self.stats_stereo['pair']} ")
             print('-' * 100)
         total_train = self.stats_stereo['total_train'] if self.mode == 'stereo' else self.stats['total_train']
