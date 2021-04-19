@@ -1,8 +1,10 @@
 # pylint: disable=too-many-statements
 
 """
-Training and evaluation of a neural network which predicts 3D localization and confidence intervals
-given 2d joints
+Training and evaluation of a neural network that, given 2D joints, estimates:
+- 3D localization and confidence intervals
+- Orientation
+- Bounding box dimensions
 """
 
 import copy
@@ -23,7 +25,7 @@ from torch.optim import lr_scheduler
 from .datasets import KeypointsDataset
 from .losses import CompositeLoss, MultiTaskLoss, AutoTuneMultiTaskLoss
 from ..network import extract_outputs, extract_labels
-from ..network.architectures import MonStereoModel
+from ..network.architectures import LocoModel
 from ..utils import set_logger
 
 
@@ -36,20 +38,22 @@ class Trainer:
     lambdas = (1, 1, 1, 1, 1, 1, 1, 1)
     clusters = ['10', '20', '30', '40']
 
+    dir_out = os.path.join('data', 'models')
+    if not os.path.exists(dir_out):
+        warnings.warn("Warning: output directory data/models not found, the model will not be saved")
+    dir_logs = os.path.join('data', 'logs')
+    if not os.path.exists(dir_logs):
+        warnings.warn("Warning: default logs directory data/logs not found")
+    dir_figures = os.path.join('data', 'figures')
+    if not os.path.exists(dir_figures):
+        warnings.warn("Warning: default figures directory data/figures not found")
+
     def __init__(self, args):
         """
         Initialize directories, load the data and parameters for the training
         """
 
-        # Initialize directories and parameters
-        dir_out = os.path.join('data', 'models')
-        if not os.path.exists(dir_out):
-            warnings.warn("Warning: output directory not found, the model will not be saved")
-        dir_logs = os.path.join('data', 'logs')
-        if not os.path.exists(dir_logs):
-            warnings.warn("Warning: default logs directory not found")
         assert os.path.exists(args.joints), "Input file not found"
-
         self.mode = args.mode
         self.joints = args.joints
         self.num_epochs = args.epochs
@@ -60,7 +64,6 @@ class Trainer:
         self.sched_gamma = args.sched_gamma
         self.hidden_size = args.hidden_size
         self.n_stage = args.n_stage
-        self.dir_out = dir_out
         self.r_seed = args.r_seed
         self.auto_tune_mtl = args.auto_tune_mtl
 
@@ -97,8 +100,8 @@ class Trainer:
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
         name_out = name + '-' + now_time
         if not self.no_save:
-            self.path_model = os.path.join(dir_out, name_out + '.pkl')
-            self.logger = set_logger(os.path.join(dir_logs, name_out))
+            self.path_model = os.path.join(self.dir_out, name_out + '.pkl')
+            self.logger = set_logger(os.path.join(self.dir_logs, name_out))
             self.logger.info(  # pylint: disable=logging-fstring-interpolation
                 f'Training arguments: \ninput_file: {self.joints} \nmode: {self.mode} '
                 f'\nlearning rate: {args.lr}  \nbatch_size: {args.bs}'
@@ -122,8 +125,14 @@ class Trainer:
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
         print(">>> creating model")
 
-        self.model = MonStereoModel(input_size=input_size, output_size=output_size, linear_size=args.hidden_size,
-                                    p_dropout=args.dropout, num_stage=self.n_stage, device=self.device)
+        self.model = LocoModel(
+            input_size=input_size,
+            output_size=output_size,
+            linear_size=args.hidden_size,
+            p_dropout=args.dropout,
+            num_stage=self.n_stage,
+            device=self.device,
+        )
         self.model.to(self.device)
         print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model.parameters()) / 1000000.0))
         print(">>> loss params: {}".format(sum(p.numel() for p in self.mt_loss.parameters())))
@@ -188,8 +197,7 @@ class Trainer:
         self.logger.info('Best validation Accuracy for {}: {:.3f}'.format(self.val_task, best_acc))
         self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch))
 
-        if self.print_loss:
-            print_losses(epoch_losses)
+        self._print_losses(epoch_losses)
 
         # load best model weights
         self.model.load_state_dict(best_model_wts)
@@ -333,6 +341,20 @@ class Trainer:
         if epoch % 10 == 0:
             print(string.format(*format_list))
 
+    def _print_losses(self, epoch_losses):
+        if not self.print_loss:
+            return
+        dir_figures = os.path.join(self.dir_figures, 'losses')
+        os.makedirs(dir_figures, exist_ok=True)
+        for idx, phase in enumerate(epoch_losses):
+            for idx_2, el in enumerate(epoch_losses['train']):
+                plt.figure(idx + idx_2)
+                plt.title(phase + '_' + el)
+                plt.xlabel('epochs')
+                plt.plot(epoch_losses[phase][el][10:], label='{} Loss: {}'.format(phase, el))
+                plt.savefig(os.path.join(dir_figures, '{}_loss_{}.png'.format(phase, el)))
+                plt.close()
+
 
 def debug_plots(inputs, labels):
     inputs_shoulder = inputs.cpu().numpy()[:, 5]
@@ -345,15 +367,6 @@ def debug_plots(inputs, labels):
     plt.figure(2)
     plt.hist(labels, bins='auto')
     plt.show()
-
-
-def print_losses(epoch_losses):
-    for idx, phase in enumerate(epoch_losses):
-        for idx_2, el in enumerate(epoch_losses['train']):
-            plt.figure(idx + idx_2)
-            plt.plot(epoch_losses[phase][el][10:], label='{} Loss: {}'.format(phase, el))
-            plt.savefig('figures/{}_loss_{}.png'.format(phase, el))
-            plt.close()
 
 
 def get_accuracy(outputs, labels):

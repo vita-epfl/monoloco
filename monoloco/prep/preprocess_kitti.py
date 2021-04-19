@@ -9,6 +9,7 @@ import math
 import logging
 from collections import defaultdict
 import json
+import warnings
 import datetime
 from PIL import Image
 
@@ -61,7 +62,7 @@ class PreprocessKitti:
             assert os.path.isdir(self.dir_ann + '_right'), "Annotation directory for right images not found"
             assert any(os.scandir(self.dir_ann + '_right')), "Annotation directory for right images empty"
         elif not os.path.isdir(self.dir_ann + '_right') or not any(os.scandir(self.dir_ann + '_right')):
-            print("!! Horizontal flipping not applied as annotation directory for right images not found/empty !!")
+            warnings.warn('Horizontal flipping not applied as annotation directory for right images not found/empty')
         assert self.mode in ('mono', 'stereo'), "modality not recognized"
 
         self.names_gt = tuple(os.listdir(self.dir_gt))
@@ -213,7 +214,7 @@ class PreprocessKitti:
             self.stats_stereo['pair'] += 1  # before augmentation
 
             # ---> Remove noise of very far instances for validation
-            # if (phase == 'val') and (ys[idx_gt][3] >= 50):
+            # if (self.phase == 'val') and (label[3] >= 50):
             #     continue
 
             #  ---> Save only positives unless there is no positive (keep positive flip and augm)
@@ -340,14 +341,13 @@ class PreprocessKitti:
         return phase, flag
 
 
-def parse_ground_truth(path_gt, category, spherical=False, verbose=False):
+def parse_ground_truth(path_gt, category, spherical=False):
     """Parse KITTI ground truth files"""
 
     boxes_gt = []
     labels = []
     truncs_gt = []  # Float from 0 to 1
     occs_gt = []  # Either 0,1,2,3 fully visible, partly occluded, largely occluded, unknown
-    lines = []
 
     with open(path_gt, "r") as f_gt:
         for line_gt in f_gt:
@@ -373,10 +373,6 @@ def parse_ground_truth(path_gt, category, spherical=False, verbose=False):
             cat = line[0]  # 'Pedestrian', or 'Person_sitting' for people
             output = loc + hwl + [sin, cos, yaw, cat]
             labels.append(output)
-            if verbose:
-                lines.append(line_gt)
-    if verbose:
-        return boxes_gt, labels, truncs_gt, occs_gt, lines
     return boxes_gt, labels, truncs_gt, occs_gt
 
 

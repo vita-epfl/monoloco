@@ -199,7 +199,7 @@ python -m monoloco.run train --joints data/arrays/joints-kitti-201202-1743.json
 
 While for the MonStereo ones just change the input joints and add `--mode stereo`
 ```
-python3 -m monoloco.run train --joints data/arrays/joints-kitti-201202-1022.json --mode stereo
+python3 -m monoloco.run train --lr 0.002 --joints data/arrays/joints-kitti-201202-1022.json --mode stereo
 ```
 
 If you are interested in the original results of the MonoLoco ICCV article (now improved with MonoLoco++), please refer to the tag v0.4.9 in this repository.

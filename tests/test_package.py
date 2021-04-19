@@ -18,9 +18,22 @@ JOINTS = 'tests/joints_sample.json'
 PIFPAF_KEYPOINTS = 'tests/002282.png.pifpaf.json'
 IMAGE = 'docs/002282.png'
 
+args.mode=mode
+args.joints
+self.num_epochs = args.epochs
+self.no_save = args.no_save
+self.print_loss = args.print_loss
+self.lr = args.lr
+self.sched_step = args.sched_step
+self.sched_gamma = args.sched_gamma
+self.hidden_size = args.hidden_size
+self.n_stage = args.n_stage
+self.dir_out = dir_out
+self.r_seed = args.r_seed
+self.auto_tune_mtl = args.auto_tune_mtl
 
 def tst_trainer(joints):
-    trainer = Trainer(joints=joints, epochs=150, lr=0.01)
+    trainer = Trainer()
     _ = trainer.train()
     dic_err, model = trainer.evaluate()
     return dic_err['val']['all']['mean'], model
