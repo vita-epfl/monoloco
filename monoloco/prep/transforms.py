@@ -104,23 +104,23 @@ def flip_labels(boxes_gt, labels, im_w):
     return boxes_flip, labels_flip
 
 
-def height_augmentation(kps, kps_r, label, s_match, seed=0):
+def height_augmentation(kps, kps_r, label_s, seed=0):
     """
-    label: theta, psi, z, rho, wlh, sin, cos, yaw, cat
+    label_s: theta, psi, z, rho, wlh, sin, cos, s_match
     """
     from ..utils import to_cartesian
-    n_labels = 3 if s_match > 0.9 else 1
+    n_labels = 3 if label_s[-1] > 0.9 else 1
     height_min = 1.2
     height_max = 2
     av_height = 1.71
     kps_aug = [[kps.clone(), kps_r.clone()] for _ in range(n_labels+1)]
-    labels_aug = [label.copy() for _ in range(n_labels+1)]  # Maintain the original
+    labels_aug = [label_s.copy() for _ in range(n_labels+1)]  # Maintain the original
     np.random.seed(seed)
     heights = np.random.uniform(height_min, height_max, n_labels)  # 3 samples
-    zzs = heights * label[2] / av_height
-    disp = BF / label[2]
+    zzs = heights * label_s[2] / av_height
+    disp = BF / label_s[2]
 
-    rtp = label[3:4] + label[0:2]  # Originally t,p,z,r
+    rtp = label_s[3:4] + label_s[0:2]  # Originally t,p,z,r
     xyz = to_cartesian(rtp)
 
     for i in range(n_labels):

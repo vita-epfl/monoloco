@@ -134,7 +134,7 @@ def main():
             from .prep.preprocess_kitti import PreprocessKitti
             prep = PreprocessKitti(args.dir_ann, mode=args.mode, iou_min=args.iou_min)
             if args.activity:
-                prep.prep_activity()
+                prep.process_activity()
             else:
                 prep.run()
 
