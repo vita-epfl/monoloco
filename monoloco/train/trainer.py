@@ -22,6 +22,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
+from .. import __version__
 from .datasets import KeypointsDataset
 from .losses import CompositeLoss, MultiTaskLoss, AutoTuneMultiTaskLoss
 from ..network import extract_outputs, extract_labels
@@ -103,7 +104,8 @@ class Trainer:
             self.path_model = os.path.join(self.dir_out, name_out + '.pkl')
             self.logger = set_logger(os.path.join(self.dir_logs, name_out))
             self.logger.info(  # pylint: disable=logging-fstring-interpolation
-                f'Training arguments: \ninput_file: {self.joints} \nmode: {self.mode} '
+                f'Version: {__version__} \ninput_file: {self.joints} '
+                f'\nTraining arguments: \ninput_file: {self.joints} \nmode: {self.mode} '
                 f'\nlearning rate: {args.lr}  \nbatch_size: {args.bs}'
                 f'\nepochs: {args.epochs} \ndropout: {args.dropout} '
                 f'\nscheduler step: {args.sched_step} \nscheduler gamma: {args.sched_gamma} '

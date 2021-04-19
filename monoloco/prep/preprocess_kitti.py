@@ -15,6 +15,7 @@ from PIL import Image
 
 import torch
 
+from .. import __version__
 from ..utils import split_training, get_iou_matches, append_cluster, get_calibration, open_annotations, \
     extract_stereo_matches, make_new_directory, \
     check_conditions, to_spherical, correct_angle
@@ -38,12 +39,12 @@ class PreprocessKitti:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], K=[],
-                            clst=defaultdict(lambda: defaultdict(list))),
-              'val': dict(X=[], Y=[], names=[], kps=[], K=[],
-                          clst=defaultdict(lambda: defaultdict(list))),
-              'test': dict(X=[], Y=[], names=[], kps=[], K=[],
-                           clst=defaultdict(lambda: defaultdict(list)))}
+    dic_jo = {
+        'train': dict(X=[], Y=[], names=[], kps=[], K=[], clst=defaultdict(lambda: defaultdict(list))),
+        'val': dict(X=[], Y=[], names=[], kps=[], K=[], clst=defaultdict(lambda: defaultdict(list))),
+        'test': dict(X=[], Y=[], names=[], kps=[], K=[], clst=defaultdict(lambda: defaultdict(list))),
+        'version': __version__,
+    }
     dic_names = defaultdict(lambda: defaultdict(list))
     dic_std = defaultdict(lambda: defaultdict(list))
     categories_gt = dict(train=['Pedestrian', 'Person_sitting'], val=['Pedestrian'])
