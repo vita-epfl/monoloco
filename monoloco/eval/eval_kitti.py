@@ -40,8 +40,7 @@ class EvalKitti:
     path_val = os.path.join('splits', 'kitti_val.txt')
     dir_logs = os.path.join('data', 'logs')
     assert os.path.exists(dir_logs), "No directory to save final statistics"
-    dir_fig = os.path.join('data', 'figures', 'results')
-    os.makedirs(dir_fig, exist_ok=True)
+    dir_fig = os.path.join('figures', 'results')
 
     # Set thresholds to obtain comparable recalls
     thresh_iou_monoloco = 0.3
@@ -146,6 +145,8 @@ class EvalKitti:
             self.show_statistics()
 
     def printer(self):
+        if self.save:
+            os.makedirs(self.dir_fig, exist_ok=True)
         if self.save or self.show:
             print('-' * 100)
             show_results(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)

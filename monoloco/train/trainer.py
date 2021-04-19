@@ -45,9 +45,7 @@ class Trainer:
     dir_logs = os.path.join('data', 'logs')
     if not os.path.exists(dir_logs):
         warnings.warn("Warning: default logs directory data/logs not found")
-    dir_figures = os.path.join('data', 'figures')
-    if not os.path.exists(dir_figures):
-        warnings.warn("Warning: default figures directory data/figures not found")
+    dir_figures = os.path.join('figures', 'losses')
 
     def __init__(self, args):
         """
@@ -346,15 +344,14 @@ class Trainer:
     def _print_losses(self, epoch_losses):
         if not self.print_loss:
             return
-        dir_figures = os.path.join(self.dir_figures, 'losses')
-        os.makedirs(dir_figures, exist_ok=True)
+        os.makedirs(self.dir_figures, exist_ok=True)
         for idx, phase in enumerate(epoch_losses):
             for idx_2, el in enumerate(epoch_losses['train']):
                 plt.figure(idx + idx_2)
                 plt.title(phase + '_' + el)
                 plt.xlabel('epochs')
                 plt.plot(epoch_losses[phase][el][10:], label='{} Loss: {}'.format(phase, el))
-                plt.savefig(os.path.join(dir_figures, '{}_loss_{}.png'.format(phase, el)))
+                plt.savefig(os.path.join(self.dir_figures, '{}_loss_{}.png'.format(phase, el)))
                 plt.close()
 
 
