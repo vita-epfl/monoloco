@@ -95,7 +95,7 @@ class Trainer:
 
         self.dataset_sizes = {phase: len(KeypointsDataset(self.joints, phase=phase))
                               for phase in ['train', 'val']}
-        self.dataset_version = KeypointsDataset(self.joints, phase='train').get_version
+        self.dataset_version = KeypointsDataset(self.joints, phase='train').get_version()
 
         self._set_logger(args)
 
