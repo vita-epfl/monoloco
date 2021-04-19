@@ -112,7 +112,7 @@ class EvalKitti:
                 methods_out = defaultdict(tuple)  # Save all methods for comparison
 
                 # Count ground_truth:
-                boxes_gt, ys, truncs_gt, occs_gt = out_gt  # pylint: disable=unbalanced-tuple-unpacking
+                boxes_gt, ys, truncs_gt, occs_gt, _ = out_gt  # pylint: disable=unbalanced-tuple-unpacking
                 for idx, box in enumerate(boxes_gt):
                     mode = get_difficulty(box, truncs_gt[idx], occs_gt[idx])
                     self.cnt_gt[mode] += 1
