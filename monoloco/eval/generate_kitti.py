@@ -233,7 +233,7 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params, net='monoloco', cat
             if net in ('monstereo', 'monoloco_pp'):
                 alpha, ry = float(yaws[0][idx]), float(yaws[1][idx])
                 hwl = [float(hs[idx]), float(ws[idx]), float(ls[idx])]
-                conf_scale = 0.033  # scale to obtain (approximately) same recall at evaluation
+                conf_scale = 0.035 # scale to obtain (approximately) same recall at evaluation
                 # conf_scale = 0.035  # nuScenes for having same recall
             else:
                 alpha, ry, hwl = -10., -10., [0, 0, 0]

@@ -16,7 +16,7 @@ from PIL import Image
 import torch
 
 from ..utils import split_training, get_iou_matches, append_cluster, get_calibration, open_annotations, \
-    extract_stereo_matches, normalize_hwl, make_new_directory, \
+    extract_stereo_matches, make_new_directory, \
     check_conditions, to_spherical, correct_angle
 from ..network.process import preprocess_pifpaf, preprocess_monoloco
 from .transforms import flip_inputs, flip_labels, height_augmentation
@@ -91,7 +91,7 @@ class PreprocessKitti:
                 self.stats['fnf'] += 1
                 continue
 
-            boxes_gt, labels, _, _ = parse_ground_truth(path_gt, category=category, spherical=True)
+            boxes_gt, labels, _, _, _ = parse_ground_truth(path_gt, category=category, spherical=True)
             self.stats['gt_' + self.phase] += len(boxes_gt)
             self.stats['gt_files'] += 1
             self.stats['gt_files_ped'] += min(len(boxes_gt), 1)  # if no boxes 0 else 1
@@ -189,7 +189,6 @@ class PreprocessKitti:
         """For a single annotation, process all the labels and save them"""
         kp = kp.tolist()
         inp = preprocess_monoloco(kp, kk).view(-1).tolist()
-        label = normalize_hwl(label)
 
         # Save
         self.dic_jo[self.phase]['kps'].append(kp)
@@ -237,19 +236,13 @@ class PreprocessKitti:
                 labels_aug = [label_s]
 
             for i, lab in enumerate(labels_aug):
+                assert len(lab) == 11, 'dimensions of stereo label is wrong'
+                self.stats_stereo['pair_aug'] += 1
                 (kp_aug, kp_aug_r) = kps_aug[i]
                 input_l = preprocess_monoloco(kp_aug, kk).view(-1)
                 input_r = preprocess_monoloco(kp_aug_r, kk).view(-1)
                 keypoint = torch.cat((kp_aug, kp_aug_r), dim=2).tolist()
                 inp = torch.cat((input_l, input_l - input_r)).tolist()
-                self.stats_stereo['pair_aug'] += 1
-
-                # Only relative distances
-                # inp_x = input[::2]
-                # inp = torch.cat((inp_x, input - input_r)).tolist()
-
-                # lab = normalize_hwl(lab)
-                assert len(lab) == 11, 'dimensions of stereo label is wrong'
                 self.dic_jo[self.phase]['kps'].append(keypoint)
                 self.dic_jo[self.phase]['X'].append(inp)
                 self.dic_jo[self.phase]['Y'].append(lab)
@@ -301,8 +294,7 @@ class PreprocessKitti:
         for name in self.set_val:
             # Read
             path_gt = os.path.join(dir_gt, name)
-            boxes_gt, ys, truncs_gt, occs_gt, lines = parse_ground_truth(path_gt, category, spherical=False,
-                                                                         verbose=True)
+            boxes_gt, ys, truncs_gt, occs_gt, lines = parse_ground_truth(path_gt, category, spherical=False)
             angles = [y[10] for y in ys]
             dds = [y[4] for y in ys]
             xz_centers = [[y[0], y[2]] for y in ys]
@@ -348,6 +340,7 @@ def parse_ground_truth(path_gt, category, spherical=False):
     labels = []
     truncs_gt = []  # Float from 0 to 1
     occs_gt = []  # Either 0,1,2,3 fully visible, partly occluded, largely occluded, unknown
+    lines = []
 
     with open(path_gt, "r") as f_gt:
         for line_gt in f_gt:
@@ -373,7 +366,8 @@ def parse_ground_truth(path_gt, category, spherical=False):
             cat = line[0]  # 'Pedestrian', or 'Person_sitting' for people
             output = loc + hwl + [sin, cos, yaw, cat]
             labels.append(output)
-    return boxes_gt, labels, truncs_gt, occs_gt
+            lines.append(line_gt)
+    return boxes_gt, labels, truncs_gt, occs_gt, lines
 
 
 def factory_file(path_calib, dir_ann, basename, ann_type='left'):

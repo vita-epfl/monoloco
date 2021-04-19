@@ -78,7 +78,7 @@ def cli():
     training_parser.add_argument('--bs', type=int, default=512, help='input batch size')
     training_parser.add_argument('--monocular', help='whether to train monoloco', action='store_true')
     training_parser.add_argument('--dropout', type=float, help='dropout. Default no dropout', default=0.2)
-    training_parser.add_argument('--lr', type=float, help='learning rate', default=0.001)
+    training_parser.add_argument('--lr', type=float, help='learning rate', default=0.002)
     training_parser.add_argument('--sched_step', type=float, help='scheduler step time (epochs)', default=30)
     training_parser.add_argument('--sched_gamma', type=float, help='Scheduler multiplication every step', default=0.98)
     training_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=1024)

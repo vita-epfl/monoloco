@@ -40,8 +40,8 @@ class EvalKitti:
     path_val = os.path.join('splits', 'kitti_val.txt')
     dir_logs = os.path.join('data', 'logs')
     assert os.path.exists(dir_logs), "No directory to save final statistics"
-    dir_fig = os.path.join('data', 'figures')
-    assert os.path.exists(dir_logs), "No directory to save figures"
+    dir_fig = os.path.join('data', 'figures', 'results')
+    os.makedirs(dir_fig, exist_ok=True)
 
     # Set thresholds to obtain comparable recalls
     thresh_iou_monoloco = 0.3
@@ -50,9 +50,10 @@ class EvalKitti:
     thresh_conf_base = 0.5
 
     def __init__(self, args):
-
+        self.mode = args.mode
+        assert self.mode in ('mono', 'stereo'), "mode not recognized"
+        self.net = 'monstereo' if self.mode == 'stereo' else 'monoloco_pp'
         self.verbose = args.verbose
-        self.net = args.net
         self.save = args.save
         self.show = args.show
 
@@ -146,9 +147,10 @@ class EvalKitti:
 
     def printer(self):
         if self.save or self.show:
+            print('-' * 100)
             show_results(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)
             show_spread(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)
-            if self.net == 'monstero':
+            if self.net == 'monstereo':
                 show_box_plot(self.errors, self.CLUSTERS, self.dir_fig, show=self.show, save=self.save)
             else:
                 show_task_error(self.dir_fig, show=self.show, save=self.save)
@@ -202,7 +204,7 @@ class EvalKitti:
     def _estimate_error(self, out_gt, out, method):
         """Estimate localization error"""
 
-        boxes_gt, ys, truncs_gt, occs_gt = out_gt
+        boxes_gt, ys, truncs_gt, occs_gt, _ = out_gt
 
         if method in self.OUR_METHODS:
             boxes, dds, cat, bis, epis = out
@@ -374,7 +376,7 @@ class EvalKitti:
             self.name = name
             # Iterate over each line of the gt file and save box location and distances
             out_gt = parse_ground_truth(path_gt, 'pedestrian')
-            boxes_gt, ys, truncs_gt, occs_gt = out_gt   # pylint: disable=unbalanced-tuple-unpacking
+            boxes_gt, ys, truncs_gt, occs_gt, _ = out_gt   # pylint: disable=unbalanced-tuple-unpacking
             for label in ys:
                 heights.append(label[4])
         import numpy as np
