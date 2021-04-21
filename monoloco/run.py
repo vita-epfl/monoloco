@@ -74,6 +74,7 @@ def cli():
     # Training
     training_parser.add_argument('--joints', help='Json file with input joints', required=True)
     training_parser.add_argument('--mode', help='mono, stereo', default='mono')
+    training_parser.add_argument('--out', help='output_path, e.g., data/outputs/test.pkl')
     training_parser.add_argument('-e', '--epochs', type=int, help='number of epochs to train for', default=500)
     training_parser.add_argument('--bs', type=int, default=512, help='input batch size')
     training_parser.add_argument('--monocular', help='whether to train monoloco', action='store_true')

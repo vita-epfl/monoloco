@@ -1,7 +1,9 @@
 # pylint: disable=too-many-statements, too-many-branches, undefined-loop-variable
 
 """
-Adapted from https://github.com/vita-epfl/openpifpaf/blob/master/openpifpaf/predict.py
+Adapted from Adapted from https://github.com/vita-epfl/openpifpaf/blob/master/openpifpaf/predict.py,
+which is: 'Copyright 2019-2021 by Sven Kreiss and contributors. All rights reserved.'
+and licensed under GNU AGPLv3
 """
 
 import os
@@ -229,15 +231,19 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
     # Verify conflicting options
     if any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
         assert args.mode != 'keypoints', "for keypoints please use pifpaf original arguments"
-        if args.social_distance:
-            assert args.mode == 'mono', "Social distancing only works with monocular network"
+    else:
+        assert 'json' in args.output_types or args.mode == 'keypoints', \
+            "No output saved, please select one among front, bird, multi, json, or pifpaf arguments"
+    if args.social_distance:
+        assert args.mode == 'mono', "Social distancing only works with monocular network"
 
     if args.mode == 'keypoints':
         annotation_painter = openpifpaf.show.AnnotationPainter()
         with openpifpaf.show.image_canvas(pifpaf_outs['image'], output_path) as ax:
             annotation_painter.annotations(ax, pifpaf_outs['pred'])
+        return
 
-    elif any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
+    if any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
         LOG.info(output_path)
         if args.social_distance:
             show_social(args, pifpaf_outs['image'], output_path, pifpaf_outs['left'], dic_out)
@@ -246,9 +252,6 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
             figures, axes = printer.factory_axes(dic_out)
             printer.draw(figures, axes, pifpaf_outs['image'])
 
-    elif 'json' in args.output_types:
+    if 'json' in args.output_types:
         with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:
             json.dump(dic_out, ff)
-
-    else:
-        LOG.info("No output saved, please select one among front, bird, multi, or pifpaf options")

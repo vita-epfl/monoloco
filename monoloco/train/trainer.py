@@ -40,13 +40,6 @@ class Trainer:
     clusters = ['10', '20', '30', '40']
     input_size = dict(mono=34, stereo=68)
     output_size = dict(mono=9, stereo=10)
-
-    dir_out = os.path.join('data', 'models')
-    if not os.path.exists(dir_out):
-        warnings.warn("Warning: output directory data/models not found, the model will not be saved")
-    dir_logs = os.path.join('data', 'logs')
-    if not os.path.exists(dir_logs):
-        warnings.warn("Warning: default logs directory data/logs not found")
     dir_figures = os.path.join('figures', 'losses')
 
     def __init__(self, args):
@@ -68,6 +61,19 @@ class Trainer:
         self.r_seed = args.r_seed
         self.auto_tune_mtl = args.auto_tune_mtl
 
+        # Select path out
+        if args.out:
+            self.path_out = args.out  # full path without extension
+            dir_out, _ = os.path.split(self.path_out)
+        else:
+            dir_out = os.path.join('data', 'outputs')
+            name = 'monoloco_pp' if self.mode == 'mono' else 'monstereo'
+            now = datetime.datetime.now()
+            now_time = now.strftime("%Y%m%d-%H%M")[2:]
+            name_out = name + '-' + now_time + '.pkl'
+            self.path_out = os.path.join(dir_out, name_out)
+        assert dir_out, "Directory to save the model not found"
+        print(self.path_out)
         # Select the device
         use_cuda = torch.cuda.is_available()
         self.device = torch.device("cuda" if use_cuda else "cpu")
@@ -333,16 +339,13 @@ class Trainer:
                 plt.close()
 
     def _set_logger(self, args):
-        name = 'monoloco_pp' if self.mode == 'mono' else 'monstereo'
-        now = datetime.datetime.now()
-        now_time = now.strftime("%Y%m%d-%H%M")[2:]
-        name_out = name + '-' + now_time
         if self.no_save:
             logging.basicConfig(level=logging.INFO)
             self.logger = logging.getLogger(__name__)
         else:
-            self.path_model = os.path.join(self.dir_out, name_out + '.pkl')
-            self.logger = set_logger(os.path.join(self.dir_logs, name_out))
+            self.path_model = self.path_out
+            print(self.path_model)
+            self.logger = set_logger(os.path.splitext(self.path_out)[0])  # remove .pkl
             self.logger.info(  # pylint: disable=logging-fstring-interpolation
                 f'\nVERSION: {__version__}\n'
                 f'\nINPUT_FILE: {args.joints}'

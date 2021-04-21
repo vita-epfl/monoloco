@@ -219,17 +219,15 @@ The code supports this option (by running the predict script and using `--mode p
 ### Data structure
 
     data         
-    ├── arrays                 
-    ├── models
+    ├── outputs                 
+    ├── arrays
     ├── kitti
-    ├── logs
-    ├── output
     
 Run the following inside monoloco repository:
 ```
 mkdir data
 cd data
-mkdir arrays models kitti logs output
+mkdir outputs arrays kitti
 ```
 
 
