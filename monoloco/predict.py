@@ -9,6 +9,7 @@ and licensed under GNU AGPLv3
 import os
 import glob
 import json
+import copy
 import logging
 from collections import defaultdict
 
@@ -19,7 +20,11 @@ import openpifpaf
 import openpifpaf.datasets as datasets
 from openpifpaf.predict import processor_factory, preprocess_factory
 from openpifpaf import decoder, network, visualizer, show, logger
-
+try:
+    import gdown
+    DOWNLOAD = copy.copy(gdown.download)
+except ImportError:
+    DOWNLOAD = None
 from .visuals.printer import Printer
 from .network import Loco
 from .network.process import factory_for_gt, preprocess_pifpaf
@@ -51,9 +56,8 @@ def download_checkpoints(args):
     pifpaf_model = os.path.join(torch_dir, 'shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl')
     dic_models = {'keypoints': pifpaf_model}
     if not os.path.exists(pifpaf_model):
-        import gdown
         LOG.info('Downloading OpenPifPaf model in %s', torch_dir)
-        gdown.download(OPENPIFPAF_MODEL, pifpaf_model, quiet=False)
+        DOWNLOAD(OPENPIFPAF_MODEL, pifpaf_model, quiet=False)
 
     if args.mode == 'keypoints':
         return dic_models
@@ -75,9 +79,8 @@ def download_checkpoints(args):
     model = os.path.join(torch_dir, name)
     dic_models[args.mode] = model
     if not os.path.exists(model):
-        import gdown
         LOG.info('Downloading model in %s', torch_dir)
-        gdown.download(path, model, quiet=False)
+        DOWNLOAD(path, model, quiet=False)
     return dic_models
 
 

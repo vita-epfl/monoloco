@@ -1,4 +1,4 @@
-# pylint: disable=too-many-branches, too-many-statements
+# pylint: disable=too-many-branches, too-many-statements, import-outside-toplevel
 
 import argparse
 

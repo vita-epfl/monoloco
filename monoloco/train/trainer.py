@@ -14,7 +14,6 @@ import logging
 from collections import defaultdict
 import sys
 import time
-import warnings
 from itertools import chain
 
 import matplotlib.pyplot as plt
