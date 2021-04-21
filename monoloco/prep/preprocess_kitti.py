@@ -49,11 +49,12 @@ class PreprocessKitti:
     dic_std = defaultdict(lambda: defaultdict(list))
     categories_gt = dict(train=['Pedestrian', 'Person_sitting'], val=['Pedestrian'])
 
-    def __init__(self, dir_ann, mode='mono', iou_min=0.3):
+    def __init__(self, dir_ann, mode='mono', iou_min=0.3, sample=False):
 
         self.dir_ann = dir_ann
         self.mode = mode
         self.iou_min = iou_min
+        self.sample = sample
 
         assert os.path.isdir(self.dir_ann), "Annotation directory not found"
         assert any(os.scandir(self.dir_ann)), "Annotation directory empty"

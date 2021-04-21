@@ -8,9 +8,10 @@ please contact EPFL-TTO (https://tto.epfl.ch/) for a full commercial license.
 
 This software may not be used to harm any person deliberately or for any military application.
 
-The files
-- tests/test_train.py
+
+The following files are based on the OpenPifPaf project which is
+"Copyright 2019-2021 by Sven Kreiss and contributors. All rights reserved." and licensed under GNU AGPLv3.
+
+- tests/test_train_mono.py
+- tests/test_train_stereo.py
 - predict.py
-are based on the OpenPifPaf project which is
-  "Copyright 2019-2021 by Sven Kreiss and contributors. All rights reserved."
-and licensed under GNU AGPLv3.

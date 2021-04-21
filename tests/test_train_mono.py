@@ -33,7 +33,7 @@ PREDICT_COMMAND_SOCIAL_DISTANCE = [
 ]
 
 
-def test_train(tmp_path):
+def test_train_mono(tmp_path):
     # train a model
     train_cmd = TRAIN_COMMAND + ['--out={}'.format(os.path.join(tmp_path, 'train_test.pkl'))]
     print(' '.join(train_cmd))
