@@ -31,7 +31,7 @@ __[Article](https://arxiv.org/abs/2009.00984)__ &nbsp; &nbsp; &nbsp; &nbsp; &nbs
 
 > __MonoLoco: Monocular 3D Pedestrian Localization and Uncertainty Estimation__<br />
 > _[L. Bertoni](https://scholar.google.com/citations?user=f-4YHeMAAAAJ&hl=en), [S. Kreiss](https://www.svenkreiss.com), [A.Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICCV 2019 <br /> 
-__[Article](https://arxiv.org/abs/1906.06059)__ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;    __[Citation](#Todo)__ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  __[Video](https://www.youtube.com/watch?v=ii0fqerQrec)__
+__[Article](https://arxiv.org/abs/1906.06059)__ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;    __[Citation](#Citation)__ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  __[Video](https://www.youtube.com/watch?v=ii0fqerQrec)__
    
 <img src="docs/surf.jpg" width="700"/>
     
@@ -49,8 +49,6 @@ The installation has been tested on OSX and Linux operating systems, with Python
 Packages have been installed with pip and virtual environments.
 
 For quick installation, do not clone this repository, make sure there is no folder named monoloco in your current directory, and run:
-
-
 
 ```
 pip3 install monoloco
@@ -127,7 +125,7 @@ python -m monoloco.run predict docs/002282.png \
 
 ![predict](docs/out_002282.png.multi.jpg)
 
-To show all the instances estimated by MonoLoco add the argument `show_all` to the above command.
+To show all the instances estimated by MonoLoco add the argument `--show_all` to the above command.
 
 ![predict_all](docs/out_002282.png.multi_all.jpg)
 
@@ -147,7 +145,7 @@ To run MonStereo on stereo images, make sure the stereo pairs have the following
 
 You can load one or more image pairs using glob expressions. For example:
 
-```
+```sh
 python3 -m monoloco.run predict --mode stereo \
 --glob docs/000840*.png
  --path_gt <to match results with ground-truths> \
@@ -156,7 +154,7 @@ python3 -m monoloco.run predict --mode stereo \
  
 ![Crowded scene](docs/out_000840_multi.jpg)
 
-```
+```sh
 python3 -m monoloco.run predict --glob docs/005523*.png \ --output_types multi \
 --model data/models/ms-200710-1511.pkl \
 --path_gt <to match results with ground-truths> \
@@ -179,10 +177,12 @@ An example from the Collective Activity Dataset is provided below.
 <img src="docs/frame0032.jpg" width="500"/>
 
 To visualize social distancing run the below, command:
-```
+
+```sh
 python -m monoloco.run predict docs/frame0032.jpg \
 --social_distance --output_types front bird 
 ```
+
 <img src="docs/out_frame0032_front_bird.jpg" width="700"/>
 
 
@@ -194,15 +194,16 @@ The network estimates orientation and box dimensions as well. Results are saved 
 ## Training
 We train on the KITTI dataset (MonoLoco/Monoloco++/MonStereo) or the nuScenes dataset (MonoLoco) specifying the path of the json file containing the input joints. Please download them [here](https://drive.google.com/drive/folders/1j0riwbS9zuEKQ_3oIs_dWlYBnfuN2WVN?usp=sharing) or follow [preprocessing instructions](#Preprocessing).
 
-Results for MonoLoco++ are obtained with: 
+Results for [MonoLoco++](###Tables) are obtained with: 
 
 ```
-python -m monoloco.run train --joints data/arrays/joints-kitti-201202-1743.json
+python -m monoloco.run train --joints data/arrays/joints-kitti-mono-210422-1600.json
 ```
 
-While for the MonStereo ones just change the input joints and add `--mode stereo`
-```
-python3 -m monoloco.run train --lr 0.002 --joints data/arrays/joints-kitti-201202-1022.json --mode stereo
+While for the [MonStereo](###Tables) results run:
+
+```sh
+python -m monoloco.run train --joints data/arrays/joints-kitti-stereo-210422-1601.json --lr 0.003 --mode stereo 
 ```
 
 If you are interested in the original results of the MonoLoco ICCV article (now improved with MonoLoco++), please refer to the tag v0.4.9 in this repository.
@@ -217,7 +218,7 @@ Finally, for a more extensive list of available parameters, run:
 Preprocessing and training step are already fully supported by the code provided, 
 but require first to run a pose detector over
 all the training images and collect the annotations. 
-The code supports this option (by running the predict script and using `--mode pifpaf`).
+The code supports this option (by running the predict script and using `--mode keypoints`).
 
 ### Data structure
 
@@ -246,6 +247,7 @@ Download kitti images (from left and right cameras), ground-truth files (labels)
 
 
 The network takes as inputs 2D keypoints annotations. To create them run PifPaf over the saved images:
+
 ```sh
 python -m openpifpaf.predict \
 --glob "data/kitti/images/*.png" \
@@ -253,6 +255,7 @@ python -m openpifpaf.predict \
 --checkpoint=shufflenetv2k30 \
 --instance-threshold=0.05 --seed-threshold 0.05 --force-complete-pose 
 ```
+
 **Horizontal flipping**
 
 To augment the dataset, we apply horizontal flipping on the detected poses. To include small variations in the pose, we use the poses from the right-camera (the dataset uses a stereo camera). As there are no labels for the right camera, the code automatically correct the ground truth depth by taking into account the camera baseline.
@@ -302,7 +305,7 @@ which for example change the name of all the jpg images in that folder adding th
 
 Pifpaf annotations should also be saved in a single folder and can be created with:
 
-```
+```sh
 python -m openpifpaf.predict \
 --glob "data/collective_activity/images/*.jpg"  \
 --checkpoint=shufflenetv2k30 \
@@ -310,21 +313,16 @@ python -m openpifpaf.predict \
 --json-output <output folder>
 ```
 
-Finally, to evaluate activity using a MonoLoco++ pre-trained model trained either on nuSCENES or KITTI:
-```
-python -m monstereo.run eval --activity \ 
- --dataset collective \
---model <MonoLoco++ model path>  --dir_ann <pifpaf annotations directory>
-```
 
 ## Evaluation
 
 ### 3D Localization
 We provide evaluation on KITTI for models trained on nuScenes or KITTI. Download the ground-truths of KITTI dataset and the calibration files from their [website](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d). Save the training labels (one .txt file for each image) into the folder `data/kitti/gt` and the camera calibration matrices (one .txt file for each image) into `data/kitti/calib`.  
+To evaluate a pre-trained model, download the latest models from [here](https://drive.google.com/drive/u/0/folders/1kQpaTcDsiNyY6eh1kUurcpptfAXkBjAJ) and save them into `data/outputs.
 
 __Baselines__
 
-We compare ourr results with other monocular 
+We compare our results with other monocular 
 and stereo baselines, depending whether you are evaluating stereo or monocular settings. For some of the baselines, we have obtained the annotations directly from the authors and we don't have yet the permission to publish them. 
 
 [Mono3D](https://www.cs.toronto.edu/~urtasun/publications/chen_etal_cvpr16.pdf), 
@@ -346,16 +344,20 @@ To include also geometric baselines and MonoLoco, download a monoloco model, sav
 
 
 The evaluation file will run the model over all the annotations and compare the results with KITTI  ground-truth and the downloaded baselines. For this run:
-```
+
+```sh
 python -m monoloco.run eval \
 --dir_ann <annotation directory> \
---model #TODO \
+--model data/outputs/monoloco_pp-210422-1601.pkl \
 --generate \
 --save \
-````
-For stereo results add `--mode stereo` and select `--model #TODO.  Below, the resulting table of results and an example of the saved figures.
+```
 
-<img src="docs/results.jpg" width="700"/>
+For stereo results add `--mode stereo` and select `--model=monstereo-210422-1620.pkl`.  Below, the resulting table of results and an example of the saved figures.
+
+### Tables
+
+<img src="docs/quantitative.jpg" width="700"/>
 
 <img src="docs/results_monstereo.jpg" width="700"/>
 
@@ -371,15 +373,15 @@ The modified file is called *evaluate_object.cpp* and runs exactly as the origin
 ### Activity Estimation (Talking)
 Please follow preprocessing steps for Collective activity dataset and run pifpaf over the dataset images.
 Evaluation on this dataset is done with models trained on either KITTI or nuScenes. 
-For optimal performances, we suggest the model trained on nuScenes teaser (#TODO add link)
-```
-python -m monstereo.run eval 
+For optimal performances, we suggest the model trained on nuScenes teaser.
+
+```sh
+python -m monstereo.run eval \
 --activity \
 --dataset collective \
---model <path to the model>  \
+--model <path to the model> \
 --dir_ann <annotation directory>
 ```
-
 
 ## Citation
 When using this library in your research, we will be happy if you cite us! 
