@@ -190,7 +190,7 @@ def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
     y_max_difference = (80 / zz_mono)
     z_max_difference = 1 * zz_mono
 
-    cov = float(np.nanstd(disparity_x) / np.abs(np.nanmean(disparity_x)))  # Coefficient of variation
+    cov = float(np.nanstd(disparity_x) / np.abs(np.nanmean(disparity_x)))  # pylint: disable=unused-variable
     avg_disparity_y = np.nanmedian(disparity_y)
 
     return abs(zz_stereo - zz_mono) < z_max_difference and avg_disparity_y < y_max_difference and 1 < zz_stereo < 80

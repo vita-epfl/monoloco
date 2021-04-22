@@ -150,7 +150,7 @@ class Trainer:
                         if phase == 'train':
                             self.optimizer.zero_grad()
                             outputs = self.model(inputs)
-                            loss, loss_values = self.mt_loss(outputs, labels, phase=phase)
+                            loss, _ = self.mt_loss(outputs, labels, phase=phase)
                             loss.backward()
                             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3)
                             self.optimizer.step()
@@ -246,7 +246,7 @@ class Trainer:
     def compute_stats(self, outputs, labels, dic_err, size_eval, clst):
         """Compute mean, bi and max of torch tensors"""
 
-        loss, loss_values = self.mt_loss(outputs, labels, phase='val')
+        _, loss_values = self.mt_loss(outputs, labels, phase='val')
         rel_frac = outputs.size(0) / size_eval
 
         tasks = self.tasks[:-1] if self.tasks[-1] == 'aux' else self.tasks  # Exclude auxiliary

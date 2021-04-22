@@ -10,6 +10,7 @@ import logging
 import datetime
 from collections import defaultdict
 
+import numpy as np
 from tabulate import tabulate
 
 from ..utils import get_iou_matches, get_task_error, get_pixel_error, check_conditions, \
@@ -111,7 +112,7 @@ class EvalKitti:
                 methods_out = defaultdict(tuple)  # Save all methods for comparison
 
                 # Count ground_truth:
-                boxes_gt, ys, truncs_gt, occs_gt, _ = out_gt  # pylint: disable=unbalanced-tuple-unpacking
+                boxes_gt, _, truncs_gt, occs_gt, _ = out_gt  # pylint: disable=unbalanced-tuple-unpacking
                 for idx, box in enumerate(boxes_gt):
                     mode = get_difficulty(box, truncs_gt[idx], occs_gt[idx])
                     self.cnt_gt[mode] += 1
@@ -377,10 +378,8 @@ class EvalKitti:
             self.name = name
             # Iterate over each line of the gt file and save box location and distances
             out_gt = parse_ground_truth(path_gt, 'pedestrian')
-            boxes_gt, ys, truncs_gt, occs_gt, _ = out_gt   # pylint: disable=unbalanced-tuple-unpacking
-            for label in ys:
+            for label in out_gt[1]:
                 heights.append(label[4])
-        import numpy as np
         tail1, tail2 = np.nanpercentile(np.array(heights), [5, 95])
         print(average(heights))
         print(len(heights))

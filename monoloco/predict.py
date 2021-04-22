@@ -1,7 +1,7 @@
 # pylint: disable=too-many-statements, too-many-branches, undefined-loop-variable
 
 """
-Adapted from Adapted from https://github.com/vita-epfl/openpifpaf/blob/master/openpifpaf/predict.py,
+Adapted from https://github.com/openpifpaf/openpifpaf/blob/main/openpifpaf/predict.py,
 which is: 'Copyright 2019-2021 by Sven Kreiss and contributors. All rights reserved.'
 and licensed under GNU AGPLv3
 """

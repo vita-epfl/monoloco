@@ -94,7 +94,7 @@ class GenerateKitti:
         make_new_directory(di)
         dir_out = {self.net: di}
 
-        for mode, names in self.baselines.items():
+        for _, names in self.baselines.items():
             for name in names:
                 di = os.path.join('data', 'kitti', name)
                 make_new_directory(di)
@@ -169,7 +169,7 @@ class GenerateKitti:
 
         annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
         boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
-        _, kk, tt = factory_file(path_calib, self.dir_ann, basename)
+        _, kk, _ = factory_file(path_calib, self.dir_ann, basename)
 
         uv_centers = get_keypoints(keypoints, mode='bottom')  # Kitti uses the bottom center to calculate depth
         xy_centers = pixel_to_camera(uv_centers, kk, 1)

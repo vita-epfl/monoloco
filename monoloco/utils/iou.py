@@ -54,7 +54,7 @@ def get_iou_matches(boxes, boxes_gt, iou_min=0.3):
     for idx in indices[::-1]:
         box = boxes[idx]
         ious = []
-        for idx_gt, box_gt in enumerate(boxes_gt):
+        for box_gt in boxes_gt:
             iou = calculate_iou(box, box_gt)
             ious.append(iou)
         idx_gt_max = int(np.argmax(ious))

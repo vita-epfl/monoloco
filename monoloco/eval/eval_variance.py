@@ -184,8 +184,8 @@ def variance_figures(dic_fin, clusters):
     plt.title("Standard deviation of joints disparity")
     yys_p = [el for _, el in dic_fin['pifpaf']['std_d'].items()]
     yys_m = [el for _, el in dic_fin['mask']['std_d'].items()]
-    yys_p_z = [el for _, el in dic_fin['pifpaf']['std_z'].items()]
-    yys_m_z = [el for _, el in dic_fin['mask']['std_z'].items()]
+    # yys_p_z = [el for _, el in dic_fin['pifpaf']['std_z'].items()]
+    # yys_m_z = [el for _, el in dic_fin['mask']['std_z'].items()]
     plt.plot(xxs, yys_p, marker='s', label="PifPaf")
     plt.plot(xxs, yys_m, marker='o', label="Mask R-CNN")
     # plt.plot(xxs, yys_p_z, marker='s', color='b', label="PifPaf (meters)")

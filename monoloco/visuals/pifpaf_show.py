@@ -1,5 +1,9 @@
 
-# File adapted from https://github.com/vita-epfl/openpifpaf
+"""
+Adapted from https://github.com/openpifpaf,
+which is: 'Copyright 2019-2021 by Sven Kreiss and contributors. All rights reserved.'
+and licensed under GNU AGPLv3
+"""
 
 from contextlib import contextmanager
 
@@ -69,7 +73,7 @@ def load_image(path, scale=1.0):
         return image
 
 
-class KeypointPainter(object):
+class KeypointPainter:
     def __init__(self, *,
                  skeleton=None,
                  xy_scale=1.0, highlight=None, highlight_invisible=False,

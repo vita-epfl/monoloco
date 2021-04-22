@@ -123,7 +123,7 @@ def show_social(args, image_t, output_path, annotations, dic_out):
 
     # Draw keypoints and orientation
     if 'front' in args.output_types:
-        keypoint_sets, scores = get_pifpaf_outputs(annotations)
+        keypoint_sets, _ = get_pifpaf_outputs(annotations)
         uv_centers = dic_out['uv_heads']
         sizes = [abs(dic_out['uv_heads'][idx][1] - uv_s[1]) / 1.5 for idx, uv_s in
                  enumerate(dic_out['uv_shoulders'])]

@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import torchvision
 
-from ..utils import get_keypoints, pixel_to_camera, to_cartesian, back_correct_angles
+from ..utils import get_keypoints, pixel_to_camera, to_cartesian, back_correct_angles, open_annotations
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -135,7 +135,6 @@ def preprocess_mask(dir_ann, basename, mode='left'):
     elif mode == 'right':
         path_ann = os.path.join(dir_ann + '_right', basename + '.json')
 
-    from ..utils import open_annotations
     dic = open_annotations(path_ann)
     if isinstance(dic, list):
         return [], []
