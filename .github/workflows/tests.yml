@@ -1,8 +1,7 @@
-"""
-Adapted from https://github.com/openpifpaf/openpifpaf/blob/main/.github/workflows/test.yml,
-which is: 'Copyright 2019-2021 by Sven Kreiss and contributors. All rights reserved.'
-and licensed under GNU AGPLv3
-"""
+
+# Adapted from https://github.com/openpifpaf/openpifpaf/blob/main/.github/workflows/test.yml,
+#which is: 'Copyright 2019-2021 by Sven Kreiss and contributors. All rights reserved.'
+# and licensed under GNU AGPLv3
 
 name: Tests
 
