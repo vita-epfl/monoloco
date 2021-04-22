@@ -71,7 +71,7 @@ class Trainer:
             now_time = now.strftime("%Y%m%d-%H%M")[2:]
             name_out = name + '-' + now_time + '.pkl'
             self.path_out = os.path.join(dir_out, name_out)
-        assert dir_out, "Directory to save the model not found"
+        assert os.path.exists(dir_out), "Directory to save the model not found"
         print(self.path_out)
         # Select the device
         use_cuda = torch.cuda.is_available()
