@@ -18,6 +18,7 @@ def cli():
     # Predict (2D pose and/or 3D location from images)
     predict_parser.add_argument('images', nargs='*', help='input images')
     predict_parser.add_argument('--glob', help='glob expression for input images (for many images)')
+    predict_parser.add_argument('--checkpoint', help='pifpaf model')
     predict_parser.add_argument('-o', '--output-directory', help='Output directory')
     predict_parser.add_argument('--output_types', nargs='+', default=['json'],
                                 help='what to output: json keypoints skeleton for Pifpaf'

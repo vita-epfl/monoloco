@@ -53,7 +53,10 @@ def get_torch_checkpoints_dir():
 
 def download_checkpoints(args):
     torch_dir = get_torch_checkpoints_dir()
-    pifpaf_model = os.path.join(torch_dir, 'shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl')
+    if args.checkpoint is None:
+        pifpaf_model = os.path.join(torch_dir, 'shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl')
+    else:
+        pifpaf_model = args.checkpoint
     dic_models = {'keypoints': pifpaf_model}
     if not os.path.exists(pifpaf_model):
         assert DOWNLOAD is not None, "pip install gdown to download pifpaf model, or pass it as --checkpoint"
