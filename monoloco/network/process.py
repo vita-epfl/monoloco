@@ -30,7 +30,7 @@ def preprocess_monstereo(keypoints, keypoints_r, kk):
     inputs_r = preprocess_monoloco(keypoints_r, kk)
 
     inputs = torch.empty((0, 68)).to(inputs_l.device)
-    for idx, inp_l in enumerate(inputs_l.split(1)):
+    for inp_l in inputs_l.split(1):
         clst = 0
         # inp_l = torch.cat((inp_l, cat[:, idx:idx+1]), dim=1)
         for idx_r, inp_r in enumerate(inputs_r.split(1)):

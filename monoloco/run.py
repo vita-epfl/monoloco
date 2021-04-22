@@ -163,7 +163,7 @@ def main():
 
         elif args.geometric:
             assert args.joints, "joints argument not provided"
-            from .network.geom_baseline import geometric_baseline
+            from .eval.geom_baseline import geometric_baseline
             geometric_baseline(args.joints)
 
         elif args.variance:

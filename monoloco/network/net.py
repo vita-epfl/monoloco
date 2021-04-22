@@ -9,11 +9,13 @@ import math
 import logging
 from collections import defaultdict
 
+import numpy as np
 import torch
 
-from ..utils import get_iou_matches, reorder_matches, get_keypoints, pixel_to_camera, xyz_from_distance
+from ..utils import get_iou_matches, reorder_matches, get_keypoints, pixel_to_camera, xyz_from_distance,  \
+    mask_joint_disparity
 from .process import preprocess_monstereo, preprocess_monoloco, extract_outputs, extract_outputs_mono,\
-    filter_outputs, cluster_outputs, unnormalize_bi
+    filter_outputs, cluster_outputs, unnormalize_bi, laplace_sampling
 from ..activity import social_interactions
 from .architectures import MonolocoModel, LocoModel
 
@@ -116,7 +118,7 @@ class Loco:
                 outputs = self.model(inputs)
 
                 outputs = cluster_outputs(outputs, keypoints_r.shape[0])
-                outputs_fin, mask = filter_outputs(outputs)
+                outputs_fin, _ = filter_outputs(outputs)
                 dic_out = extract_outputs(outputs_fin)
 
                 # For Median baseline
@@ -136,7 +138,6 @@ class Loco:
         Apply dropout at test time to obtain combined aleatoric + epistemic uncertainty
         """
         assert self.net in ('monoloco', 'monoloco_p', 'monoloco_pp'), "Not supported for MonStereo"
-        from .process import laplace_sampling
 
         self.model.dropout.training = True  # Manually reactivate dropout in eval
         total_outputs = torch.empty((0, inputs.size()[0])).to(self.device)
@@ -271,8 +272,6 @@ def median_disparity(dic_out, keypoints, keypoints_r, mask):
     Filters are applied to masks nan joints and remove outlier disparities with iqr
     The mask input is used to filter the all-vs-all approach
     """
-    import numpy as np
-    from ..utils import mask_joint_disparity
 
     keypoints = keypoints.cpu().numpy()
     keypoints_r = keypoints_r.cpu().numpy()

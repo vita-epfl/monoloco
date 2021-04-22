@@ -9,8 +9,6 @@ testpaths = ["tests"]
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
 [tool.pylint.BASIC]
-variable-rgx = "[a-z0-9_]{1,30}$"
-good-names = ["ap", "kk", "kp", "b", "d","dd", "xx", "yy", "xzz", "ax", "f", "g", "gt", "h", "i", "im", "lr", "n", "p", "q", "plt", "r", "s", "t", "t1", "t2", "th", "v", "vs", "w", "wh", "x", "x1", "x2", "xs", "y", "ys", "xy"]
 class-const-naming-style = "snake_case"  # checked since pylint 2.7.3
 
 [tool.pylint.IMPORTS]
@@ -33,6 +31,8 @@ disable = [
     "too-few-public-methods",
     "unsubscriptable-object",
     "not-callable",  # for torch tensors
+    "invalid-name",
+    "logging-format-interpolation",
     ]
 [tool.pylint.FORMAT]
 max-line-length = 120

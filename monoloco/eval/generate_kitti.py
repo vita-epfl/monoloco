@@ -13,7 +13,7 @@ import torch
 
 from ..network import Loco
 from ..network.process import preprocess_pifpaf
-from ..network.geom_baseline import geometric_coordinates
+from .geom_baseline import geometric_coordinates
 from ..utils import get_keypoints, pixel_to_camera, factory_basename, make_new_directory, get_category, \
     xyz_from_distance, read_and_rewrite
 from .stereo_baselines import baselines_association
