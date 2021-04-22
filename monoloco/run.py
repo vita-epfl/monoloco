@@ -36,8 +36,10 @@ def cli():
     predict_parser.add_argument('--instance-threshold', type=float, default=None, help='threshold for entire instance')
     predict_parser.add_argument('--seed-threshold', type=float, default=0.5, help='threshold for single seed')
     predict_parser.add_argument('--disable-cuda', action='store_true', help='disable CUDA')
-    parser.add_argument('--precise-rescaling', dest='fast_rescaling', default=True, action='store_false',
-                        help='use more exact image rescaling (requires scipy)')
+    predict_parser.add_argument('--precise-rescaling', dest='fast_rescaling', default=True, action='store_false',
+                                help='use more exact image rescaling (requires scipy)')
+    predict_parser.add_argument('--decoder-workers', default=0, type=int,
+                                help='number of workers for pose decoding')
 
     decoder.cli(parser)
     logger.cli(parser)
