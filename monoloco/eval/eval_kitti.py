@@ -7,11 +7,16 @@ Evaluate MonStereo code on KITTI dataset using ALE metric
 import os
 import math
 import logging
+import copy
 import datetime
 from collections import defaultdict
 
 import numpy as np
-from tabulate import tabulate
+try:
+    import tabulate
+    TABULATE = copy.copy(tabulate.tabulate)
+except ImportError:
+    TABULATE = None
 
 from ..utils import get_iou_matches, get_task_error, get_pixel_error, check_conditions, \
     get_difficulty, split_training, get_iou_matches_matrix, average, find_cluster
@@ -368,7 +373,7 @@ class EvalKitti:
                for key in all_methods]
 
         results = [[key] + alp[idx] + ale[idx] for idx, key in enumerate(all_methods)]
-        print(tabulate(results, headers=self.HEADERS))
+        print(TABULATE(results, headers=self.HEADERS))
         print('-' * 90 + '\n')
 
     def stats_height(self):
