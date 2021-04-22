@@ -1,0 +1,68 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: 3.6
+            torch: 1.7.1+cpu
+            torchvision: 0.8.2+cpu
+            torch-source: https://download.pytorch.org/whl/cpu/torch_stable.html
+          - os: ubuntu-latest
+            python: 3.7
+            torch: 1.7.1+cpu
+            torchvision: 0.8.2+cpu
+            torch-source: https://download.pytorch.org/whl/torch_stable.html
+          - os: ubuntu-latest
+            python: 3.8
+            torch: 1.7.1+cpu
+            torchvision: 0.8.2+cpu
+            torch-source: https://download.pytorch.org/whl/cpu/torch_stable.html
+            slow: True
+          - os: macos-latest
+            python: 3.7
+            torch: 1.7.1
+            torchvision: 0.8.2
+            torch-source: https://download.pytorch.org/whl/torch_stable.html
+            conda: True
+          - os: windows-latest
+            python: 3.7
+            torch: 1.7.1+cpu
+            torchvision: 0.8.2+cpu
+            torch-source: https://download.pytorch.org/whl/torch_stable.html
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python }}
+      if: ${{ !matrix.conda }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - run: which python
+    - run: python --version
+    - name: Install
+      run: |
+        python -m pip install --upgrade pip setuptools
+        python -m pip install -e ".[test]"
+    - name: Print environment
+      run: |
+        python -m pip freeze
+        python --version
+        python -c "import monoloco; print(monoloco.__version__)"
+    - name: Lint monoloco
+      run: |
+        pylint monoloco --disable=fixme
+    - name: Lint tests
+      if: matrix.os != 'windows-latest'  # because of path separator
+      run: |
+        pylint tests/*.py --disable=fixme
+
+    - name: Test
+      run: |
+        pytest -vv
