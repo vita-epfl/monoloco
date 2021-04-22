@@ -14,6 +14,7 @@ The following files are based on the OpenPifPaf project which is
 
 - tests/test_train_mono.py
 - tests/test_train_stereo.py
-- visuals/pifpaf_show.py
-- train/losses.py
-- predict.py
+- monoloco/visuals/pifpaf_show.py
+- monoloco/train/losses.py
+- monoloco/predict.py
+-.github/workflows/tests.yml
