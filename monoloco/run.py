@@ -1,4 +1,4 @@
-# pylint: disable=too-many-branches, too-many-statements
+# pylint: disable=too-many-branches, too-many-statements, import-outside-toplevel
 
 import argparse
 
@@ -18,6 +18,7 @@ def cli():
     # Predict (2D pose and/or 3D location from images)
     predict_parser.add_argument('images', nargs='*', help='input images')
     predict_parser.add_argument('--glob', help='glob expression for input images (for many images)')
+    predict_parser.add_argument('--checkpoint', help='pifpaf model')
     predict_parser.add_argument('-o', '--output-directory', help='Output directory')
     predict_parser.add_argument('--output_types', nargs='+', default=['json'],
                                 help='what to output: json keypoints skeleton for Pifpaf'
@@ -35,9 +36,10 @@ def cli():
     predict_parser.add_argument('--instance-threshold', type=float, default=None, help='threshold for entire instance')
     predict_parser.add_argument('--seed-threshold', type=float, default=0.5, help='threshold for single seed')
     predict_parser.add_argument('--disable-cuda', action='store_true', help='disable CUDA')
-    predict_parser.add_argument('--focal',
-                                help='focal length in mm for a sensor size of 7.2x5.4 mm. Default nuScenes sensor',
-                                type=float, default=5.7)
+    predict_parser.add_argument('--precise-rescaling', dest='fast_rescaling', default=True, action='store_false',
+                                help='use more exact image rescaling (requires scipy)')
+    predict_parser.add_argument('--decoder-workers', default=None, type=int,
+                                help='number of workers for pose decoding, 0 for windows')
 
     decoder.cli(parser)
     logger.cli(parser)
@@ -53,6 +55,8 @@ def cli():
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
     predict_parser.add_argument('--dropout', type=float, help='dropout parameter', default=0.2)
     predict_parser.add_argument('--show_all', help='only predict ground-truth matches or all', action='store_true')
+    predict_parser.add_argument('--focal', help='focal length in mm for a sensor size of 7.2x5.4 mm. (nuScenes)',
+                                type=float, default=5.7)
 
     # Social distancing and social interactions
     predict_parser.add_argument('--social_distance', help='social', action='store_true')
@@ -74,11 +78,12 @@ def cli():
     # Training
     training_parser.add_argument('--joints', help='Json file with input joints', required=True)
     training_parser.add_argument('--mode', help='mono, stereo', default='mono')
+    training_parser.add_argument('--out', help='output_path, e.g., data/outputs/test.pkl')
     training_parser.add_argument('-e', '--epochs', type=int, help='number of epochs to train for', default=500)
     training_parser.add_argument('--bs', type=int, default=512, help='input batch size')
     training_parser.add_argument('--monocular', help='whether to train monoloco', action='store_true')
     training_parser.add_argument('--dropout', type=float, help='dropout. Default no dropout', default=0.2)
-    training_parser.add_argument('--lr', type=float, help='learning rate', default=0.001)
+    training_parser.add_argument('--lr', type=float, help='learning rate', default=0.002)
     training_parser.add_argument('--sched_step', type=float, help='scheduler step time (epochs)', default=30)
     training_parser.add_argument('--sched_gamma', type=float, help='Scheduler multiplication every step', default=0.98)
     training_parser.add_argument('--hidden_size', type=int, help='Number of hidden units in the model', default=1024)
@@ -131,10 +136,10 @@ def main():
             prep = PreprocessNuscenes(args.dir_ann, args.dir_nuscenes, args.dataset, args.iou_min)
             prep.run()
         else:
-            from .prep.prep_kitti import PreprocessKitti
+            from .prep.preprocess_kitti import PreprocessKitti
             prep = PreprocessKitti(args.dir_ann, mode=args.mode, iou_min=args.iou_min)
             if args.activity:
-                prep.prep_activity()
+                prep.process_activity()
             else:
                 prep.run()
 
@@ -162,7 +167,7 @@ def main():
 
         elif args.geometric:
             assert args.joints, "joints argument not provided"
-            from .network.geom_baseline import geometric_baseline
+            from .eval.geom_baseline import geometric_baseline
             geometric_baseline(args.joints)
 
         elif args.variance:

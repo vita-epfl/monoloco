@@ -13,10 +13,11 @@ import torch
 
 from ..network import Loco
 from ..network.process import preprocess_pifpaf
-from ..network.geom_baseline import geometric_coordinates
-from ..utils import get_keypoints, pixel_to_camera, factory_file, factory_basename, make_new_directory, get_category, \
+from .geom_baseline import geometric_coordinates
+from ..utils import get_keypoints, pixel_to_camera, factory_basename, make_new_directory, get_category, \
     xyz_from_distance, read_and_rewrite
 from .stereo_baselines import baselines_association
+from ..prep import factory_file
 from .reid_baseline import get_reid_features, ReID
 
 
@@ -93,7 +94,7 @@ class GenerateKitti:
         make_new_directory(di)
         dir_out = {self.net: di}
 
-        for mode, names in self.baselines.items():
+        for _, names in self.baselines.items():
             for name in names:
                 di = os.path.join('data', 'kitti', name)
                 make_new_directory(di)
@@ -106,7 +107,7 @@ class GenerateKitti:
             boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1242, 374))
             cat = get_category(keypoints, os.path.join(self.dir_byc, basename + '.json'))
             if keypoints:
-                annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, mode='right')
+                annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
                 _, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
 
                 if self.net == 'monstereo':
@@ -121,7 +122,7 @@ class GenerateKitti:
                 # Save txt files
                 params = [kk, tt]
                 path_txt = os.path.join(dir_out[self.net], basename + '.txt')
-                save_txts(path_txt, boxes, all_outputs[self.net], params, mode=self.net, cat=cat)
+                save_txts(path_txt, boxes, all_outputs[self.net], params, net=self.net, cat=cat)
                 cnt_ann += len(boxes)
                 cnt_file += 1
 
@@ -136,7 +137,7 @@ class GenerateKitti:
                     # monocular baselines
                     for key in self.baselines['mono']:
                         path_txt = {key: os.path.join(dir_out[key], basename + '.txt')}
-                        save_txts(path_txt[key], boxes, all_outputs[key], params, mode=key, cat=cat)
+                        save_txts(path_txt[key], boxes, all_outputs[key], params, net=key, cat=cat)
 
                     # stereo baselines
                     if self.baselines['stereo']:
@@ -149,7 +150,7 @@ class GenerateKitti:
 
                             path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
                             save_txts(path_txt[key], all_inputs[key], all_outputs[key], params,
-                                      mode='baseline',
+                                      net='baseline',
                                       cat=cat)
 
         print("\nSaved in {} txt {} annotations. Not found {} images".format(cnt_file, cnt_ann, cnt_no_file))
@@ -166,9 +167,9 @@ class GenerateKitti:
 
     def _run_stereo_baselines(self, basename, boxes, keypoints, zzs, path_calib):
 
-        annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, mode='right')
+        annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
         boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
-        _, kk, tt = factory_file(path_calib, self.dir_ann, basename)
+        _, kk, _ = factory_file(path_calib, self.dir_ann, basename)
 
         uv_centers = get_keypoints(keypoints, mode='bottom')  # Kitti uses the bottom center to calculate depth
         xy_centers = pixel_to_camera(uv_centers, kk, 1)
@@ -198,15 +199,15 @@ class GenerateKitti:
         return dic_xyz
 
 
-def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco', cat=None):
+def save_txts(path_txt, all_inputs, all_outputs, all_params, net='monoloco', cat=None):
 
-    assert mode in ('monoloco', 'monstereo', 'geometric', 'baseline', 'monoloco_pp')
+    assert net in ('monoloco', 'monstereo', 'geometric', 'baseline', 'monoloco_pp')
 
-    if mode in ('monstereo', 'monoloco_pp'):
+    if net in ('monstereo', 'monoloco_pp'):
         xyzd, bis, epis, yaws, hs, ws, ls = all_outputs[:]
         xyz = xyzd[:, 0:3]
         tt = [0, 0, 0]
-    elif mode in ('monoloco', 'geometric'):
+    elif net in ('monoloco', 'geometric'):
         tt = [0, 0, 0]
         dds, bis, epis, zzs_geom, xy_centers = all_outputs[:]
         xyz = xyz_from_distance(dds, xy_centers)
@@ -223,25 +224,18 @@ def save_txts(path_txt, all_inputs, all_outputs, all_params, mode='monoloco', ca
             yy = float(xyz[idx][1]) - tt[1]
             zz = float(xyz[idx][2]) - tt[2]
 
-            if mode == 'geometric':
+            if net == 'geometric':
                 zz = zzs_geom[idx]
 
             cam_0 = [xx, yy, zz]
             bi = float(bis[idx])
             epi = float(epis[idx])
-            if mode in ('monstereo', 'monoloco_pp'):
+            if net in ('monstereo', 'monoloco_pp'):
                 alpha, ry = float(yaws[0][idx]), float(yaws[1][idx])
                 hwl = [float(hs[idx]), float(ws[idx]), float(ls[idx])]
+                conf_scale = 0.035  # scale to obtain (approximately) same recall at evaluation
             else:
                 alpha, ry, hwl = -10., -10., [0, 0, 0]
-
-            # Set the scale to obtain (approximately) same recall at evaluation
-            if mode == 'monstereo':
-                conf_scale = 0.03
-            elif mode == 'monoloco_pp':
-                conf_scale = 0.033
-                # conf_scale = 0.035  # nuScenes for having same recall
-            else:
                 conf_scale = 0.05
             conf = conf_scale * (uv_box[-1]) / (bi / math.sqrt(xx ** 2 + yy ** 2 + zz ** 2))
 

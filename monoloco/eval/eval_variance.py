@@ -1,4 +1,4 @@
-# pylint: disable=too-many-statements,too-many-branches
+# pylint: disable=too-many-statements
 
 """Joints Analysis: Supplementary material of MonStereo"""
 
@@ -11,26 +11,7 @@ import matplotlib.pyplot as plt
 
 from ..utils import find_cluster, average
 from ..visuals.figures import get_distances
-
-COCO_KEYPOINTS = [
-    'nose',            # 0
-    'left_eye',        # 1
-    'right_eye',       # 2
-    'left_ear',        # 3
-    'right_ear',       # 4
-    'left_shoulder',   # 5
-    'right_shoulder',  # 6
-    'left_elbow',      # 7
-    'right_elbow',     # 8
-    'left_wrist',      # 9
-    'right_wrist',     # 10
-    'left_hip',        # 11
-    'right_hip',       # 12
-    'left_knee',       # 13
-    'right_knee',      # 14
-    'left_ankle',      # 15
-    'right_ankle',     # 16
-]
+from ..prep.transforms import COCO_KEYPOINTS
 
 
 def joints_variance(joints, clusters, dic_ms):
@@ -184,8 +165,8 @@ def variance_figures(dic_fin, clusters):
     plt.title("Standard deviation of joints disparity")
     yys_p = [el for _, el in dic_fin['pifpaf']['std_d'].items()]
     yys_m = [el for _, el in dic_fin['mask']['std_d'].items()]
-    yys_p_z = [el for _, el in dic_fin['pifpaf']['std_z'].items()]
-    yys_m_z = [el for _, el in dic_fin['mask']['std_z'].items()]
+    # yys_p_z = [el for _, el in dic_fin['pifpaf']['std_z'].items()]
+    # yys_m_z = [el for _, el in dic_fin['mask']['std_z'].items()]
     plt.plot(xxs, yys_p, marker='s', label="PifPaf")
     plt.plot(xxs, yys_m, marker='o', label="Mask R-CNN")
     # plt.plot(xxs, yys_p_z, marker='s', color='b', label="PifPaf (meters)")

@@ -12,7 +12,16 @@ D_MAX = BF / z_min
 
 
 def extract_stereo_matches(keypoint, keypoints_r, zz, phase='train', seed=0, method=None):
-    """Return binaries representing the match between the pose in the left and the ones in the right"""
+    """
+    Return:
+        1) a list of tuples that indicates, for a reference pose in the left image:
+    - the index of the right pose
+    - weather the right pose corresponds to the same person as the left pose (stereo match) or not
+    For example: [(0,0), (1,0), (2,1)] means there are three right poses in the image
+    and the third one is the same person as the reference pose
+    2) a flag indicating whether a match has been found
+    3) number of ambiguous instances, for which is not possible to define whether there is a correspondence
+    """
 
     stereo_matches = []
     cnt_ambiguous = 0
@@ -70,20 +79,10 @@ def extract_stereo_matches(keypoint, keypoints_r, zz, phase='train', seed=0, met
             if idx_matches[num] not in used:
                 stereo_matches.append((idx_matches[num], 0))
 
-        # elif len(stereo_matches) < 1:
-        #     stereo_matches.append((idx_match, 0))
-
-        # Easy-negative
-        # elif len(idx_matches) > len(stereo_matches):
-        #         stereo_matches.append((idx_matches[-1], 0))
-        #         break  # matches are ordered
         else:
             break
         used.append(idx_match)
 
-    # Make sure each left has at least a negative match
-    # if not stereo_matches:
-    #     stereo_matches.append((idx_matches[0], 0))
     return stereo_matches, cnt_ambiguous
 
 
@@ -191,7 +190,7 @@ def verify_stereo(zz_stereo, zz_mono, disparity_x, disparity_y):
     y_max_difference = (80 / zz_mono)
     z_max_difference = 1 * zz_mono
 
-    cov = float(np.nanstd(disparity_x) / np.abs(np.nanmean(disparity_x)))  # Coefficient of variation
+    cov = float(np.nanstd(disparity_x) / np.abs(np.nanmean(disparity_x)))  # pylint: disable=unused-variable
     avg_disparity_y = np.nanmedian(disparity_y)
 
     return abs(zz_stereo - zz_mono) < z_max_difference and avg_disparity_y < y_max_difference and 1 < zz_stereo < 80

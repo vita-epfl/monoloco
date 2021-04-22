@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 
-class MonStereoModel(nn.Module):
+class LocoModel(nn.Module):
 
     def __init__(self, input_size, output_size=2, linear_size=512, p_dropout=0.2, num_stage=3, device='cuda'):
         super().__init__()

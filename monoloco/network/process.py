@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import torchvision
 
-from ..utils import get_keypoints, pixel_to_camera, to_cartesian, back_correct_angles
+from ..utils import get_keypoints, pixel_to_camera, to_cartesian, back_correct_angles, open_annotations
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def preprocess_monstereo(keypoints, keypoints_r, kk):
     inputs_r = preprocess_monoloco(keypoints_r, kk)
 
     inputs = torch.empty((0, 68)).to(inputs_l.device)
-    for idx, inp_l in enumerate(inputs_l.split(1)):
+    for inp_l in inputs_l.split(1):
         clst = 0
         # inp_l = torch.cat((inp_l, cat[:, idx:idx+1]), dim=1)
         for idx_r, inp_r in enumerate(inputs_r.split(1)):
@@ -135,7 +135,6 @@ def preprocess_mask(dir_ann, basename, mode='left'):
     elif mode == 'right':
         path_ann = os.path.join(dir_ann + '_right', basename + '.json')
 
-    from ..utils import open_annotations
     dic = open_annotations(path_ann)
     if isinstance(dic, list):
         return [], []

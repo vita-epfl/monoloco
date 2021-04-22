@@ -1,9 +1,12 @@
-# Monoloco library  &nbsp;&nbsp; &nbsp; [![Downloads](https://pepy.tech/badge/monoloco)](https://pepy.tech/project/monoloco)
+# Monoloco library  &nbsp;&nbsp;  [![Downloads](https://pepy.tech/badge/monoloco)](https://pepy.tech/project/monoloco)
+Continuously tested on Linux, MacOS and Windows: [![Tests](https://github.com/vita-epfl/monoloco/workflows/Tests/badge.svg?branch=main)](https://github.com/vita-epfl/monoloco/actions?query=workflow%3ATests)
+
+
 
 <img src="docs/monoloco.gif" alt="gif" />
 
 
-This library is based on three research projects for monocular/stereo 3D human localization (detection), body orientation, and social distancing. Check the __video teaser__ of the library on [__YouTube__](https://www.youtube.com/watch?v=O5zhzi8mwJ4).
+This library is based on three research projects for monocular/stereo 3D human localization (detection), body orientation, and social distancing. Check the __video teaser__ of the library on [__YouTube__](https://www.youtube.com/watch?v=O5zhzi8mwJ4). 
 
 ---
 
@@ -114,9 +117,9 @@ If you provide a ground-truth json file to compare the predictions of the networ
 
 For an example image, run the following command:
 
-```
+```sh
 python -m monoloco.run predict docs/002282.png \
---path_gt <to match results with ground-truths> \
+--path_gt names-kitti-200615-1022.json \
 -o <output directory> \
 --long-edge <rescale the image by providing dimension of long side>
 --n_dropout <50 to include epistemic uncertainty, 0 otherwise>
@@ -129,7 +132,7 @@ To show all the instances estimated by MonoLoco add the argument `show_all` to t
 ![predict_all](docs/out_002282.png.multi_all.jpg)
 
 It is also possible to run [openpifpaf](https://github.com/vita-epfl/openpifpaf) directly
-by usingt `--mode keypoints`. All the other pifpaf arguments are also supported 
+by using `--mode keypoints`. All the other pifpaf arguments are also supported 
 and can be checked with `python -m monoloco.run predict --help`.
 
 ![predict](docs/out_002282_pifpaf.jpg)
@@ -199,7 +202,7 @@ python -m monoloco.run train --joints data/arrays/joints-kitti-201202-1743.json
 
 While for the MonStereo ones just change the input joints and add `--mode stereo`
 ```
-python3 -m monoloco.run train --joints data/arrays/joints-kitti-201202-1022.json --mode stereo
+python3 -m monoloco.run train --lr 0.002 --joints data/arrays/joints-kitti-201202-1022.json --mode stereo
 ```
 
 If you are interested in the original results of the MonoLoco ICCV article (now improved with MonoLoco++), please refer to the tag v0.4.9 in this repository.
@@ -219,40 +222,58 @@ The code supports this option (by running the predict script and using `--mode p
 ### Data structure
 
     data         
-    ├── arrays                 
-    ├── models
+    ├── outputs                 
+    ├── arrays
     ├── kitti
-    ├── logs
-    ├── output
     
 Run the following inside monoloco repository:
 ```
 mkdir data
 cd data
-mkdir arrays models kitti logs output
+mkdir outputs arrays kitti
 ```
 
 
 ### Kitti Dataset
-Annotations from a pose detector needs to be stored in a folder. With PifPaf:
+Download kitti images (from left and right cameras), ground-truth files (labels), and calibration files from their [website](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d) and save them inside the `data` folder as shown below.
 
-```
+    data         
+    ├── kitti
+            ├── gt
+            ├── calib
+            ├── images
+            ├── images_right
+
+
+The network takes as inputs 2D keypoints annotations. To create them run PifPaf over the saved images:
+```sh
 python -m openpifpaf.predict \
---glob "<kitti images directory>/*.png" \
+--glob "data/kitti/images/*.png" \
 --json-output <directory to contain predictions> \
 --checkpoint=shufflenetv2k30 \
 --instance-threshold=0.05 --seed-threshold 0.05 --force-complete-pose 
 ```
-Once the step is complete, the below commands transform all the annotations into a single json file that will used for training.
+**Horizontal flipping**
+
+To augment the dataset, we apply horizontal flipping on the detected poses. To include small variations in the pose, we use the poses from the right-camera (the dataset uses a stereo camera). As there are no labels for the right camera, the code automatically correct the ground truth depth by taking into account the camera baseline.
+To obtain these poses, run pifpaf also on the folder of right images. Make sure to save annotations into a different folder, and call the right folder: `<NameOfTheLeftFolder>_right`
+
+**Recall**
+
+To maximize the recall (at the cost of the computational time), it's possible to upscale the images with the command `--long_edge 2500` (\~scale 2). 
+
+Once this step is complete, the below commands transform all the annotations into a single json file that will used for training.
+
+
 
 For MonoLoco++:
-```
+```sh
 python -m monoloco.run prep --dir_ann <directory that contains annotations>
 ```
 
 For MonStereo:
-```
-python -m monoloco.run prep --mode stereo --dir_ann <directory that contains annotations> 
+```sh
+python -m monoloco.run prep --mode stereo --dir_ann <directory that contains left annotations> 
 ```
 
 ### Collective Activity Dataset
@@ -324,18 +345,19 @@ and save them into `data/kitti/monodepth`
 To include also geometric baselines and MonoLoco, download a monoloco model, save it in `data/models`, and add the flag ``--baselines`` to the evaluation command
 
 
-
 The evaluation file will run the model over all the annotations and compare the results with KITTI  ground-truth and the downloaded baselines. For this run:
 ```
 python -m monoloco.run eval \
 --dir_ann <annotation directory> \
---model <model path> \
+--model #TODO \
 --generate \
 --save \
 ````
+For stereo results add `--mode stereo` and select `--model #TODO.  Below, the resulting table of results and an example of the saved figures.
 
+<img src="docs/results.jpg" width="700"/>
 
-<img src="docs/results_stereo.jpg" width="550"/>
+<img src="docs/results_monstereo.jpg" width="700"/>
 
 
 ### Relative Average Precision Localization: RALP-5% (MonStereo)

@@ -1,12 +1,15 @@
 # pylint: disable=too-many-statements, too-many-branches, undefined-loop-variable
 
 """
-Adapted from https://github.com/vita-epfl/openpifpaf/blob/master/openpifpaf/predict.py
+Adapted from https://github.com/openpifpaf/openpifpaf/blob/main/openpifpaf/predict.py,
+which is: 'Copyright 2019-2021 by Sven Kreiss and contributors. All rights reserved.'
+and licensed under GNU AGPLv3
 """
 
 import os
 import glob
 import json
+import copy
 import logging
 from collections import defaultdict
 
@@ -17,7 +20,11 @@ import openpifpaf
 import openpifpaf.datasets as datasets
 from openpifpaf.predict import processor_factory, preprocess_factory
 from openpifpaf import decoder, network, visualizer, show, logger
-
+try:
+    import gdown
+    DOWNLOAD = copy.copy(gdown.download)
+except ImportError:
+    DOWNLOAD = None
 from .visuals.printer import Printer
 from .network import Loco
 from .network.process import factory_for_gt, preprocess_pifpaf
@@ -46,12 +53,15 @@ def get_torch_checkpoints_dir():
 
 def download_checkpoints(args):
     torch_dir = get_torch_checkpoints_dir()
-    pifpaf_model = os.path.join(torch_dir, 'shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl')
+    if args.checkpoint is None:
+        pifpaf_model = os.path.join(torch_dir, 'shufflenetv2k30-201104-224654-cocokp-d75ed641.pkl')
+    else:
+        pifpaf_model = args.checkpoint
     dic_models = {'keypoints': pifpaf_model}
     if not os.path.exists(pifpaf_model):
-        import gdown
+        assert DOWNLOAD is not None, "pip install gdown to download pifpaf model, or pass it as --checkpoint"
         LOG.info('Downloading OpenPifPaf model in %s', torch_dir)
-        gdown.download(OPENPIFPAF_MODEL, pifpaf_model, quiet=False)
+        DOWNLOAD(OPENPIFPAF_MODEL, pifpaf_model, quiet=False)
 
     if args.mode == 'keypoints':
         return dic_models
@@ -73,9 +83,9 @@ def download_checkpoints(args):
     model = os.path.join(torch_dir, name)
     dic_models[args.mode] = model
     if not os.path.exists(model):
-        import gdown
+        assert DOWNLOAD is not None, "pip install gdown to download monoloco model, or pass it as --model"
         LOG.info('Downloading model in %s', torch_dir)
-        gdown.download(path, model, quiet=False)
+        DOWNLOAD(path, model, quiet=False)
     return dic_models
 
 
@@ -209,7 +219,7 @@ def predict(args):
 
             else:
                 LOG.info("Prediction with MonStereo")
-                boxes_r, keypoints_r = preprocess_pifpaf(pifpaf_outs['right'], im_size)
+                _, keypoints_r = preprocess_pifpaf(pifpaf_outs['right'], im_size)
                 dic_out = net.forward(keypoints, kk, keypoints_r=keypoints_r)
                 dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt)
 
@@ -229,15 +239,19 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
     # Verify conflicting options
     if any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
         assert args.mode != 'keypoints', "for keypoints please use pifpaf original arguments"
-        if args.social_distance:
-            assert args.mode == 'mono', "Social distancing only works with monocular network"
+    else:
+        assert 'json' in args.output_types or args.mode == 'keypoints', \
+            "No output saved, please select one among front, bird, multi, json, or pifpaf arguments"
+    if args.social_distance:
+        assert args.mode == 'mono', "Social distancing only works with monocular network"
 
     if args.mode == 'keypoints':
         annotation_painter = openpifpaf.show.AnnotationPainter()
         with openpifpaf.show.image_canvas(pifpaf_outs['image'], output_path) as ax:
             annotation_painter.annotations(ax, pifpaf_outs['pred'])
+        return
 
-    elif any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
+    if any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
         LOG.info(output_path)
         if args.social_distance:
             show_social(args, pifpaf_outs['image'], output_path, pifpaf_outs['left'], dic_out)
@@ -246,9 +260,6 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
             figures, axes = printer.factory_axes(dic_out)
             printer.draw(figures, axes, pifpaf_outs['image'])
 
-    elif 'json' in args.output_types:
+    if 'json' in args.output_types:
         with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:
             json.dump(dic_out, ff)
-
-    else:
-        LOG.info("No output saved, please select one among front, bird, multi, or pifpaf options")

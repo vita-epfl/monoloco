@@ -1,0 +1,2 @@
+include versioneer.py
+include monoloco/_version.py

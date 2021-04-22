@@ -1,5 +1,5 @@
 .idea/
-data/
+data
 .DS_store
 __pycache__
 monoloco/*.pyc
