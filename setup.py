@@ -2,6 +2,13 @@
 from setuptools import setup
 import versioneer
 
+# This is needed for versioneer to be importable when building with PEP 517.
+# See <https://github.com/warner/python-versioneer/issues/193> and links
+# therein for more information.
+
+import os, sys
+sys.path.append(os.path.dirname(__file__))
+import versioneer
 
 setup(
     name='monoloco',
