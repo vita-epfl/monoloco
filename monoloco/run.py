@@ -36,9 +36,8 @@ def cli():
     predict_parser.add_argument('--instance-threshold', type=float, default=None, help='threshold for entire instance')
     predict_parser.add_argument('--seed-threshold', type=float, default=0.5, help='threshold for single seed')
     predict_parser.add_argument('--disable-cuda', action='store_true', help='disable CUDA')
-    predict_parser.add_argument('--focal',
-                                help='focal length in mm for a sensor size of 7.2x5.4 mm. Default nuScenes sensor',
-                                type=float, default=5.7)
+    parser.add_argument('--precise-rescaling', dest='fast_rescaling', default=True, action='store_false',
+                        help='use more exact image rescaling (requires scipy)')
 
     decoder.cli(parser)
     logger.cli(parser)
@@ -54,6 +53,8 @@ def cli():
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
     predict_parser.add_argument('--dropout', type=float, help='dropout parameter', default=0.2)
     predict_parser.add_argument('--show_all', help='only predict ground-truth matches or all', action='store_true')
+    predict_parser.add_argument('--focal', help='focal length in mm for a sensor size of 7.2x5.4 mm. (nuScenes)',
+                                type=float, default=5.7)
 
     # Social distancing and social interactions
     predict_parser.add_argument('--social_distance', help='social', action='store_true')
