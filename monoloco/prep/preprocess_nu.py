@@ -247,8 +247,6 @@ def extract_social(inputs, ys, keypoints, idx, matches):
     all_inputs.extend(inputs[idx])
 
     indices_idx = [idx for (idx, idx_gt) in matches]
-    if len(sorted_indices) > 2:
-        aa = 5
     for ii in range(1, 3):
         try:
             index = sorted_indices[ii]

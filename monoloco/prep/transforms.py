@@ -1,7 +1,10 @@
 
 import math
 from copy import deepcopy
+
 import numpy as np
+
+from ..utils import correct_angle, to_cartesian, to_spherical
 
 BASELINE = 0.54
 BF = BASELINE * 721
@@ -75,7 +78,6 @@ def flip_inputs(keypoints, im_w, mode=None):
 
 def flip_labels(boxes_gt, labels, im_w):
     """Correct x, d positions and angles after horizontal flipping"""
-    from ..utils import correct_angle, to_cartesian, to_spherical
     boxes_flip = deepcopy(boxes_gt)
     labels_flip = deepcopy(labels)
 
@@ -98,7 +100,7 @@ def flip_labels(boxes_gt, labels, im_w):
         yaw = label_flip[9]
         yaw_n = math.copysign(1, yaw) * (np.pi - abs(yaw))  # Horizontal flipping change of angle
 
-        sin, cos, yaw_corr = correct_angle(yaw_n, xyz)
+        sin, cos, _ = correct_angle(yaw_n, xyz)
         label_flip[7], label_flip[8], label_flip[9] = sin, cos, yaw_n
 
     return boxes_flip, labels_flip
@@ -108,7 +110,6 @@ def height_augmentation(kps, kps_r, label_s, seed=0):
     """
     label_s: theta, psi, z, rho, wlh, sin, cos, s_match
     """
-    from ..utils import to_cartesian
     n_labels = 3 if label_s[-1] > 0.9 else 1
     height_min = 1.2
     height_max = 2

@@ -144,14 +144,14 @@ class PreprocessKitti:
             width, height = im.size
 
         # Extract left keypoints
-        annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
+        annotations, kk, _ = factory_file(path_calib, self.dir_ann, basename)
         boxes, keypoints = preprocess_pifpaf(annotations, im_size=(width, height), min_conf=min_conf)
         if not keypoints:
             return None, None, None
 
         # Stereo-based horizontal flipping for training (obtaining ground truth for right images)
         self.stats['instances'] += len(keypoints)
-        annotations_r, kk_r, tt_r = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
+        annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
         boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(width, height), min_conf=min_conf)
 
         if not keypoints_r:  # Duplicate the left one(s)
@@ -209,7 +209,7 @@ class PreprocessKitti:
                                                          seed=self.stats_stereo['pair'])
         self.stats_stereo['ambiguous'] += cnt_amb
 
-        for num, (idx_r, s_match) in enumerate(stereo_matches):
+        for idx_r, s_match in stereo_matches:
             label_s = label + [s_match]  # add flag to distinguish "true pairs and false pairs"
             self.stats_stereo['true_pair'] += 1 if s_match > 0.9 else 0
             self.stats_stereo['pair'] += 1  # before augmentation
@@ -283,7 +283,7 @@ class PreprocessKitti:
     def process_activity(self):
         """Augment ground-truth with flag activity"""
 
-        from monoloco.activity import social_interactions
+        from monoloco.activity import social_interactions  # pylint: disable=import-outside-toplevel
         main_dir = os.path.join('data', 'kitti')
         dir_gt = os.path.join(main_dir, 'gt')
         dir_out = os.path.join(main_dir, 'gt_activity')
@@ -296,7 +296,7 @@ class PreprocessKitti:
         for name in self.set_val:
             # Read
             path_gt = os.path.join(dir_gt, name)
-            boxes_gt, ys, truncs_gt, occs_gt, lines = parse_ground_truth(path_gt, category, spherical=False)
+            _, ys, _, _, lines = parse_ground_truth(path_gt, category, spherical=False)
             angles = [y[10] for y in ys]
             dds = [y[4] for y in ys]
             xz_centers = [[y[0], y[2]] for y in ys]

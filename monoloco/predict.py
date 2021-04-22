@@ -214,7 +214,7 @@ def predict(args):
 
             else:
                 LOG.info("Prediction with MonStereo")
-                boxes_r, keypoints_r = preprocess_pifpaf(pifpaf_outs['right'], im_size)
+                _, keypoints_r = preprocess_pifpaf(pifpaf_outs['right'], im_size)
                 dic_out = net.forward(keypoints, kk, keypoints_r=keypoints_r)
                 dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt)
 

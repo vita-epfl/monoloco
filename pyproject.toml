@@ -10,14 +10,14 @@ markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 
 [tool.pylint.BASIC]
 variable-rgx = "[a-z0-9_]{1,30}$"
-good-names = ["ap", "AP", "APM", "APL", "ar", "ax", "ax_2D", "ax_3D", "b", "d", "f", "g", "gt", "h", "i", "im", "lr", "n", "p", "plt", "r", "s", "t", "t1", "t2", "th", "v", "vs", "w", "wh", "x", "x1", "x2", "xs", "y", "ys", "xy"]
+good-names = ["ap", "kk", "kp", "b", "d","dd", "xx", "yy", "xzz", "ax", "f", "g", "gt", "h", "i", "im", "lr", "n", "p", "q", "plt", "r", "s", "t", "t1", "t2", "th", "v", "vs", "w", "wh", "x", "x1", "x2", "xs", "y", "ys", "xy"]
 class-const-naming-style = "snake_case"  # checked since pylint 2.7.3
 
 [tool.pylint.IMPORTS]
 allow-any-import-level = ["pycocotools", "pycocotools.coco"]
 
 [tool.pylint.SIMILARITIES]
-min-similarity-lines = 15  # Minimum lines number of a similarity.
+min-similarity-lines = 20  # Minimum lines number of a similarity.
 ignore-comments = "yes"  # Ignore comments when computing similarities.
 ignore-docstrings = "yes"  # Ignore docstrings when computing similarities.
 ignore-imports = "yes"  # Ignore imports when computing similarities.
@@ -32,8 +32,8 @@ disable = [
     "too-many-locals",
     "too-few-public-methods",
     "unsubscriptable-object",
-    "duplicate-code",  # similarity check unworkable with plugins
-]
+    "not-callable",  # for torch tensors
+    ]
 [tool.pylint.FORMAT]
 max-line-length = 120
 
