@@ -39,6 +39,7 @@ setup(
         'test': [
             'pylint',
             'pytest',
+            'gdown',
         ],
         'eval': [
             'tabulate',
