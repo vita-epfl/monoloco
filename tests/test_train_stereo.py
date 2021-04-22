@@ -28,6 +28,7 @@ PREDICT_COMMAND = [
     '--mode=stereo',
     '--glob', 'docs/000840*.png',
     '--output_types', 'multi', 'json',
+    '--loader-workers=0',  # for windows'
 ]
 
 

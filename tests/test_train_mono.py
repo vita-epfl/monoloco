@@ -26,6 +26,7 @@ PREDICT_COMMAND = [
     'predict',
     'docs/002282.png',
     '--output_types', 'multi', 'json',
+    '--loader-workers=0'  # for windows
 ]
 
 PREDICT_COMMAND_SOCIAL_DISTANCE = [
@@ -34,6 +35,7 @@ PREDICT_COMMAND_SOCIAL_DISTANCE = [
     'docs/frame0032.jpg',
     '--social_distance',
     '--output_types', 'front', 'bird',
+    '--loader-workers=0'  # for windows'
 ]
 
 

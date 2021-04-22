@@ -38,8 +38,8 @@ def cli():
     predict_parser.add_argument('--disable-cuda', action='store_true', help='disable CUDA')
     predict_parser.add_argument('--precise-rescaling', dest='fast_rescaling', default=True, action='store_false',
                                 help='use more exact image rescaling (requires scipy)')
-    predict_parser.add_argument('--decoder-workers', default=0, type=int,
-                                help='number of workers for pose decoding')
+    predict_parser.add_argument('--decoder-workers', default=None, type=int,
+                                help='number of workers for pose decoding, 0 for windows')
 
     decoder.cli(parser)
     logger.cli(parser)

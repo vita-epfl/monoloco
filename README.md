@@ -1,9 +1,12 @@
-# Monoloco library  &nbsp;&nbsp; &nbsp; [![Downloads](https://pepy.tech/badge/monoloco)](https://pepy.tech/project/monoloco)
+# Monoloco library  &nbsp;&nbsp;  [![Downloads](https://pepy.tech/badge/monoloco)](https://pepy.tech/project/monoloco)
+Continuously tested on Linux, MacOS and Windows: [![Tests](https://github.com/vita-epfl/monoloco/workflows/Tests/badge.svg?branch=main)](https://github.com/vita-epfl/monoloco/actions?query=workflow%3ATests)
+
+
 
 <img src="docs/monoloco.gif" alt="gif" />
 
 
-This library is based on three research projects for monocular/stereo 3D human localization (detection), body orientation, and social distancing. Check the __video teaser__ of the library on [__YouTube__](https://www.youtube.com/watch?v=O5zhzi8mwJ4).
+This library is based on three research projects for monocular/stereo 3D human localization (detection), body orientation, and social distancing. Check the __video teaser__ of the library on [__YouTube__](https://www.youtube.com/watch?v=O5zhzi8mwJ4). 
 
 ---
 
