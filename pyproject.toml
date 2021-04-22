@@ -14,7 +14,7 @@ class-const-naming-style = "snake_case"  # checked since pylint 2.7.3
 allow-any-import-level = ["pycocotools", "pycocotools.coco"]
 
 [tool.pylint.SIMILARITIES]
-min-similarity-lines = 20  # Minimum lines number of a similarity.
+min-similarity-lines = 15  # Minimum lines number of a similarity.
 ignore-comments = "yes"  # Ignore comments when computing similarities.
 ignore-docstrings = "yes"  # Ignore docstrings when computing similarities.
 ignore-imports = "yes"  # Ignore imports when computing similarities.
