@@ -156,7 +156,7 @@ python3 -m monoloco.run predict --mode stereo \
 
 ```sh
 python3 -m monoloco.run predict --glob docs/005523*.png \ --output_types multi \
---model data/models/ms-200710-1511.pkl \
+--mode stereo \
 --path_gt <to match results with ground-truths> \
 -o data/output  --long_edge 2500 \
 --instance-threshold 0.05 --seed-threshold 0.05
