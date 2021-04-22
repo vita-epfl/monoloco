@@ -9,14 +9,12 @@ from contextlib import contextmanager
 
 import numpy as np
 from PIL import Image
+import matplotlib
+import matplotlib.pyplot as plt
 
 try:
-    import matplotlib
-    import matplotlib.pyplot as plt
     import scipy.ndimage as ndimage
 except ImportError:
-    matplotlib = None
-    plt = None
     ndimage = None
 
 
