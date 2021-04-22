@@ -4,7 +4,6 @@ requires = ["numpy", "setuptools", "wheel"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--nbval-lax --current-env --doctest-modules"
 testpaths = ["tests"]
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 

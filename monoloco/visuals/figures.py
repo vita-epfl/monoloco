@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 try:
     import pandas as pd
-    DATAFRAME = pd.dataframe
+    DATAFRAME = pd.DataFrame
 except ImportError:
     DATAFRAME = None
 
