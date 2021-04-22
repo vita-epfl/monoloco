@@ -56,11 +56,11 @@ jobs:
     - run: python --version
     - name: Install
       run: |
-        python -m pip3 install --upgrade pip setuptools
-        python -m pip3 install -e ".[test]"
+        python -m pip install --upgrade pip setuptools
+        python -m pip install -e ".[test]"
     - name: Print environment
       run: |
-        python -m pip3 freeze
+        python -m pip freeze
         python --version
         python -c "import monoloco; print(monoloco.__version__)"
     - name: Lint monoloco
