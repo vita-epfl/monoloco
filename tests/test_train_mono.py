@@ -67,6 +67,7 @@ def test_train_mono(tmp_path):
 
     predict_cmd_sd = PREDICT_COMMAND_SOCIAL_DISTANCE + [
         '--model={}'.format(model),
+        '--checkpoint={}'.format(pifpaf_model),
         '-o={}'.format(tmp_path),
     ]
     print(' '.join(predict_cmd_sd))
