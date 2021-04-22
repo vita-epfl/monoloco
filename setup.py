@@ -40,6 +40,7 @@ setup(
             'pylint',
             'pytest',
             'gdown',
+            'scipy',  # for social distancing gaussian blur
         ],
         'eval': [
             'tabulate',
