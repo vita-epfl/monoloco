@@ -35,7 +35,6 @@ setup(
     install_requires=[
         'openpifpaf>=v0.12.1',
         'matplotlib',
-        'versioneer',
     ],
     extras_require={
         'test': [
