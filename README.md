@@ -1,5 +1,5 @@
 # Monoloco library  &nbsp;&nbsp;  [![Downloads](https://pepy.tech/badge/monoloco)](https://pepy.tech/project/monoloco)
-Continuously tested on Linux, MacOS and Windows: [![Tests](https://github.com/vita-epfl/monoloco/workflows/Tests/badge.svg?branch=main)](https://github.com/vita-epfl/monoloco/actions?query=workflow%3ATests)
+Continuously tested on Linux, MacOS and Windows: [![Tests](https://github.com/vita-epfl/monoloco/workflows/Tests/badge.svg)](https://github.com/vita-epfl/monoloco/actions?query=workflow%3ATests)
 
 
 
