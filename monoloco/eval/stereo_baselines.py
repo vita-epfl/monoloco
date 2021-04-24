@@ -22,7 +22,7 @@ def baselines_association(baselines, zzs, keypoints, keypoints_right, reid_featu
     cnt_stereo['max'] = min(keypoints.shape[0], keypoints_r.shape[0])  # pylint: disable=E1136
 
     # Filter joints disparity and calculate avg disparity
-    avg_disparities, disparities_x, disparities_y = mask_joint_disparity(keypoints, keypoints_r)
+    avg_disparities, _, _ = mask_joint_disparity(keypoints, keypoints_r)
 
     # Iterate over each left pose
     for key in baselines:

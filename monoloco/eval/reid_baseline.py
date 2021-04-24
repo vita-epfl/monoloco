@@ -27,7 +27,7 @@ def get_reid_features(reid_net, boxes, boxes_r, path_image, path_image_r):
     return features.cpu(), features_r.cpu()
 
 
-class ReID(object):
+class ReID:
     def __init__(self, weights_path, device, num_classes=751, height=256, width=128):
         super().__init__()
         torch.manual_seed(1)

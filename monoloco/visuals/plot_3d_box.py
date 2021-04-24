@@ -10,11 +10,11 @@ def correct_boxes(boxes, hwls, xyzs, yaws, path_calib):
     p2_list = [float(xx) for xx in p2_str]
     P = np.array(p2_list).reshape(3, 4)
     boxes_new = []
-    for idx, box in enumerate(boxes):
+    for idx in range(boxes):
         hwl = hwls[idx]
         xyz = xyzs[idx]
         yaw = yaws[idx]
-        corners_2d, corners_3d = compute_box_3d(hwl, xyz, yaw, P)
+        corners_2d, _ = compute_box_3d(hwl, xyz, yaw, P)
         box_new = project_8p_to_4p(corners_2d).reshape(-1).tolist()
         boxes_new.append(box_new)
     return boxes_new
@@ -58,13 +58,11 @@ def compute_box_3d(hwl, xyz, ry, P):
     return corners_2d, np.transpose(corners_3d)
 
 
-
 def roty(t):
     """ Rotation about the y-axis. """
     c = np.cos(t)
     s = np.sin(t)
     return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
-
 
 
 def project_to_image(pts_3d, P):
@@ -85,7 +83,6 @@ def project_to_image(pts_3d, P):
     pts_2d[:, 0] /= pts_2d[:, 2]
     pts_2d[:, 1] /= pts_2d[:, 2]
     return pts_2d[:, 0:2]
-
 
 
 def project_8p_to_4p(pts_2d):

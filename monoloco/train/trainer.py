@@ -1,8 +1,10 @@
 # pylint: disable=too-many-statements
 
 """
-Training and evaluation of a neural network which predicts 3D localization and confidence intervals
-given 2d joints
+Training and evaluation of a neural network that, given 2D joints, estimates:
+- 3D localization and confidence intervals
+- Orientation
+- Bounding box dimensions
 """
 
 import copy
@@ -12,7 +14,6 @@ import logging
 from collections import defaultdict
 import sys
 import time
-import warnings
 from itertools import chain
 
 import matplotlib.pyplot as plt
@@ -20,10 +21,11 @@ import torch
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
+from .. import __version__
 from .datasets import KeypointsDataset
 from .losses import CompositeLoss, MultiTaskLoss, AutoTuneMultiTaskLoss
 from ..network import extract_outputs, extract_labels
-from ..network.architectures import MonStereoModel
+from ..network.architectures import LocoModel
 from ..utils import set_logger
 
 
@@ -35,21 +37,16 @@ class Trainer:
     val_task = 'd'
     lambdas = (1, 1, 1, 1, 1, 1, 1, 1)
     clusters = ['10', '20', '30', '40']
+    input_size = dict(mono=34, stereo=68)
+    output_size = dict(mono=9, stereo=10)
+    dir_figures = os.path.join('figures', 'losses')
 
     def __init__(self, args):
         """
         Initialize directories, load the data and parameters for the training
         """
 
-        # Initialize directories and parameters
-        dir_out = os.path.join('data', 'models')
-        if not os.path.exists(dir_out):
-            warnings.warn("Warning: output directory not found, the model will not be saved")
-        dir_logs = os.path.join('data', 'logs')
-        if not os.path.exists(dir_logs):
-            warnings.warn("Warning: default logs directory not found")
         assert os.path.exists(args.joints), "Input file not found"
-
         self.mode = args.mode
         self.joints = args.joints
         self.num_epochs = args.epochs
@@ -60,10 +57,22 @@ class Trainer:
         self.sched_gamma = args.sched_gamma
         self.hidden_size = args.hidden_size
         self.n_stage = args.n_stage
-        self.dir_out = dir_out
         self.r_seed = args.r_seed
         self.auto_tune_mtl = args.auto_tune_mtl
 
+        # Select path out
+        if args.out:
+            self.path_out = args.out  # full path without extension
+            dir_out, _ = os.path.split(self.path_out)
+        else:
+            dir_out = os.path.join('data', 'outputs')
+            name = 'monoloco_pp' if self.mode == 'mono' else 'monstereo'
+            now = datetime.datetime.now()
+            now_time = now.strftime("%Y%m%d-%H%M")[2:]
+            name_out = name + '-' + now_time + '.pkl'
+            self.path_out = os.path.join(dir_out, name_out)
+        assert os.path.exists(dir_out), "Directory to save the model not found"
+        print(self.path_out)
         # Select the device
         use_cuda = torch.cuda.is_available()
         self.device = torch.device("cuda" if use_cuda else "cpu")
@@ -85,45 +94,28 @@ class Trainer:
             self.mt_loss = MultiTaskLoss(losses_tr, losses_val, self.lambdas, self.tasks)
         self.mt_loss.to(self.device)
 
-        if not self.mode == 'stereo':
-            input_size = 68
-            output_size = 10
-        else:
-            input_size = 34
-            output_size = 9
-
-        name = 'monoloco_pp' if self.mode == 'mono' else 'monstereo'
-        now = datetime.datetime.now()
-        now_time = now.strftime("%Y%m%d-%H%M")[2:]
-        name_out = name + '-' + now_time
-        if not self.no_save:
-            self.path_model = os.path.join(dir_out, name_out + '.pkl')
-            self.logger = set_logger(os.path.join(dir_logs, name_out))
-            self.logger.info(  # pylint: disable=logging-fstring-interpolation
-                f'Training arguments: \ninput_file: {self.joints} \nmode: {self.mode} '
-                f'\nlearning rate: {args.lr}  \nbatch_size: {args.bs}'
-                f'\nepochs: {args.epochs} \ndropout: {args.dropout} '
-                f'\nscheduler step: {args.sched_step} \nscheduler gamma: {args.sched_gamma} '
-                f'\ninput_size: {input_size} \noutput_size: {output_size} \nhidden_size: {args.hidden_size}'
-                f' \nn_stages: {args.n_stage} \n r_seed: {args.r_seed} \nlambdas: {self.lambdas}'
-            )
-        else:
-            logging.basicConfig(level=logging.INFO)
-            self.logger = logging.getLogger(__name__)
-
         # Dataloader
         self.dataloaders = {phase: DataLoader(KeypointsDataset(self.joints, phase=phase),
                                               batch_size=args.bs, shuffle=True) for phase in ['train', 'val']}
 
         self.dataset_sizes = {phase: len(KeypointsDataset(self.joints, phase=phase))
                               for phase in ['train', 'val']}
+        self.dataset_version = KeypointsDataset(self.joints, phase='train').get_version()
+
+        self._set_logger(args)
 
         # Define the model
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
         print(">>> creating model")
 
-        self.model = MonStereoModel(input_size=input_size, output_size=output_size, linear_size=args.hidden_size,
-                                    p_dropout=args.dropout, num_stage=self.n_stage, device=self.device)
+        self.model = LocoModel(
+            input_size=self.input_size[self.mode],
+            output_size=self.output_size[self.mode],
+            linear_size=args.hidden_size,
+            p_dropout=args.dropout,
+            num_stage=self.n_stage,
+            device=self.device,
+        )
         self.model.to(self.device)
         print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model.parameters()) / 1000000.0))
         print(">>> loss params: {}".format(sum(p.numel() for p in self.mt_loss.parameters())))
@@ -158,7 +150,7 @@ class Trainer:
                         if phase == 'train':
                             self.optimizer.zero_grad()
                             outputs = self.model(inputs)
-                            loss, loss_values = self.mt_loss(outputs, labels, phase=phase)
+                            loss, _ = self.mt_loss(outputs, labels, phase=phase)
                             loss.backward()
                             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3)
                             self.optimizer.step()
@@ -188,8 +180,7 @@ class Trainer:
         self.logger.info('Best validation Accuracy for {}: {:.3f}'.format(self.val_task, best_acc))
         self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch))
 
-        if self.print_loss:
-            print_losses(epoch_losses)
+        self._print_losses(epoch_losses)
 
         # load best model weights
         self.model.load_state_dict(best_model_wts)
@@ -255,7 +246,7 @@ class Trainer:
     def compute_stats(self, outputs, labels, dic_err, size_eval, clst):
         """Compute mean, bi and max of torch tensors"""
 
-        loss, loss_values = self.mt_loss(outputs, labels, phase='val')
+        _, loss_values = self.mt_loss(outputs, labels, phase='val')
         rel_frac = outputs.size(0) / size_eval
 
         tasks = self.tasks[:-1] if self.tasks[-1] == 'aux' else self.tasks  # Exclude auxiliary
@@ -333,6 +324,41 @@ class Trainer:
         if epoch % 10 == 0:
             print(string.format(*format_list))
 
+    def _print_losses(self, epoch_losses):
+        if not self.print_loss:
+            return
+        os.makedirs(self.dir_figures, exist_ok=True)
+        for idx, phase in enumerate(epoch_losses):
+            for idx_2, el in enumerate(epoch_losses['train']):
+                plt.figure(idx + idx_2)
+                plt.title(phase + '_' + el)
+                plt.xlabel('epochs')
+                plt.plot(epoch_losses[phase][el][10:], label='{} Loss: {}'.format(phase, el))
+                plt.savefig(os.path.join(self.dir_figures, '{}_loss_{}.png'.format(phase, el)))
+                plt.close()
+
+    def _set_logger(self, args):
+        if self.no_save:
+            logging.basicConfig(level=logging.INFO)
+            self.logger = logging.getLogger(__name__)
+        else:
+            self.path_model = self.path_out
+            print(self.path_model)
+            self.logger = set_logger(os.path.splitext(self.path_out)[0])  # remove .pkl
+            self.logger.info(  # pylint: disable=logging-fstring-interpolation
+                f'\nVERSION: {__version__}\n'
+                f'\nINPUT_FILE: {args.joints}'
+                f'\nInput file version: {self.dataset_version}'
+                f'\nTorch version: {torch.__version__}\n'
+                f'\nTraining arguments:'
+                f'\nmode: {self.mode} \nlearning rate: {args.lr} \nbatch_size: {args.bs}'
+                f'\nepochs: {args.epochs} \ndropout: {args.dropout} '
+                f'\nscheduler step: {args.sched_step} \nscheduler gamma: {args.sched_gamma} '
+                f'\ninput_size: {self.input_size[self.mode]} \noutput_size: {self.output_size[self.mode]} '
+                f'\nhidden_size: {args.hidden_size}'
+                f' \nn_stages: {args.n_stage} \n r_seed: {args.r_seed} \nlambdas: {self.lambdas}'
+            )
+
 
 def debug_plots(inputs, labels):
     inputs_shoulder = inputs.cpu().numpy()[:, 5]
@@ -345,15 +371,6 @@ def debug_plots(inputs, labels):
     plt.figure(2)
     plt.hist(labels, bins='auto')
     plt.show()
-
-
-def print_losses(epoch_losses):
-    for idx, phase in enumerate(epoch_losses):
-        for idx_2, el in enumerate(epoch_losses['train']):
-            plt.figure(idx + idx_2)
-            plt.plot(epoch_losses[phase][el][10:], label='{} Loss: {}'.format(phase, el))
-            plt.savefig('figures/{}_loss_{}.png'.format(phase, el))
-            plt.close()
 
 
 def get_accuracy(outputs, labels):

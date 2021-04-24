@@ -7,6 +7,11 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
+try:
+    import pandas as pd
+    DATAFRAME = pd.DataFrame
+except ImportError:
+    DATAFRAME = None
 
 from ..utils import get_task_error, get_pixel_error
 
@@ -33,7 +38,7 @@ def show_results(dic_stats, clusters, net, dir_fig, show=False, save=False):
     excl_clusters = ['all', 'easy', 'moderate', 'hard', '49']
     clusters = [clst for clst in clusters if clst not in excl_clusters]
     styles = printing_styles(net)
-    for idx_style, style in enumerate(styles.items()):
+    for idx_style in styles:
         plt.figure(idx_style, figsize=FIGSIZE)
         plt.grid(linewidth=GRID_WIDTH)
         plt.xlim(x_min, x_max)
@@ -183,7 +188,6 @@ def show_method(save, dir_out='data/figures'):
 
 
 def show_box_plot(dic_errors, clusters, dir_fig, show=False, save=False):
-    import pandas as pd
     excl_clusters = ['all', 'easy', 'moderate', 'hard']
     clusters = [int(clst) for clst in clusters if clst not in excl_clusters]
     methods = ('monstereo', 'pseudo-lidar', '3dop', 'monoloco')
@@ -192,7 +196,7 @@ def show_box_plot(dic_errors, clusters, dir_fig, show=False, save=False):
     xxs = get_distances(clusters)
     labels = [str(xx) for xx in xxs]
     for idx, method in enumerate(methods):
-        df = pd.DataFrame([dic_errors[method][str(clst)] for clst in clusters[:-1]]).T
+        df = DATAFRAME([dic_errors[method][str(clst)] for clst in clusters[:-1]]).T
         df.columns = labels
 
         plt.figure(idx, figsize=FIGSIZE)  # with 200 dpi it becomes 1920x1440
@@ -289,16 +293,16 @@ def expandgrid(*itrs):
     return combinations
 
 
-def get_percentile(dist_gmm):
-    dd_gt = 1000
-    mu_gmm = np.mean(dist_gmm)
-    dist_d = dd_gt * mu_gmm / dist_gmm
-    perc_d, _ = np.nanpercentile(dist_d, [18.5, 81.5])  # Laplace bi => 63%
-    perc_d2, _ = np.nanpercentile(dist_d, [23, 77])
-    mu_d = np.mean(dist_d)
-    # mm_bi = (mu_d - perc_d) / mu_d
-    # mm_test = (mu_d - perc_d2) / mu_d
-    # mad_d = np.mean(np.abs(dist_d - mu_d))
+# def get_percentile(dist_gmm):
+#     dd_gt = 1000
+#     mu_gmm = np.mean(dist_gmm)
+#     dist_d = dd_gt * mu_gmm / dist_gmm
+#     perc_d, _ = np.nanpercentile(dist_d, [18.5, 81.5])  # Laplace bi => 63%
+#     perc_d2, _ = np.nanpercentile(dist_d, [23, 77])
+#     mu_d = np.mean(dist_d)
+#     # mm_bi = (mu_d - perc_d) / mu_d
+#     # mm_test = (mu_d - perc_d2) / mu_d
+#     # mad_d = np.mean(np.abs(dist_d - mu_d))
 
 
 def printing_styles(net):

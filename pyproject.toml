@@ -1,0 +1,38 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools", "versioneer-518"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
+
+[tool.pylint.BASIC]
+class-const-naming-style = "snake_case"  # checked since pylint 2.7.3
+
+[tool.pylint.IMPORTS]
+allow-any-import-level = []
+
+[tool.pylint.SIMILARITIES]
+min-similarity-lines = 15  # Minimum lines number of a similarity.
+ignore-comments = "yes"  # Ignore comments when computing similarities.
+ignore-docstrings = "yes"  # Ignore docstrings when computing similarities.
+ignore-imports = "yes"  # Ignore imports when computing similarities.
+
+[tool.pylint.TYPECHECK]
+generated-members = ["numpy.*", "torch.*", "cv2.*", "openpifpaf.functional.*"]
+ignored-modules = ["openpifpaf.functional"]
+disable = [
+    "missing-docstring",
+    "too-many-arguments",
+    "too-many-instance-attributes",
+    "too-many-locals",
+    "too-few-public-methods",
+    "unsubscriptable-object",
+    "not-callable",  # for torch tensors
+    "invalid-name",
+    "logging-format-interpolation",
+    ]
+[tool.pylint.FORMAT]
+max-line-length = 120
+

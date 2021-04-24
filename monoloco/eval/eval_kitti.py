@@ -7,13 +7,20 @@ Evaluate MonStereo code on KITTI dataset using ALE metric
 import os
 import math
 import logging
+import copy
 import datetime
 from collections import defaultdict
 
-from tabulate import tabulate
+import numpy as np
+try:
+    import tabulate
+    TABULATE = copy.copy(tabulate.tabulate)
+except ImportError:
+    TABULATE = None
 
 from ..utils import get_iou_matches, get_task_error, get_pixel_error, check_conditions, \
-    get_difficulty, split_training, parse_ground_truth, get_iou_matches_matrix, average, find_cluster
+    get_difficulty, split_training, get_iou_matches_matrix, average, find_cluster
+from ..prep import parse_ground_truth
 from ..visuals import show_results, show_spread, show_task_error, show_box_plot
 
 
@@ -29,7 +36,7 @@ class EvalKitti:
     METHODS_STEREO = ['3dop', 'psf', 'pseudo-lidar', 'e2e', 'oc-stereo']
     BASELINES = ['task_error', 'pixel_error']
     HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
-    CATEGORIES = ('pedestrian',)
+    CATEGORIES = ('pedestrian',)  # extendable with person_sitting and/or cyclists
     methods = OUR_METHODS + METHODS_MONO + METHODS_STEREO
 
     # Set directories
@@ -39,8 +46,7 @@ class EvalKitti:
     path_val = os.path.join('splits', 'kitti_val.txt')
     dir_logs = os.path.join('data', 'logs')
     assert os.path.exists(dir_logs), "No directory to save final statistics"
-    dir_fig = os.path.join('data', 'figures')
-    assert os.path.exists(dir_logs), "No directory to save figures"
+    dir_fig = os.path.join('figures', 'results')
 
     # Set thresholds to obtain comparable recalls
     thresh_iou_monoloco = 0.3
@@ -49,9 +55,10 @@ class EvalKitti:
     thresh_conf_base = 0.5
 
     def __init__(self, args):
-
+        self.mode = args.mode
+        assert self.mode in ('mono', 'stereo'), "mode not recognized"
+        self.net = 'monstereo' if self.mode == 'stereo' else 'monoloco_pp'
         self.verbose = args.verbose
-        self.net = args.net
         self.save = args.save
         self.show = args.show
 
@@ -110,7 +117,7 @@ class EvalKitti:
                 methods_out = defaultdict(tuple)  # Save all methods for comparison
 
                 # Count ground_truth:
-                boxes_gt, ys, truncs_gt, occs_gt = out_gt  # pylint: disable=unbalanced-tuple-unpacking
+                boxes_gt, _, truncs_gt, occs_gt, _ = out_gt  # pylint: disable=unbalanced-tuple-unpacking
                 for idx, box in enumerate(boxes_gt):
                     mode = get_difficulty(box, truncs_gt[idx], occs_gt[idx])
                     self.cnt_gt[mode] += 1
@@ -144,10 +151,13 @@ class EvalKitti:
             self.show_statistics()
 
     def printer(self):
+        if self.save:
+            os.makedirs(self.dir_fig, exist_ok=True)
         if self.save or self.show:
+            print('-' * 100)
             show_results(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)
             show_spread(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)
-            if self.net == 'monstero':
+            if self.net == 'monstereo':
                 show_box_plot(self.errors, self.CLUSTERS, self.dir_fig, show=self.show, save=self.save)
             else:
                 show_task_error(self.dir_fig, show=self.show, save=self.save)
@@ -201,7 +211,7 @@ class EvalKitti:
     def _estimate_error(self, out_gt, out, method):
         """Estimate localization error"""
 
-        boxes_gt, ys, truncs_gt, occs_gt = out_gt
+        boxes_gt, ys, truncs_gt, occs_gt, _ = out_gt
 
         if method in self.OUR_METHODS:
             boxes, dds, cat, bis, epis = out
@@ -363,7 +373,7 @@ class EvalKitti:
                for key in all_methods]
 
         results = [[key] + alp[idx] + ale[idx] for idx, key in enumerate(all_methods)]
-        print(tabulate(results, headers=self.HEADERS))
+        print(TABULATE(results, headers=self.HEADERS))
         print('-' * 90 + '\n')
 
     def stats_height(self):
@@ -373,10 +383,8 @@ class EvalKitti:
             self.name = name
             # Iterate over each line of the gt file and save box location and distances
             out_gt = parse_ground_truth(path_gt, 'pedestrian')
-            boxes_gt, ys, truncs_gt, occs_gt = out_gt   # pylint: disable=unbalanced-tuple-unpacking
-            for label in ys:
+            for label in out_gt[1]:
                 heights.append(label[4])
-        import numpy as np
         tail1, tail2 = np.nanpercentile(np.array(heights), [5, 95])
         print(average(heights))
         print(len(heights))

@@ -1,15 +1,32 @@
 
 import json
-import logging
 import math
 from collections import defaultdict
 
 import numpy as np
 
-from ..utils import pixel_to_camera, get_keypoints
+from monoloco.utils import pixel_to_camera, get_keypoints
 
 AVERAGE_Y = 0.48
 CLUSTERS = ['10', '20', '30', 'all']
+
+
+def geometric_coordinates(keypoints, kk, average_y=0.48):
+    """ Evaluate geometric depths for a set of keypoints"""
+
+    zzs_geom = []
+    uv_shoulders = get_keypoints(keypoints, mode='shoulder')
+    uv_hips = get_keypoints(keypoints, mode='hip')
+    uv_centers = get_keypoints(keypoints, mode='center')
+
+    xy_shoulders = pixel_to_camera(uv_shoulders, kk, 1)
+    xy_hips = pixel_to_camera(uv_hips, kk, 1)
+    xy_centers = pixel_to_camera(uv_centers, kk, 1)
+
+    for idx, xy_shoulder in enumerate(xy_shoulders):
+        zz = compute_depth(xy_shoulder, xy_hips[idx], average_y)
+        zzs_geom.append(zz)
+    return zzs_geom, xy_centers
 
 
 def geometric_baseline(joints):
@@ -28,8 +45,6 @@ def geometric_baseline(joints):
     'right_ankle']
 
     """
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
     cnt_tot = 0
     dic_dist = defaultdict(lambda: defaultdict(list))
 
@@ -48,13 +63,13 @@ def geometric_baseline(joints):
     errors = calculate_error(dic_dist['error'])
 
     # Show results
-    logger.info("Computed distance of {} annotations".format(cnt_tot))
+    print("Computed distance of {} annotations".format(cnt_tot))
     for key in dic_h_means:
-        logger.info("Average height of segment {} is {:.2f} with a std of {:.2f}".
-                    format(key, dic_h_means[key], dic_h_stds[key]))
+        print("Average height of segment {} is {:.2f} with a std of {:.2f}".
+              format(key, dic_h_means[key], dic_h_stds[key]))
     for clst in CLUSTERS:
-        logger.info("Average error over the val set for clst {}: {:.2f}".format(clst, errors[clst]))
-    logger.info("Joints used: {}".format(joints))
+        print("Average error over the val set for clst {}: {:.2f}".format(clst, errors[clst]))
+    print("Joints used: {}".format(joints))
 
 
 def update_distances(dic_fin, dic_dist, phase, average_y):
@@ -78,9 +93,9 @@ def update_distances(dic_fin, dic_dist, phase, average_y):
         dy_met = abs(float((dic_xyz['hip'][0][1] - dic_xyz['shoulder'][0][1])))
 
         # Estimate distance for a single annotation
-        z_met_real = compute_distance(dic_xyz_norm['shoulder'][0], dic_xyz_norm['hip'][0], average_y,
-                                      mode='real', dy_met=dy_met)
-        z_met_approx = compute_distance(dic_xyz_norm['shoulder'][0], dic_xyz_norm['hip'][0], average_y, mode='average')
+        z_met_real = compute_depth(dic_xyz_norm['shoulder'][0], dic_xyz_norm['hip'][0], average_y,
+                                   mode='real', dy_met=dy_met)
+        z_met_approx = compute_depth(dic_xyz_norm['shoulder'][0], dic_xyz_norm['hip'][0], average_y, mode='average')
 
         # Compute distance with respect to the center of the 3D bounding box
         d_real = math.sqrt(z_met_real ** 2 + dic_fin['boxes_3d'][idx][0] ** 2 + dic_fin['boxes_3d'][idx][1] ** 2)
@@ -94,9 +109,9 @@ def update_distances(dic_fin, dic_dist, phase, average_y):
     return cnt
 
 
-def compute_distance(xyz_norm_1, xyz_norm_2, average_y, mode='average', dy_met=0):
+def compute_depth(xyz_norm_1, xyz_norm_2, average_y, mode='average', dy_met=0):
     """
-    Compute distance Z of a mask annotation (solving a linear system) for 2 possible cases:
+    Compute depth Z of a mask annotation (solving a linear system) for 2 possible cases:
     1. knowing specific height of the annotation (head-ankle) dy_met
     2. using mean height of people (average_y)
     """

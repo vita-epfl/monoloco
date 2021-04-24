@@ -1,13 +1,18 @@
+
 from setuptools import setup
 
-# extract version from __init__.py
-with open('monoloco/__init__.py', 'r') as f:
-    VERSION_LINE = [l for l in f if l.startswith('__version__')][0]
-    VERSION = VERSION_LINE.split('=')[1].strip()[1:-1]
+# This is needed for versioneer to be importable when building with PEP 517.
+# See <https://github.com/warner/python-versioneer/issues/193> and links
+# therein for more information.
+
+import os, sys
+sys.path.append(os.path.dirname(__file__))
+import versioneer
 
 setup(
     name='monoloco',
-    version=VERSION,
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     packages=[
         'monoloco',
         'monoloco.network',
@@ -29,15 +34,18 @@ setup(
     install_requires=[
         'openpifpaf>=v0.12.1',
         'matplotlib',
-        'gdown',
     ],
     extras_require={
+        'test': [
+            'pylint',
+            'pytest',
+            'gdown',
+            'scipy',  # for social distancing gaussian blur
+        ],
         'eval': [
             'tabulate',
             'sklearn',
             'pandas',
-            'pylint',
-            'pytest',
         ],
         'prep': [
             'nuscenes-devkit==1.0.2',

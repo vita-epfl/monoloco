@@ -2,17 +2,23 @@
 import os
 import glob
 import csv
+import copy
 from collections import defaultdict
 
 import numpy as np
 import torch
 from PIL import Image
-from sklearn.metrics import accuracy_score
+try:
+    from sklearn.metrics import accuracy_score
+    ACCURACY_SCORE = copy.copy(accuracy_score)
+except ImportError:
+    ACCURACY_SCORE = None
 
-from monoloco.network import Loco
-from monoloco.network.process import factory_for_gt, preprocess_pifpaf
-from monoloco.activity import social_interactions
-from monoloco.utils import open_annotations, get_iou_matches, get_difficulty
+from ..prep import factory_file
+from ..network import Loco
+from ..network.process import factory_for_gt, preprocess_pifpaf
+from ..activity import social_interactions
+from ..utils import open_annotations, get_iou_matches, get_difficulty
 
 
 class ActivityEvaluator:
@@ -79,7 +85,7 @@ class ActivityEvaluator:
                 im_size = image.size
                 assert len(im_size) > 1, "image with frame0001 not available"
 
-            for idx, im_path in enumerate(images):
+            for im_path in images:
 
                 # Collect PifPaf files and calibration
                 basename = os.path.basename(im_path)
@@ -101,14 +107,12 @@ class ActivityEvaluator:
                 self.estimate_activity(dic_out, matches, ys_gt, categories=categories)
 
         # Print Results
-            acc = accuracy_score(self.all_gt[seq], self.all_pred[seq])
+            acc = ACCURACY_SCORE(self.all_gt[seq], self.all_pred[seq])
             print(f"Accuracy of category {seq}: {100*acc:.2f}%")
         cout_results(self.cnt, self.all_gt, self.all_pred, categories=self.sequences)
 
     def eval_kitti(self):
         """Parse KITTI Dataset and predict if people are talking or not"""
-
-        from ..utils import factory_file
         files = glob.glob(self.dir_data + '/*.txt')
         # files = [self.dir_gt_kitti + '/001782.txt']
         assert files, "Empty directory"
@@ -118,7 +122,7 @@ class ActivityEvaluator:
             # Collect PifPaf files and calibration
             basename, _ = os.path.splitext(os.path.basename(file))
             path_calib = os.path.join(self.dir_kk, basename + '.txt')
-            annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
+            annotations, kk, _ = factory_file(path_calib, self.dir_ann, basename)
 
             # Collect corresponding gt files (ys_gt: 1 or 0)
             path_gt = os.path.join(self.dir_data, basename + '.txt')
@@ -149,7 +153,7 @@ class ActivityEvaluator:
             self.cnt['gt'][key] += 1
             self.cnt['gt']['all'] += 1
 
-        for i_m, (idx, idx_gt) in enumerate(matches):
+        for (idx, idx_gt) in matches:
 
             # Select keys to update results for Collective or KITTI
             keys = ('all', categories[idx_gt])
@@ -184,7 +188,7 @@ def parse_gt_collective(dir_data, seq, path_pif):
     with open(path, "r") as ff:
         reader = csv.reader(ff, delimiter='\t')
         dic_frames = defaultdict(lambda: defaultdict(list))
-        for idx, line in enumerate(reader):
+        for line in reader:
             box = convert_box(line[1:5])
             cat = convert_category(line[5])
             dic_frames[line[0]]['boxes'].append(box)

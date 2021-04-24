@@ -150,7 +150,6 @@ def extract_ground_truth(boxes_obj, kk, spherical=True):
     ys = []
 
     for box_obj in boxes_obj:
-
         # Select category
         if box_obj.name[:6] != 'animal':
             general_name = box_obj.name.split('.')[0] + '.' + box_obj.name.split('.')[1]
@@ -248,8 +247,6 @@ def extract_social(inputs, ys, keypoints, idx, matches):
     all_inputs.extend(inputs[idx])
 
     indices_idx = [idx for (idx, idx_gt) in matches]
-    if len(sorted_indices) > 2:
-        aa = 5
     for ii in range(1, 3):
         try:
             index = sorted_indices[ii]
@@ -266,17 +263,3 @@ def extract_social(inputs, ys, keypoints, idx, matches):
             all_inputs.extend([0.] * 2)
     assert len(all_inputs) == 34 + 2 * 2
     return all_inputs
-
-
-# def get_jean_yaw(box_obj):
-#     b_corners = box_obj.bottom_corners()
-#     center = box_obj.center
-#     back_point = [(b_corners[0, 2] + b_corners[0, 3]) / 2, (b_corners[2, 2] + b_corners[2, 3]) / 2]
-#
-#     x = b_corners[0, :] - back_point[0]
-#     y = b_corners[2, :] - back_point[1]
-#
-#     angle = math.atan2((x[0] + x[1]) / 2, (y[0] + y[1]) / 2) * 180 / 3.14
-#     angle = (angle + 360) % 360
-#     correction = math.atan2(center[0], center[2]) * 180 / 3.14
-#     return angle, correction

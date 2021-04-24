@@ -1,4 +1,4 @@
-Copyright 2018-2021 by EPFL/VITA. All rights reserved.
+Copyright 2018-2021 by Lorenzo Bertoni and contributors. All rights reserved.
 
 This project and all its files are licensed under
 GNU AGPLv3 or later version.
@@ -7,3 +7,14 @@ If this license is not suitable for your business or project
 please contact EPFL-TTO (https://tto.epfl.ch/) for a full commercial license.
 
 This software may not be used to harm any person deliberately or for any military application.
+
+
+The following files are based on the OpenPifPaf project which is
+"Copyright 2019-2021 by Sven Kreiss and contributors. All rights reserved." and licensed under GNU AGPLv3.
+
+- tests/test_train_mono.py
+- tests/test_train_stereo.py
+- monoloco/visuals/pifpaf_show.py
+- monoloco/train/losses.py
+- monoloco/predict.py
+-.github/workflows/tests.yml
