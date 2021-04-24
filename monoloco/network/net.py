@@ -16,7 +16,7 @@ from ..utils import get_iou_matches, reorder_matches, get_keypoints, pixel_to_ca
     mask_joint_disparity
 from .process import preprocess_monstereo, preprocess_monoloco, extract_outputs, extract_outputs_mono,\
     filter_outputs, cluster_outputs, unnormalize_bi, laplace_sampling
-from ..activity import social_interactions
+from ..activity import social_interactions, is_raising_hand
 from .architectures import MonolocoModel, LocoModel
 
 
