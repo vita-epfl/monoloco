@@ -84,7 +84,7 @@ def is_raising_hand(kp):
     r_hand = 10
 
     head_width = kp[x][l_ear]- kp[x][r_ear]
-    head_top = (4/5) * (kp[y][nose] - head_width)
+    head_top = (kp[y][nose] - head_width)
     
     l_forearm = [kp[x][l_hand] - kp[x][l_elbow], kp[y][l_hand] - kp[y][l_elbow]]
     l_arm = [kp[x][l_shoulder] - kp[x][l_elbow], kp[y][l_shoulder] - kp[y][l_elbow]]     
@@ -196,7 +196,7 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
                           fig_width=10,
                           dpi_factor=1.0) as ax:
             keypoint_painter.keypoints(
-                ax, keypoint_sets, colors=colors, raise_hand=r_h)
+                ax, keypoint_sets, size=image_t.size, colors=colors, raise_hand=r_h)
             draw_orientation(ax, uv_centers, sizes,
                              angles, colors, mode='front')
 

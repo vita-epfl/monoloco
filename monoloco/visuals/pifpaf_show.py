@@ -90,9 +90,17 @@ class KeypointPainter(object):
         self.solid_threshold = solid_threshold
         self.dashed_threshold = 0.1  # Patch to still allow force complete pose (set to zero to resume original)
 
-    def _draw_skeleton(self, ax, x, y, v, *, color=None, raise_hand='none'):
+    def _draw_skeleton(self, ax, x, y, v, *, size=None, color=None, raise_hand='none'):
         if not np.any(v > 0):
             return
+
+        width, height = (1,1)
+        if size:
+            width = size[0]
+            height = size[1] 
+
+        l_arm_width = np.sqrt(((x[9]-x[7])/width)**2 + ((y[9]-y[7])/height)**2)*100
+        r_arm_width = np.sqrt(((x[10]-x[8])/width)**2 + ((y[10]-y[8])/height)**2)*100
 
         if self.skeleton is not None:
             for ci, connection in enumerate(np.array(self.skeleton) - 1):
@@ -100,10 +108,10 @@ class KeypointPainter(object):
                 linewidth=self.linewidth
                 if ((connection[0] == 5 and connection[1] == 7) or (connection[0] == 7 and connection[1] == 9)) and raise_hand in ['left','both']:
                     c = 'yellow'
-                    linewidth = np.sqrt((x[9]-x[7])**2 + (y[9]-y[7])**2)
+                    linewidth = l_arm_width
                 if ((connection[0] == 6 and connection[1] == 8) or (connection[0] == 8 and connection[1] == 10)) and raise_hand in ['right', 'both']:
                     c = 'yellow'
-                    linewidth = np.sqrt((x[10]-x[8])**2 + (y[10]-y[8])**2)
+                    linewidth = r_arm_width
                 if self.color_connections:
                     c = matplotlib.cm.get_cmap('tab20')(ci / len(self.skeleton))
                 if np.all(v[connection] > self.dashed_threshold):
@@ -179,7 +187,7 @@ class KeypointPainter(object):
                 matplotlib.patches.Rectangle(
                     (x - scale, y - scale), 2 * scale, 2 * scale, fill=False, color=color))
 
-    def keypoints(self, ax, keypoint_sets, *, scores=None, color=None, colors=None, texts=None, raise_hand='none'):
+    def keypoints(self, ax, keypoint_sets, *, size=None, scores=None, color=None, colors=None, texts=None, raise_hand='none'):
         if keypoint_sets is None:
             return
 
@@ -201,7 +209,9 @@ class KeypointPainter(object):
                 color = matplotlib.cm.get_cmap('tab20')((color % 20 + 0.05) / 20)
 
             if raise_hand is not 'none':
-                self._draw_skeleton(ax, x, y, v, color=color, raise_hand=raise_hand[:][i])
+                # if raise_hand[:][i] is 'both' or raise_hand[:][i] is 'left' or raise_hand[:][i] is 'right':
+                #     color = 'green'
+                self._draw_skeleton(ax, x, y, v, size=size, color=color, raise_hand=raise_hand[:][i])
             else:
                 self._draw_skeleton(ax, x, y, v, color=color)
             score = scores[i] if scores is not None else None
@@ -215,6 +225,19 @@ class KeypointPainter(object):
 
                 if texts is not None:
                     self._draw_text(ax, x, y, v, texts[i], color)
+            
+            # nose = 0
+            # l_ear = 3
+            # l_shoulder = 5
+            # r_ear = 4
+            # r_shoulder = 6
+
+            # head_width = kps[l_ear][0]- kps[r_ear][0]
+            # head_top = (kps[nose][1] - head_width)
+            
+            # ax.plot([kps[l_shoulder][0],kps[l_shoulder][0]], [kps[l_shoulder][1],head_top], linewidth=10, color='red')
+            # ax.plot([kps[r_shoulder][0],kps[r_shoulder][0]], [kps[r_shoulder][1],head_top], linewidth=10, color='red')
+            # ax.plot([kps[l_shoulder][0],kps[r_shoulder][0]], [head_top,head_top], linewidth=10, color='red')
 
 
     def annotations(self, ax, annotations, *,

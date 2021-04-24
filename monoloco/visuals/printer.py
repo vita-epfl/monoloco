@@ -187,7 +187,7 @@ class Printer:
         if 'raise_hand' in self.args.activities:
             r_h = dic_out['raising_hand']
         keypoint_painter.keypoints(
-            axis, keypoint_sets, scores=self.dd_pred,colors=colors, raise_hand=r_h)
+            axis, keypoint_sets, size=self.im.size,scores=self.dd_pred,colors=colors, raise_hand=r_h)
         draw_orientation(axis, self.centers,
                              sizes, self.angles, colors, mode='front')
 
