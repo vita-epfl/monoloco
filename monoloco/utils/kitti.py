@@ -161,7 +161,8 @@ def read_and_rewrite(path_orig, path_new):
                     line_new = temp_1 + ' ' + hwl + ' ' + temp_2 + '\n'
                     ff.write("%s" % line_new)
     except FileNotFoundError:
-        with open(path_new, "a+"): pass
+        with open(path_new, "a+"):
+            pass
 
 
 def find_cluster(dd, clusters):

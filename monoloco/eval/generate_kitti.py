@@ -273,4 +273,5 @@ def create_empty_files(dir_out, net):
 
     for i in range(7481):
         name = "0" * (6 - len(str(i))) + str(i) + '.txt'
-        with open(os.path.join(dir_out[net], name), "a+"): pass
+        with open(os.path.join(dir_out[net], name), "a+"):
+            pass
