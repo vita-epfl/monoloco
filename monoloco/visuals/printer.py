@@ -230,6 +230,7 @@ class Printer:
 
     def draw(self, figures, axes, image, dic_out=None, annotations=None):
 
+        colors = []
         if self.args.activities:
             colors = ['deepskyblue' for _ in self.uv_heads]
             if 'social_distance' in self.args.activities:
