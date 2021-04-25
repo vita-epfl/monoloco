@@ -48,7 +48,7 @@ def cli():
     visualizer.cli(parser)
 
     # Monoloco
-    predict_parser.add_argument('--activities', nargs='+', 
+    predict_parser.add_argument('--activities', nargs='+',
                                 help='Choose activities to show: social_distance, raise_hand')
     predict_parser.add_argument('--mode', help='keypoints, mono, stereo', default='mono')
     predict_parser.add_argument('--model', help='path of MonoLoco/MonStereo model to load')

@@ -248,7 +248,7 @@ class Printer:
             if not self.args.activities or 'social_distance' not in self.args.activities:
                 self.mpl_im0.set_data(image)
 
-        self._front_loop(iterator, axes, number, colors, annotations, dic_out) 
+        self._front_loop(iterator, axes, number, colors, annotations, dic_out)
 
         # Draw the bird figure
         number['num'] = 97

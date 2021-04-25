@@ -109,11 +109,11 @@ class KeypointPainter:
             for ci, connection in enumerate(np.array(self.skeleton) - 1):
                 c = color
                 linewidth=self.linewidth
-                if ((connection[0] == 5 and connection[1] == 7) 
+                if ((connection[0] == 5 and connection[1] == 7)
                     or (connection[0] == 7 and connection[1] == 9)) and raise_hand in ['left','both']:
                     c = 'yellow'
                     linewidth = l_arm_width
-                if ((connection[0] == 6 and connection[1] == 8) 
+                if ((connection[0] == 6 and connection[1] == 8)
                     or (connection[0] == 8 and connection[1] == 10)) and raise_hand in ['right', 'both']:
                     c = 'yellow'
                     linewidth = r_arm_width
@@ -192,7 +192,7 @@ class KeypointPainter:
                 matplotlib.patches.Rectangle(
                     (x - scale, y - scale), 2 * scale, 2 * scale, fill=False, color=color))
 
-    def keypoints(self, ax, keypoint_sets, *, 
+    def keypoints(self, ax, keypoint_sets, *,
                   size=None, scores=None, color=None, colors=None, texts=None, raise_hand='none'):
         if keypoint_sets is None:
             return
@@ -443,4 +443,3 @@ def social_distance_colors(colors, dic_out):
     # Prepare color for social distancing
     colors = ['r' if flag else colors[idx] for idx,flag in enumerate(dic_out['social_distance'])]
     return colors
-
