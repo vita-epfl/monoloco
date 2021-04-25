@@ -139,7 +139,7 @@ class Printer:
 
             fig, (ax0, ax1) = plt.subplots(1, 2, sharey=False, gridspec_kw={'width_ratios': [width_ratio, 1]},
                                            figsize=(fig_width, fig_height))
-           
+
             ax1.set_aspect(fig_ar_1)
             fig.set_tight_layout(True)
             fig.subplots_adjust(left=0.02, right=0.98, bottom=0, top=1, hspace=0, wspace=0.02)
@@ -195,6 +195,39 @@ class Printer:
     def social_distance_bird(self, axis, colors):
         draw_orientation(axis, self.xz_centers, [], self.angles, colors, mode='bird')
 
+
+    def _front_loop(self, iterator, axes, number, colors, annotations, dic_out):
+        for idx in iterator:
+            if any(xx in self.output_types for xx in ['front', 'multi']) and self.zz_pred[idx] > 0:
+                if self.args.activities:
+                    if 'social_distance' in self.args.activities:
+                        self.social_distance_front(axes[0], colors, annotations, dic_out)
+                    elif 'raise_hand' in self.args.activities:
+                        self.social_distance_front(axes[0], colors, annotations, dic_out)
+                else:
+                    self._draw_front(axes[0],
+                                     self.dd_pred[idx],
+                                     idx,
+                                     number)
+                number['num'] += 1
+
+
+    def _bird_loop(self, iterator, axes, colors, number):
+        for idx in iterator:
+            if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
+
+                if self.args.activities:
+                    if 'social_distance' in self.args.activities:
+                        self.social_distance_bird(axes[1], colors)
+                # Draw ground truth and uncertainty
+                self._draw_uncertainty(axes, idx)
+
+                # Draw bird eye view text
+                if number['flag']:
+                    self._draw_text_bird(axes, idx, number['num'])
+                    number['num'] += 1
+
+
     def draw(self, figures, axes, image, dic_out=None, annotations=None):
 
         if self.args.activities:
@@ -211,37 +244,16 @@ class Printer:
         number = dict(flag=False, num=97)
         if any(xx in self.output_types for xx in ['front', 'multi']):
             number['flag'] = True  # add numbers
+            # Remove image if social distance is activated
             if not self.args.activities or 'social_distance' not in self.args.activities:
                 self.mpl_im0.set_data(image)
-        for idx in iterator:
-            if any(xx in self.output_types for xx in ['front', 'multi']) and self.zz_pred[idx] > 0:
-                if self.args.activities:
-                    if 'social_distance' in self.args.activities:
-                        self.social_distance_front(axes[0], colors, annotations, dic_out)
-                    elif 'raise_hand' in self.args.activities:
-                        self.social_distance_front(axes[0], colors, annotations, dic_out)
-                else:
-                    self._draw_front(axes[0],
-                                     self.dd_pred[idx],
-                                     idx,
-                                     number)
-                number['num'] += 1
+
+        self._front_loop(iterator, axes, number, colors, annotations, dic_out) 
 
         # Draw the bird figure
         number['num'] = 97
-        for idx in iterator:
-            if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
+        self._bird_loop(iterator, axes, colors, number)
 
-                if self.args.activities:
-                    if 'social_distance' in self.args.activities:
-                        self.social_distance_bird(axes[1], colors)
-                # Draw ground truth and uncertainty
-                self._draw_uncertainty(axes, idx)
-
-                # Draw bird eye view text
-                if number['flag']:
-                    self._draw_text_bird(axes, idx, number['num'])
-                    number['num'] += 1
         self._draw_legend(axes)
 
         # Draw, save or/and show the figures
@@ -254,7 +266,6 @@ class Printer:
             if self.plt_close:
                 plt.close(fig)
 
-    
 
     def _draw_front(self, ax, z, idx, number):
 

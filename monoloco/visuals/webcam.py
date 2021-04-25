@@ -7,7 +7,6 @@ Implementation adapted from https://github.com/vita-epfl/openpifpaf/blob/master/
 """
 
 import time
-import os
 import logging
 
 import torch
@@ -36,13 +35,13 @@ def factory_from_args(args):
     args.checkpoint = dic_models['keypoints']
 
     logger.configure(args, LOG)  # logger first
-    
+
     if args.output_types is None:
         args.output_types = ['multi']
 
     assert 'bird' not in args.output_types
     if 'json' not in args.output_types:
-        assert len(args.output_types) is 1
+        assert len(args.output_types) == 1
     else:
         assert len(args.output_types) < 3
 
@@ -77,8 +76,8 @@ def factory_from_args(args):
 
 
 def webcam(args):
-    
-    assert args.mode in ('mono')
+
+    assert args.mode in 'mono'
 
     args, dic_models = factory_from_args(args)
 
