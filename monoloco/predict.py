@@ -251,7 +251,7 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
     else:
         assert 'json' in args.output_types or args.mode == 'keypoints', \
             "No output saved, please select one among front, bird, multi, json, or pifpaf arguments"
-    if args.social_distance:
+    if args.activities and 'social_distance' in args.activities:
         assert args.mode == 'mono', "Social distancing only works with monocular network"
 
     if args.mode == 'keypoints':
