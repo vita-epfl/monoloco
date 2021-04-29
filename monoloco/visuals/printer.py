@@ -52,7 +52,6 @@ class Printer:
         boxes_gt, uv_camera, radius, auxs = nones(16)
 
     def __init__(self, image, output_path, kk, args):
-
         self.im = image
         self.width = self.im.size[0]
         self.height = self.im.size[1]
@@ -60,11 +59,12 @@ class Printer:
         self.kk = kk
         self.output_types = args.output_types
         self.z_max = args.z_max  # set max distance to show instances
-        self.show_all = args.show_all or args.webcam
-        self.show = args.show_all or args.webcam
-        self.save = not args.no_save and not args.webcam
-        self.plt_close = not args.webcam
-        self.args = args
+        self.webcam = args.webcam
+        self.show_all = args.show_all or self.webcam
+        self.show = args.show_all or self.webcam
+        self.save = not args.no_save and not self.webcam
+        self.plt_close = not self.webcam
+        self.activities = args.activities
 
         # define image attributes
         self.attr = image_attributes(args.dpi, args.output_types)
@@ -177,33 +177,36 @@ class Printer:
         return figures, axes
 
 
-    def social_distance_front(self, axis, colors, annotations, dic_out):
+    def _webcam_front(self, axis, colors, activities, annotations, dic_out):
         sizes = [abs(self.centers[idx][1] - uv_s[1]*self.y_scale) / 1.5 for idx, uv_s in
                  enumerate(self.uv_shoulders)]
 
         keypoint_sets, _ = get_pifpaf_outputs(annotations)
         keypoint_painter = KeypointPainter(show_box=False, y_scale=self.y_scale)
-        r_h = 'none'
-        if 'raise_hand' in self.args.activities:
-            r_h = dic_out['raising_hand']
-        keypoint_painter.keypoints(
-            axis, keypoint_sets, size=self.im.size,scores=self.dd_pred,colors=colors, raise_hand=r_h)
-        draw_orientation(axis, self.centers,
-                             sizes, self.angles, colors, mode='front')
+
+        if activities:
+            keypoint_painter.keypoints(
+                axis, keypoint_sets, size=self.im.size,
+                scores=self.dd_pred, colors=colors, activities=activities, dic_out=dic_out)
+
+            if 'social_distance' in activities:
+                draw_orientation(axis, self.centers,
+                                sizes, self.angles, colors, mode='front')
+        else:
+            keypoint_painter.keypoints(
+                axis, keypoint_sets, size=self.im.size, scores=self.dd_pred)
 
 
-    def social_distance_bird(self, axis, colors):
-        draw_orientation(axis, self.xz_centers, [], self.angles, colors, mode='bird')
+    def _activities_bird(self, axis, colors, activities):
+        if 'social_distance' in activities:
+            draw_orientation(axis, self.xz_centers, [], self.angles, colors, mode='bird')
 
 
     def _front_loop(self, iterator, axes, number, colors, annotations, dic_out):
         for idx in iterator:
             if any(xx in self.output_types for xx in ['front', 'multi']) and self.zz_pred[idx] > 0:
-                if self.args.activities:
-                    if 'social_distance' in self.args.activities:
-                        self.social_distance_front(axes[0], colors, annotations, dic_out)
-                    elif 'raise_hand' in self.args.activities:
-                        self.social_distance_front(axes[0], colors, annotations, dic_out)
+                if self.webcam:
+                    self._webcam_front(axes[0], colors, self.activities, annotations, dic_out)
                 else:
                     self._draw_front(axes[0],
                                      self.dd_pred[idx],
@@ -215,10 +218,8 @@ class Printer:
     def _bird_loop(self, iterator, axes, colors, number):
         for idx in iterator:
             if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
-
-                if self.args.activities:
-                    if 'social_distance' in self.args.activities:
-                        self.social_distance_bird(axes[1], colors)
+                if self.activities:
+                    self._activities_bird(axes[1], colors, self.activities)
                 # Draw ground truth and uncertainty
                 self._draw_uncertainty(axes, idx)
 
@@ -231,9 +232,9 @@ class Printer:
     def draw(self, figures, axes, image, dic_out=None, annotations=None):
 
         colors = []
-        if self.args.activities:
+        if self.activities:
             colors = ['deepskyblue' for _ in self.uv_heads]
-            if 'social_distance' in self.args.activities:
+            if 'social_distance' in self.activities:
                 colors = social_distance_colors(colors, dic_out)
 
         # whether to include instances that don't match the ground-truth
@@ -246,7 +247,7 @@ class Printer:
         if any(xx in self.output_types for xx in ['front', 'multi']):
             number['flag'] = True  # add numbers
             # Remove image if social distance is activated
-            if not self.args.activities or 'social_distance' not in self.args.activities:
+            if not self.activities or 'social_distance' not in self.activities:
                 self.mpl_im0.set_data(image)
 
         self._front_loop(iterator, axes, number, colors, annotations, dic_out)
@@ -420,7 +421,7 @@ class Printer:
             ax.set_axis_off()
             ax.set_xlim(0, self.width)
             ax.set_ylim(self.height, 0)
-            if not self.args.activities or 'social_distance' not in self.args.activities:
+            if not self.activities or 'social_distance' not in self.activities:
                 self.mpl_im0 = ax.imshow(self.im)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
@@ -428,8 +429,7 @@ class Printer:
         else:
             uv_max = [0., float(self.height)]
             xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
-            x_max = abs(xyz_max[0])  # shortcut to avoid oval circles in case of different kk
-            x_max=6
+            x_max = max(abs(xyz_max[0]), 6)  # shortcut to avoid oval circles in case of different kk
             corr = round(float(x_max / 3))
             ax.plot([0, x_max], [0, self.z_max], 'k--')
             ax.plot([0, -x_max], [0, self.z_max], 'k--')

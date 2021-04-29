@@ -36,14 +36,7 @@ def factory_from_args(args):
 
     logger.configure(args, LOG)  # logger first
 
-    if args.output_types is None:
-        args.output_types = ['multi']
-
-    assert 'bird' not in args.output_types
-    if 'json' not in args.output_types:
-        assert len(args.output_types) == 1
-    else:
-        assert len(args.output_types) < 3
+    assert len(args.output_types) == 1 and 'json' not in args.output_types
 
     # Devices
     args.device = torch.device('cpu')
@@ -129,8 +122,7 @@ def webcam(args):
             print("Escape hit, closing...")
             break
 
-        intrinsic_size = [xx * 1.3 for xx in pil_image.size]
-        kk, dic_gt = factory_for_gt(intrinsic_size, focal_length=args.focal)  # better intrinsics for mac camera
+        kk, dic_gt = factory_for_gt(pil_image.size, focal_length=args.focal)
         boxes, keypoints = preprocess_pifpaf(
             pifpaf_outs['left'], (width, height))
 

@@ -33,7 +33,7 @@ PREDICT_COMMAND_SOCIAL_DISTANCE = [
     'python3', '-m', 'monoloco.run',
     'predict',
     'docs/frame0032.jpg',
-    '--social_distance',
+    '--activities', 'social_distance',
     '--output_types', 'front', 'bird',
     '--decoder-workers=0'  # for windows'
 ]

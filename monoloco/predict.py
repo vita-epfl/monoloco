@@ -73,7 +73,7 @@ def download_checkpoints(args):
         assert not args.social_distance, "Social distance not supported in stereo modality"
         path = MONSTEREO_MODEL
         name = 'monstereo-201202-1212.pkl'
-    elif args.social_distance or (args.activities and 'social_distance' in args.activities) or args.webcam:
+    elif (args.activities and 'social_distance' in args.activities) or args.webcam:
         path = MONOLOCO_MODEL_NU
         name = 'monoloco_pp-201207-1350.pkl'
     else:
@@ -220,7 +220,7 @@ def predict(args):
                 dic_out = net.forward(keypoints, kk)
                 dic_out = net.post_process(
                     dic_out, boxes, keypoints, kk, dic_gt)
-                if args.social_distance or (args.activities and 'social_distance' in args.activities):
+                if args.activities and 'social_distance' in args.activities:
                     dic_out = net.social_distance(dic_out, args)
                 if args.activities and 'raise_hand' in args.activities:
                     dic_out = net.raising_hand(dic_out, keypoints)

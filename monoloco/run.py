@@ -20,7 +20,7 @@ def cli():
     predict_parser.add_argument('--glob', help='glob expression for input images (for many images)')
     predict_parser.add_argument('--checkpoint', help='pifpaf model')
     predict_parser.add_argument('-o', '--output-directory', help='Output directory')
-    predict_parser.add_argument('--output_types', nargs='+',
+    predict_parser.add_argument('--output_types', nargs='+', default=['multi'],
                                 help='what to output: json keypoints skeleton for Pifpaf'
                                      'json bird front or multi for MonStereo')
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
@@ -65,7 +65,6 @@ def cli():
                                 type=float, default=5.7)
 
     # Social distancing and social interactions
-    predict_parser.add_argument('--social_distance', help='social', action='store_true')
     predict_parser.add_argument('--threshold_prob', type=float, help='concordance for samples', default=0.25)
     predict_parser.add_argument('--threshold_dist', type=float, help='min distance of people', default=2.5)
     predict_parser.add_argument('--radii', type=tuple, help='o-space radii', default=(0.3, 0.5, 1))
@@ -137,8 +136,6 @@ def main():
             from .visuals.webcam import webcam
             webcam(args)
         else:
-            if args.output_types is None:
-                args.output_types = ['json']
             from .predict import predict
             predict(args)
 

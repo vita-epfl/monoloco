@@ -93,9 +93,11 @@ class KeypointPainter:
         self.solid_threshold = solid_threshold
         self.dashed_threshold = 0.1  # Patch to still allow force complete pose (set to zero to resume original)
 
-    def _draw_skeleton(self, ax, x, y, v, *, size=None, color=None, raise_hand='none'):
-        if not np.any(v > 0):
-            return
+
+    def _highlighted_arm(self, x, y, connection, color, lwidth, raise_hand, size=None):
+
+        c = color
+        linewidth = lwidth
 
         width, height = (1,1)
         if size:
@@ -105,18 +107,32 @@ class KeypointPainter:
         l_arm_width = np.sqrt(((x[9]-x[7])/width)**2 + ((y[9]-y[7])/height)**2)*100
         r_arm_width = np.sqrt(((x[10]-x[8])/width)**2 + ((y[10]-y[8])/height)**2)*100
 
+        if ((connection[0] == 5 and connection[1] == 7)
+            or (connection[0] == 7 and connection[1] == 9)) and raise_hand in ['left','both']:
+            c = 'yellow'
+            linewidth = l_arm_width
+        if ((connection[0] == 6 and connection[1] == 8)
+            or (connection[0] == 8 and connection[1] == 10)) and raise_hand in ['right', 'both']:
+            c = 'yellow'
+            linewidth = r_arm_width
+
+        return c, linewidth
+
+
+    def _draw_skeleton(self, ax, x, y, v, i, *, size=None, color=None, activities=None, dic_out=None):
+        if not np.any(v > 0):
+            return
+
         if self.skeleton is not None:
             for ci, connection in enumerate(np.array(self.skeleton) - 1):
                 c = color
-                linewidth=self.linewidth
-                if ((connection[0] == 5 and connection[1] == 7)
-                    or (connection[0] == 7 and connection[1] == 9)) and raise_hand in ['left','both']:
-                    c = 'yellow'
-                    linewidth = l_arm_width
-                if ((connection[0] == 6 and connection[1] == 8)
-                    or (connection[0] == 8 and connection[1] == 10)) and raise_hand in ['right', 'both']:
-                    c = 'yellow'
-                    linewidth = r_arm_width
+                linewidth = self.linewidth
+
+                if activities:
+                    if 'raise_hand' in activities:
+                        c, linewidth = self._highlighted_arm(x, y, connection, c, linewidth,
+                                                             dic_out['raising_hand'][:][i], size=size)
+                
                 if self.color_connections:
                     c = matplotlib.cm.get_cmap('tab20')(ci / len(self.skeleton))
                 if np.all(v[connection] > self.dashed_threshold):
@@ -193,7 +209,8 @@ class KeypointPainter:
                     (x - scale, y - scale), 2 * scale, 2 * scale, fill=False, color=color))
 
     def keypoints(self, ax, keypoint_sets, *,
-                  size=None, scores=None, color=None, colors=None, texts=None, raise_hand='none'):
+                  size=None, scores=None, color=None,
+                  colors=None, texts=None, activities=None, dic_out=None):
         if keypoint_sets is None:
             return
 
@@ -214,12 +231,8 @@ class KeypointPainter:
             if isinstance(color, (int, np.integer)):
                 color = matplotlib.cm.get_cmap('tab20')((color % 20 + 0.05) / 20)
 
-            if raise_hand != 'none':
-                # if raise_hand[:][i] is 'both' or raise_hand[:][i] is 'left' or raise_hand[:][i] is 'right':
-                #     color = 'green'
-                self._draw_skeleton(ax, x, y, v, size=size, color=color, raise_hand=raise_hand[:][i])
-            else:
-                self._draw_skeleton(ax, x, y, v, color=color)
+            self._draw_skeleton(ax, x, y, v, i, size=size, color=color, activities=activities, dic_out=dic_out)
+
             score = scores[i] if scores is not None else None
             if score is not None:
                 z_str = str(score).split(sep='.')
