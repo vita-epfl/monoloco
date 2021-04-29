@@ -198,7 +198,7 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
                           fig_width=10,
                           dpi_factor=1.0) as ax:
             keypoint_painter.keypoints(
-                ax, keypoint_sets, size=image_t.size, colors=colors, raise_hand=r_h)
+                ax, keypoint_sets, size=image_t.size, colors=colors)
             draw_orientation(ax, uv_centers, sizes,
                              angles, colors, mode='front')
 
