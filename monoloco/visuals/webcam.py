@@ -55,6 +55,8 @@ def factory_from_args(args):
     args.no_save = True
     args.batch_size = 1
 
+    if args.long_edge is None:
+        args.long_edge = 144
     # Make default pifpaf argument
     args.force_complete_pose = True
     LOG.info("Force complete pose is active")
@@ -88,7 +90,8 @@ def webcam(args):
     while True:
         start = time.time()
         ret, frame = cam.read()
-        image = cv2.resize(frame, None, fx=args.scale, fy=args.scale)
+        scale = (args.long_edge)/frame.shape[0]
+        image = cv2.resize(frame, None, fx=scale, fy=scale)
         height, width, _ = image.shape
         print('resized image size: {}'.format(image.shape))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)

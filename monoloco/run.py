@@ -24,8 +24,10 @@ def cli():
                                 help='what to output: json keypoints skeleton for Pifpaf'
                                      'json bird front or multi for MonStereo')
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
+    predict_parser.add_argument('--hide_distance', help='to not show the absolute distance of people from the camera',
+                                default=False, action='store_true')
     predict_parser.add_argument('--dpi', help='image resolution', type=int, default=150)
-    predict_parser.add_argument('--long-edge', default=None, type=int,
+    predict_parser.add_argument('--long_edge', default=None, type=int,
                                 help='rescale the long side of the image (aspect ratio maintained)')
     predict_parser.add_argument('--white-overlay',
                                 nargs='?', default=False, const=0.8, type=float,
@@ -60,7 +62,6 @@ def cli():
     predict_parser.add_argument('--dropout', type=float, help='dropout parameter', default=0.2)
     predict_parser.add_argument('--show_all', help='only predict ground-truth matches or all', action='store_true')
     predict_parser.add_argument('--webcam', help='monstereo streaming', action='store_true')
-    predict_parser.add_argument('--scale', default=0.2, type=float, help='change the scale of the webcam image')
     predict_parser.add_argument('--focal', help='focal length in mm for a sensor size of 7.2x5.4 mm. (nuScenes)',
                                 type=float, default=5.7)
 

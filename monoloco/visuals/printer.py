@@ -65,6 +65,7 @@ class Printer:
         self.save = not args.no_save and not self.webcam
         self.plt_close = not self.webcam
         self.activities = args.activities
+        self.hide_distance = args.hide_distance
 
         # define image attributes
         self.attr = image_attributes(args.dpi, args.output_types)
@@ -184,22 +185,22 @@ class Printer:
         keypoint_sets, _ = get_pifpaf_outputs(annotations)
         keypoint_painter = KeypointPainter(show_box=False, y_scale=self.y_scale)
 
+        if not self.hide_distance:
+            scores = self.dd_pred
+        else:
+            scores=None
+
         if activities:
             keypoint_painter.keypoints(
                 axis, keypoint_sets, size=self.im.size,
-                scores=self.dd_pred, colors=colors, activities=activities, dic_out=dic_out)
+                scores=scores, colors=colors, activities=activities, dic_out=dic_out)
 
-            if 'social_distance' in activities:
-                draw_orientation(axis, self.centers,
-                                sizes, self.angles, colors, mode='front')
         else:
             keypoint_painter.keypoints(
-                axis, keypoint_sets, size=self.im.size, scores=self.dd_pred)
+                axis, keypoint_sets, size=self.im.size, colors=colors, scores=scores)
 
-
-    def _activities_bird(self, axis, colors, activities):
-        if 'social_distance' in activities:
-            draw_orientation(axis, self.xz_centers, [], self.angles, colors, mode='bird')
+        draw_orientation(axis, self.centers,
+                        sizes, self.angles, colors, mode='front')
 
 
     def _front_loop(self, iterator, axes, number, colors, annotations, dic_out):
@@ -218,8 +219,7 @@ class Printer:
     def _bird_loop(self, iterator, axes, colors, number):
         for idx in iterator:
             if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
-                if self.activities:
-                    self._activities_bird(axes[1], colors, self.activities)
+                draw_orientation(axes[1], self.xz_centers, [], self.angles, colors, mode='bird')
                 # Draw ground truth and uncertainty
                 self._draw_uncertainty(axes, idx)
 
@@ -231,9 +231,8 @@ class Printer:
 
     def draw(self, figures, axes, image, dic_out=None, annotations=None):
 
-        colors = []
+        colors = ['deepskyblue' for _ in self.uv_heads]
         if self.activities:
-            colors = ['deepskyblue' for _ in self.uv_heads]
             if 'social_distance' in self.activities:
                 colors = social_distance_colors(colors, dic_out)
 
@@ -291,23 +290,24 @@ class Printer:
         x_t = x0 - 1.5
         y_t = y1 + self.attr['y_box_margin']
         if y_t < (self.height-10):
-            ax.annotate(
-                text,
-                (x_t, y_t),
-                fontsize=self.attr['fontsize_d'],
-                weight='bold',
-                xytext=(5.0, 5.0),
-                textcoords='offset points',
-                color='white',
-                bbox=bbox_config,
-            )
-            if number['flag']:
-                ax.text(x0 - 17,
-                        y1 + 14,
-                        chr(number['num']),
-                        fontsize=self.attr['fontsize_num'],
-                        color=self.attr[self.modes[idx]]['numcolor'],
-                        weight='bold')
+            if not self.hide_distance:
+                ax.annotate(
+                    text,
+                    (x_t, y_t),
+                    fontsize=self.attr['fontsize_d'],
+                    weight='bold',
+                    xytext=(5.0, 5.0),
+                    textcoords='offset points',
+                    color='white',
+                    bbox=bbox_config,
+                )
+                if number['flag']:
+                    ax.text(x0 - 17,
+                            y1 + 14,
+                            chr(number['num']),
+                            fontsize=self.attr['fontsize_num'],
+                            color=self.attr[self.modes[idx]]['numcolor'],
+                            weight='bold')
 
     def _draw_text_bird(self, axes, idx, num):
         """Plot the number in the bird eye view map"""
@@ -429,13 +429,14 @@ class Printer:
         else:
             uv_max = [0., float(self.height)]
             xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
-            x_max = max(abs(xyz_max[0]), 6)  # shortcut to avoid oval circles in case of different kk
+            x_max = abs(xyz_max[0]) # shortcut to avoid oval circles in case of different kk
             corr = round(float(x_max / 3))
             ax.plot([0, x_max], [0, self.z_max], 'k--')
             ax.plot([0, -x_max], [0, self.z_max], 'k--')
             ax.set_xlim(-x_max + corr, x_max - corr)
             ax.set_ylim(0, self.z_max + 1)
             ax.set_xlabel("X [m]")
+            ax.set_box_aspect(.8)
             plt.xticks(fontsize=self.attr['fontsize_ax'])
             plt.yticks(fontsize=self.attr['fontsize_ax'])
         return ax
