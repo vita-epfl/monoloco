@@ -437,6 +437,7 @@ class Printer:
             ax.set_ylim(0, self.z_max + 1)
             ax.set_xlabel("X [m]")
             ax.set_box_aspect(.8)
+            plt.xlim((-x_max, x_max))
             plt.xticks(fontsize=self.attr['fontsize_ax'])
             plt.yticks(fontsize=self.attr['fontsize_ax'])
         return ax

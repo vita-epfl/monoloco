@@ -84,7 +84,7 @@ def webcam(args):
     preprocess = preprocess_factory(args)
 
     # Start recording
-    cam = cv2.VideoCapture(0)
+    cam = cv2.VideoCapture(args.camera)
     visualizer_mono = None
 
     while True:
