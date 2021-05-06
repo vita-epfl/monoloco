@@ -11,6 +11,7 @@ from matplotlib.patches import Rectangle
 from .pifpaf_show import KeypointPainter, get_pifpaf_outputs, draw_orientation, social_distance_colors
 from ..utils import pixel_to_camera
 
+plt.style.use('dark_background')
 
 def get_angle(xx, zz):
     """Obtain the points to plot the confidence of each annotation"""
