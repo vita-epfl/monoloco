@@ -104,27 +104,25 @@ The default focal length is 5.7mm and this parameter can be modified using the a
 
 ## Webcam
 
-You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--long-edge` is set to 144. If multiple webcams are plugged in you can choose between them using `--camera`, for instance to use the second camera you can add `--camera 1`.
-For example, the following command :
+You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--long_edge` is set to 144. If multiple webcams are plugged in you can choose between them using `--camera`, for instance to use the second camera you can add `--camera 1`.
+we can see a few examples below, obtained we the following commands :
+
+For the first and last visualization:
 ```
 python -m monoloco.run predict \
 --webcam \
 --activities raise_hand
 ```
-Yields the following result :
-
-![webcam](docs/webcam.gif)
-
-With `social_distance` in `--activities`, only the keypoints will be shown, allowing total anonimity.
-For instance, using : 
+For the second one :
 ```
 python -m monoloco.run predict \
 --webcam \
---activities social_distance
+--activities raise_hand social_distance
 ```
-We have :
 
-![webcam](docs/webcam_social.png)
+![webcam](docs/webcam.gif)
+
+With `social_distance` in `--activities`, only the keypoints will be shown, with no image, allowing total anonimity.
 
 ## A) 3D Localization
 
