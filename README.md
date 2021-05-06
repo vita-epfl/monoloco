@@ -104,7 +104,7 @@ The default focal length is 5.7mm and this parameter can be modified using the a
 
 ## Webcam
 
-You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--long_edge` is set to 144. If multiple webcams are plugged in you can choose between them using `--camera`, for instance to use the second camera you can add `--camera 1`.
+You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--long-edge` is set to 144. If multiple webcams are plugged in you can choose between them using `--camera`, for instance to use the second camera you can add `--camera 1`.
 we can see a few examples below, obtained we the following commands :
 
 For the first and last visualization:
