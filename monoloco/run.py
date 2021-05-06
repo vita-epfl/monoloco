@@ -27,7 +27,7 @@ def cli():
     predict_parser.add_argument('--hide_distance', help='to not show the absolute distance of people from the camera',
                                 default=False, action='store_true')
     predict_parser.add_argument('--dpi', help='image resolution', type=int, default=150)
-    predict_parser.add_argument('--long_edge', default=None, type=int,
+    predict_parser.add_argument('--long-edge', default=None, type=int,
                                 help='rescale the long side of the image (aspect ratio maintained)')
     predict_parser.add_argument('--white-overlay',
                                 nargs='?', default=False, const=0.8, type=float,
@@ -50,7 +50,7 @@ def cli():
     visualizer.cli(parser)
 
     # Monoloco
-    predict_parser.add_argument('--activities', nargs='+',
+    predict_parser.add_argument('--activities', nargs='+', choices=['raise_hand', 'social_distance'],
                                 help='Choose activities to show: social_distance, raise_hand')
     predict_parser.add_argument('--mode', help='keypoints, mono, stereo', default='mono')
     predict_parser.add_argument('--model', help='path of MonoLoco/MonStereo model to load')
