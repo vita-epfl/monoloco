@@ -102,13 +102,14 @@ When processing KITTI images, the network uses the provided intrinsic matrix of 
 In all the other cases, we use the parameters of nuScenes cameras, with "1/1.8'' CMOS sensors of size 7.2 x 5.4 mm.
 The default focal length is 5.7mm and this parameter can be modified using the argument `--focal`.
 
-**Webcam** <br />
-You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--scale` is set to 0.2. 
+## Webcam
+
+You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--long_edge` is set to 144. If multiple webcams are plugged in you can choose between them using `--camera`, for instance to use the second camera you can add `--camera 1`.
 For example, the following command :
 ```
 python -m monoloco.run predict \
 --webcam \
---output_types multi
+--activities raise_hand
 ```
 Yields the following result :
 
@@ -119,8 +120,7 @@ For instance, using :
 ```
 python -m monoloco.run predict \
 --webcam \
---activities social_distance \
---output_types multi
+--activities social_distance
 ```
 We have :
 
@@ -217,15 +217,15 @@ For more info, run:
 
 **Examples** <br>
 
-To visualize raised hand with the webcam, run the below command:
+The command below:
 ```
-python -m monoloco.run predict \
---webcam \
---activities raise_hand \
---output_types multi 
+python -m monoloco.run predict .\docs\raising_hand.jpg \
+--output_types front \
+--activities raise_hand
 ```
+Yields the following:
 
-![webcam_raise_hand](docs/webcam_raisehand.gif)
+![raise_hand_taxi](docs/out_raising_hand.jpg.front.png)
 
 
 ## D) Orientation and Bounding Box dimensions 
