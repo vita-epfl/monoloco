@@ -113,6 +113,9 @@ class Printer:
 
     def factory_axes(self, dic_out):
         """Create axes for figures: front bird multi"""
+
+        plt.style.use('dark_background')        
+
         axes = []
         figures = []
 
@@ -431,8 +434,8 @@ class Printer:
             xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
             x_max = abs(xyz_max[0]) # shortcut to avoid oval circles in case of different kk
             corr = round(float(x_max / 3))
-            ax.plot([0, x_max], [0, self.z_max], 'k--')
-            ax.plot([0, -x_max], [0, self.z_max], 'k--')
+            ax.plot([0, x_max], [0, self.z_max], 'w--')
+            ax.plot([0, -x_max], [0, self.z_max], 'w--')
             ax.set_xlim(-x_max + corr, x_max - corr)
             ax.set_ylim(0, self.z_max + 1)
             ax.set_xlabel("X [m]")
