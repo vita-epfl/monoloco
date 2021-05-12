@@ -114,7 +114,7 @@ class Printer:
     def factory_axes(self, dic_out):
         """Create axes for figures: front bird multi"""
 
-        plt.style.use('dark_background')        
+        plt.style.use('dark_background')
 
         axes = []
         figures = []
