@@ -109,30 +109,6 @@ When processing KITTI images, the network uses the provided intrinsic matrix of 
 In all the other cases, we use the parameters of nuScenes cameras, with "1/1.8'' CMOS sensors of size 7.2 x 5.4 mm.
 The default focal length is 5.7mm and this parameter can be modified using the argument `--focal`.
 
-<<<<<<< HEAD
-## Webcam
-
-You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--long-edge` is set to 144. If multiple webcams are plugged in you can choose between them using `--camera`, for instance to use the second camera you can add `--camera 1`.
-we can see a few examples below, obtained we the following commands :
-
-For the first and last visualization:
-```
-python -m monoloco.run predict \
---webcam \
---activities raise_hand
-```
-For the second one :
-```
-python -m monoloco.run predict \
---webcam \
---activities raise_hand social_distance
-```
-
-![webcam](docs/webcam.gif)
-
-With `social_distance` in `--activities`, only the keypoints will be shown, with no image, allowing total anonimity.
-=======
->>>>>>> c68ba4d56b77ee2571e26e9229950da621886c83
 
 ## A) 3D Localization
 
@@ -218,25 +194,6 @@ python -m monoloco.run predict docs/frame0032.jpg \
 <img src="docs/out_frame0032_front_bird.jpg" width="700"/>
 
 ## C) Hand-raising detection
-<<<<<<< HEAD
-To detect raised hand, you can add `raise_hand` to `--activities`.
-
-For more info, run:
-`python -m monoloco.run predict --help`
-
-**Examples** <br>
-
-The command below:
-```
-python -m monoloco.run predict .\docs\raising_hand.jpg \
---output_types front \
---activities raise_hand
-```
-Yields the following:
-
-![raise_hand_taxi](docs/out_raising_hand.jpg.front.png)
-
-=======
 To detect raised hand, you can add the argument `--activities raise_hand` to the prediction command.
 
 
@@ -244,7 +201,6 @@ To detect raised hand, you can add the argument `--activities raise_hand` to the
 
 For more info, run:
 `python -m monoloco.run predict --help`
->>>>>>> c68ba4d56b77ee2571e26e9229950da621886c83
 
 ## D) Orientation and Bounding Box dimensions 
 The network estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
