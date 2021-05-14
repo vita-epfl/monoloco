@@ -115,8 +115,6 @@ def is_raising_hand(kp):
     if is_right_risen:
         return 'right'
 
-    return None
-
 
 def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False):
     """
