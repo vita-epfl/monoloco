@@ -115,7 +115,7 @@ def is_raising_hand(kp):
     if is_right_risen:
         return 'right'
 
-    return 'none'
+    return None 
 
 
 def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False):
@@ -186,11 +186,6 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
         sizes = [abs(dic_out['uv_heads'][idx][1] - uv_s[1]) / 1.5 for idx, uv_s in
                  enumerate(dic_out['uv_shoulders'])]
         keypoint_painter = KeypointPainter(show_box=False)
-
-        r_h = 'none'
-        if 'raise_hand' in args.activities:
-            r_h = dic_out['raising_hand']
-        print("RAISE_HAND :", r_h)
 
         with image_canvas(image_t,
                           output_path + '.front.png',

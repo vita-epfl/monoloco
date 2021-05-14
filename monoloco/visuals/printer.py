@@ -235,9 +235,8 @@ class Printer:
     def draw(self, figures, axes, image, dic_out=None, annotations=None):
 
         colors = ['deepskyblue' for _ in self.uv_heads]
-        if self.activities:
-            if 'social_distance' in self.activities:
-                colors = social_distance_colors(colors, dic_out)
+        if 'social_distance' in self.activities:
+            colors = social_distance_colors(colors, dic_out)
 
         # whether to include instances that don't match the ground-truth
         iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))

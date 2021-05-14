@@ -220,9 +220,9 @@ def predict(args):
                 dic_out = net.forward(keypoints, kk)
                 dic_out = net.post_process(
                     dic_out, boxes, keypoints, kk, dic_gt)
-                if args.activities and 'social_distance' in args.activities:
+                if 'social_distance' in args.activities:
                     dic_out = net.social_distance(dic_out, args)
-                if args.activities and 'raise_hand' in args.activities:
+                if 'raise_hand' in args.activities:
                     dic_out = net.raising_hand(dic_out, keypoints)
 
             else:

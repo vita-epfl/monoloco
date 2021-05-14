@@ -132,11 +132,10 @@ def webcam(args):
         dic_out = net.forward(keypoints, kk)
         dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt)
 
-        if args.activities:
-            if 'social_distance' in args.activities:
-                dic_out = net.social_distance(dic_out, args)
-            if 'raise_hand' in args.activities:
-                dic_out = net.raising_hand(dic_out, keypoints)
+        if 'social_distance' in args.activities:
+            dic_out = net.social_distance(dic_out, args)
+        if 'raise_hand' in args.activities:
+            dic_out = net.raising_hand(dic_out, keypoints)
         if visualizer_mono is None:  # it is, at the beginning
             visualizer_mono = Visualizer(kk, args)(pil_image)  # create it with the first image
             visualizer_mono.send(None)
