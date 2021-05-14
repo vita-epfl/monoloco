@@ -2,11 +2,13 @@
 Continuously tested on Linux, MacOS and Windows: [![Tests](https://github.com/vita-epfl/monoloco/workflows/Tests/badge.svg)](https://github.com/vita-epfl/monoloco/actions?query=workflow%3ATests)
 
 
+<img src="docs/webcam.gif" width="700" alt="gif" />
 
-<img src="docs/monoloco.gif" alt="gif" />
-
+<br /> 
+<br /> 
 
 This library is based on three research projects for monocular/stereo 3D human localization (detection), body orientation, and social distancing. Check the __video teaser__ of the library on [__YouTube__](https://www.youtube.com/watch?v=O5zhzi8mwJ4). 
+
 
 ---
 
@@ -34,7 +36,12 @@ __[Article](https://arxiv.org/abs/2009.00984)__ &nbsp; &nbsp; &nbsp; &nbsp; &nbs
 __[Article](https://arxiv.org/abs/1906.06059)__ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;    __[Citation](#Citation)__ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  __[Video](https://www.youtube.com/watch?v=ii0fqerQrec)__
    
 <img src="docs/surf.jpg" width="700"/>
-    
+
+## Library Overview
+Visual illustration of the library components:
+
+<img src="docs/monoloco.gif" width="700" alt="gif" />
+
 ## License
 All projects are built upon [Openpifpaf](https://github.com/vita-epfl/openpifpaf) for the 2D keypoints and share the AGPL Licence.
 
@@ -102,6 +109,7 @@ When processing KITTI images, the network uses the provided intrinsic matrix of 
 In all the other cases, we use the parameters of nuScenes cameras, with "1/1.8'' CMOS sensors of size 7.2 x 5.4 mm.
 The default focal length is 5.7mm and this parameter can be modified using the argument `--focal`.
 
+<<<<<<< HEAD
 ## Webcam
 
 You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--long-edge` is set to 144. If multiple webcams are plugged in you can choose between them using `--camera`, for instance to use the second camera you can add `--camera 1`.
@@ -123,6 +131,8 @@ python -m monoloco.run predict \
 ![webcam](docs/webcam.gif)
 
 With `social_distance` in `--activities`, only the keypoints will be shown, with no image, allowing total anonimity.
+=======
+>>>>>>> c68ba4d56b77ee2571e26e9229950da621886c83
 
 ## A) 3D Localization
 
@@ -208,6 +218,7 @@ python -m monoloco.run predict docs/frame0032.jpg \
 <img src="docs/out_frame0032_front_bird.jpg" width="700"/>
 
 ## C) Hand-raising detection
+<<<<<<< HEAD
 To detect raised hand, you can add `raise_hand` to `--activities`.
 
 For more info, run:
@@ -225,13 +236,32 @@ Yields the following:
 
 ![raise_hand_taxi](docs/out_raising_hand.jpg.front.png)
 
+=======
+To detect raised hand, you can add the argument `--activities raise_hand` to the prediction command.
+
+
+<img src="docs/out_raising_hand.jpg.front.jpg" width="500"/>
+
+For more info, run:
+`python -m monoloco.run predict --help`
+>>>>>>> c68ba4d56b77ee2571e26e9229950da621886c83
 
 ## D) Orientation and Bounding Box dimensions 
 The network estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
 `--output_types json`. At the moment, the only visualization including orientation is the social distancing one.
 <br /> 
 
-## Training
+## E) Webcam
+You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--long-edge` is set to 144. If multiple webcams are plugged in you can choose between them using `--camera`, for instance to use the second camera you can add `--camera 1`.
+
+Example command:
+
+```sh
+python -m monoloco.run predict --webcam \
+--activities raise_hand social_distance
+```
+
+# Training
 We train on the KITTI dataset (MonoLoco/Monoloco++/MonStereo) or the nuScenes dataset (MonoLoco) specifying the path of the json file containing the input joints. Please download them [here](https://drive.google.com/drive/folders/1j0riwbS9zuEKQ_3oIs_dWlYBnfuN2WVN?usp=sharing) or follow [preprocessing instructions](#Preprocessing).
 
 Results for [MonoLoco++](###Tables) are obtained with: 
@@ -254,13 +284,13 @@ Finally, for a more extensive list of available parameters, run:
 
 <br /> 
 
-## Preprocessing
+# Preprocessing
 Preprocessing and training step are already fully supported by the code provided, 
 but require first to run a pose detector over
 all the training images and collect the annotations. 
 The code supports this option (by running the predict script and using `--mode keypoints`).
 
-### Data structure
+## Data structure
 
     data         
     ├── outputs                 
@@ -275,7 +305,7 @@ mkdir outputs arrays kitti
 ```
 
 
-### Kitti Dataset
+## Kitti Dataset
 Download kitti images (from left and right cameras), ground-truth files (labels), and calibration files from their [website](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d) and save them inside the `data` folder as shown below.
 
     data         
@@ -319,7 +349,7 @@ For MonStereo:
 python -m monoloco.run prep --mode stereo --dir_ann <directory that contains left annotations> 
 ```
 
-### Collective Activity Dataset
+## Collective Activity Dataset
 To evaluate on of the [collective activity dataset](http://vhosts.eecs.umich.edu/vision//activity-dataset.html)
  (without any training) we selected 6 scenes that contain people talking to each other. 
  This allows for a balanced dataset, but any other configuration will work. 
@@ -354,9 +384,9 @@ python -m openpifpaf.predict \
 ```
 
 
-## Evaluation
+# Evaluation
 
-### 3D Localization
+## 3D Localization
 We provide evaluation on KITTI for models trained on nuScenes or KITTI. Download the ground-truths of KITTI dataset and the calibration files from their [website](http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d). Save the training labels (one .txt file for each image) into the folder `data/kitti/gt` and the camera calibration matrices (one .txt file for each image) into `data/kitti/calib`.  
 To evaluate a pre-trained model, download the latest models from [here](https://drive.google.com/drive/u/0/folders/1kQpaTcDsiNyY6eh1kUurcpptfAXkBjAJ) and save them into `data/outputs.
 
@@ -395,14 +425,14 @@ python -m monoloco.run eval \
 
 For stereo results add `--mode stereo` and select `--model=monstereo-210422-1620.pkl`.  Below, the resulting table of results and an example of the saved figures.
 
-### Tables
+## Tables
 
 <img src="docs/quantitative.jpg" width="700"/>
 
 <img src="docs/results_monstereo.jpg" width="700"/>
 
 
-### Relative Average Precision Localization: RALP-5% (MonStereo)
+## Relative Average Precision Localization: RALP-5% (MonStereo)
 
 We modified the original C++ evaluation of KITTI to make it relative to distance. We use **cmake**.
 To run the evaluation, first generate the txt file with the standard command for evaluation (above).
@@ -410,7 +440,7 @@ Then follow the instructions of this [repository](https://github.com/cguindel/ev
 to prepare the folders accordingly (or follow kitti guidelines) and run evaluation. 
 The modified file is called *evaluate_object.cpp* and runs exactly as the original kitti evaluation.
 
-### Activity Estimation (Talking)
+## Activity Estimation (Talking)
 Please follow preprocessing steps for Collective activity dataset and run pifpaf over the dataset images.
 Evaluation on this dataset is done with models trained on either KITTI or nuScenes. 
 For optimal performances, we suggest the model trained on nuScenes teaser.
@@ -423,7 +453,7 @@ python -m monstereo.run eval \
 --dir_ann <annotation directory>
 ```
 
-## Citation
+# Citation
 When using this library in your research, we will be happy if you cite us! 
 
 ```
