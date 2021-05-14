@@ -6,16 +6,19 @@ and licensed under GNU AGPLv3
 """
 
 from contextlib import contextmanager
+import math
 
 import numpy as np
 from PIL import Image
-import matplotlib
-import matplotlib.pyplot as plt
 
 try:
+    import matplotlib
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Circle, FancyArrow
     import scipy.ndimage as ndimage
 except ImportError:
     ndimage = None
+    plt = None
 
 
 COCO_PERSON_SKELETON = [
@@ -71,15 +74,41 @@ def load_image(path, scale=1.0):
         return image
 
 
+def highlighted_arm(x, y, connection, color, lwidth, raise_hand, size=None):
+
+    c = color
+    linewidth = lwidth
+
+    width, height = (1,1)
+    if size:
+        width = size[0]
+        height = size[1]
+
+    l_arm_width = np.sqrt(((x[9]-x[7])/width)**2 + ((y[9]-y[7])/height)**2)*100
+    r_arm_width = np.sqrt(((x[10]-x[8])/width)**2 + ((y[10]-y[8])/height)**2)*100
+
+    if ((connection[0] == 5 and connection[1] == 7)
+        or (connection[0] == 7 and connection[1] == 9)) and raise_hand in ['left','both']:
+        c = 'yellow'
+        linewidth = l_arm_width
+    if ((connection[0] == 6 and connection[1] == 8)
+        or (connection[0] == 8 and connection[1] == 10)) and raise_hand in ['right', 'both']:
+        c = 'yellow'
+        linewidth = r_arm_width
+
+    return c, linewidth
+
+
 class KeypointPainter:
     def __init__(self, *,
                  skeleton=None,
-                 xy_scale=1.0, highlight=None, highlight_invisible=False,
+                 xy_scale=1.0, y_scale=1.0, highlight=None, highlight_invisible=False,
                  show_box=True, linewidth=2, markersize=3,
                  color_connections=False,
                  solid_threshold=0.5):
         self.skeleton = skeleton or COCO_PERSON_SKELETON
         self.xy_scale = xy_scale
+        self.y_scale = y_scale
         self.highlight = highlight
         self.highlight_invisible = highlight_invisible
         self.show_box = show_box
@@ -89,22 +118,29 @@ class KeypointPainter:
         self.solid_threshold = solid_threshold
         self.dashed_threshold = 0.1  # Patch to still allow force complete pose (set to zero to resume original)
 
-    def _draw_skeleton(self, ax, x, y, v, *, color=None):
+
+    def _draw_skeleton(self, ax, x, y, v, *, i=0, size=None, color=None, activities=None, dic_out=None):
         if not np.any(v > 0):
             return
 
         if self.skeleton is not None:
             for ci, connection in enumerate(np.array(self.skeleton) - 1):
                 c = color
+                linewidth = self.linewidth
+
+                if 'raise_hand' in activities:
+                    c, linewidth = highlighted_arm(x, y, connection, c, linewidth,
+                                                            dic_out['raising_hand'][:][i], size=size)
+
                 if self.color_connections:
                     c = matplotlib.cm.get_cmap('tab20')(ci / len(self.skeleton))
                 if np.all(v[connection] > self.dashed_threshold):
                     ax.plot(x[connection], y[connection],
-                            linewidth=self.linewidth, color=c,
+                            linewidth=linewidth, color=c,
                             linestyle='dashed', dash_capstyle='round')
                 if np.all(v[connection] > self.solid_threshold):
                     ax.plot(x[connection], y[connection],
-                            linewidth=self.linewidth, color=c, solid_capstyle='round')
+                            linewidth=linewidth, color=c, solid_capstyle='round')
 
         # highlight invisible keypoints
         inv_color = 'k' if self.highlight_invisible else color
@@ -145,7 +181,7 @@ class KeypointPainter:
             ax.text(x1, y1, '{:.4f}'.format(score), fontsize=8, color=color)
 
     @staticmethod
-    def _draw_text(ax, x, y, v, text, color):
+    def _draw_text(ax, x, y, v, text, color, fontsize=8):
         if not np.any(v > 0):
             return
 
@@ -159,7 +195,7 @@ class KeypointPainter:
             y1 -= 2.0
             y2 += 2.0
 
-        ax.text(x1 + 2, y1 - 2, text, fontsize=8,
+        ax.text(x1 + 2, y1 - 2, text, fontsize=fontsize,
                 color='white', bbox={'facecolor': color, 'alpha': 0.5, 'linewidth': 0})
 
     @staticmethod
@@ -171,7 +207,9 @@ class KeypointPainter:
                 matplotlib.patches.Rectangle(
                     (x - scale, y - scale), 2 * scale, 2 * scale, fill=False, color=color))
 
-    def keypoints(self, ax, keypoint_sets, *, scores=None, color=None, colors=None, texts=None):
+    def keypoints(self, ax, keypoint_sets, *,
+                  size=None, scores=None, color=None,
+                  colors=None, texts=None, activities=None, dic_out=None):
         if keypoint_sets is None:
             return
 
@@ -183,7 +221,7 @@ class KeypointPainter:
         for i, kps in enumerate(np.asarray(keypoint_sets)):
             assert kps.shape[1] == 3
             x = kps[:, 0] * self.xy_scale
-            y = kps[:, 1] * self.xy_scale
+            y = kps[:, 1] * self.xy_scale * self.y_scale
             v = kps[:, 2]
 
             if colors is not None:
@@ -192,7 +230,13 @@ class KeypointPainter:
             if isinstance(color, (int, np.integer)):
                 color = matplotlib.cm.get_cmap('tab20')((color % 20 + 0.05) / 20)
 
-            self._draw_skeleton(ax, x, y, v, color=color)
+            self._draw_skeleton(ax, x, y, v, i=i, size=size, color=color, activities=activities, dic_out=dic_out)
+
+            score = scores[i] if scores is not None else None
+            if score is not None:
+                z_str = str(score).split(sep='.')
+                text = z_str[0] + '.' + z_str[1][0]
+                self._draw_text(ax, x[1:3], y[1:3]-5, v[1:3], text, color, fontsize=16)
             if self.show_box:
                 score = scores[i] if scores is not None else None
                 self._draw_box(ax, x, y, v, color, score)
@@ -336,3 +380,78 @@ def white_screen(ax, alpha=0.9):
         plt.Rectangle((0, 0), 1, 1, transform=ax.transAxes, alpha=alpha,
                       facecolor='white')
     )
+
+
+def get_pifpaf_outputs(annotations):
+    # TODO extract direct from predictions with pifpaf 0.11+
+    """Extract keypoints sets and scores from output dictionary"""
+    if not annotations:
+        return [], []
+    keypoints_sets = np.array([dic['keypoints']
+                               for dic in annotations]).reshape((-1, 17, 3))
+    score_weights = np.ones((keypoints_sets.shape[0], 17))
+    score_weights[:, 3] = 3.0
+    score_weights /= np.sum(score_weights[0, :])
+    kps_scores = keypoints_sets[:, :, 2]
+    ordered_kps_scores = np.sort(kps_scores, axis=1)[:, ::-1]
+    scores = np.sum(score_weights * ordered_kps_scores, axis=1)
+    return keypoints_sets, scores
+
+
+def draw_orientation(ax, centers, sizes, angles, colors, mode):
+
+    if mode == 'front':
+        length = 5
+        fill = False
+        alpha = 0.6
+        zorder_circle = 0.5
+        zorder_arrow = 5
+        linewidth = 1.5
+        edgecolor = 'k'
+        radiuses = [s / 1.2 for s in sizes]
+    else:
+        length = 1.3
+        head_width = 0.3
+        linewidth = 2
+        radiuses = [0.2] * len(centers)
+        # length = 1.6
+        # head_width = 0.4
+        # linewidth = 2.7
+        radiuses = [0.2] * len(centers)
+        fill = True
+        alpha = 1
+        zorder_circle = 2
+        zorder_arrow = 1
+
+    for idx, theta in enumerate(angles):
+        color = colors[idx]
+        radius = radiuses[idx]
+
+        if mode == 'front':
+            x_arr = centers[idx][0] + (length + radius) * math.cos(theta)
+            z_arr = length + centers[idx][1] + \
+                (length + radius) * math.sin(theta)
+            delta_x = math.cos(theta)
+            delta_z = math.sin(theta)
+            head_width = max(10, radiuses[idx] / 1.5)
+
+        else:
+            edgecolor = color
+            x_arr = centers[idx][0]
+            z_arr = centers[idx][1]
+            delta_x = length * math.cos(theta)
+            # keep into account kitti convention
+            delta_z = - length * math.sin(theta)
+
+        circle = Circle(centers[idx], radius=radius, color=color,
+                        fill=fill, alpha=alpha, zorder=zorder_circle)
+        arrow = FancyArrow(x_arr, z_arr, delta_x, delta_z, head_width=head_width, edgecolor=edgecolor,
+                           facecolor=color, linewidth=linewidth, zorder=zorder_arrow)
+        ax.add_patch(circle)
+        ax.add_patch(arrow)
+
+
+def social_distance_colors(colors, dic_out):
+    # Prepare color for social distancing
+    colors = ['r' if flag else colors[idx] for idx,flag in enumerate(dic_out['social_distance'])]
+    return colors

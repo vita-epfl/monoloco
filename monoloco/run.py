@@ -20,11 +20,13 @@ def cli():
     predict_parser.add_argument('--glob', help='glob expression for input images (for many images)')
     predict_parser.add_argument('--checkpoint', help='pifpaf model')
     predict_parser.add_argument('-o', '--output-directory', help='Output directory')
-    predict_parser.add_argument('--output_types', nargs='+', default=['json'],
+    predict_parser.add_argument('--output_types', nargs='+', default=['multi'],
                                 help='what to output: json keypoints skeleton for Pifpaf'
                                      'json bird front or multi for MonStereo')
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
-    predict_parser.add_argument('--dpi', help='image resolution',  type=int, default=150)
+    predict_parser.add_argument('--hide_distance', help='to not show the absolute distance of people from the camera',
+                                default=False, action='store_true')
+    predict_parser.add_argument('--dpi', help='image resolution', type=int, default=150)
     predict_parser.add_argument('--long-edge', default=None, type=int,
                                 help='rescale the long side of the image (aspect ratio maintained)')
     predict_parser.add_argument('--white-overlay',
@@ -47,19 +49,24 @@ def cli():
     show.cli(parser)
     visualizer.cli(parser)
 
+    # Monoloco
+    predict_parser.add_argument('--activities', nargs='+', choices=['raise_hand', 'social_distance'],
+                                help='Choose activities to show: social_distance, raise_hand', default=[])
     predict_parser.add_argument('--mode', help='keypoints, mono, stereo', default='mono')
     predict_parser.add_argument('--model', help='path of MonoLoco/MonStereo model to load')
     predict_parser.add_argument('--net', help='only to select older MonoLoco model, otherwise use --mode')
     predict_parser.add_argument('--path_gt', help='path of json file with gt 3d localization')
+                                #default='data/arrays/names-kitti-200615-1022.json')
     predict_parser.add_argument('--z_max', type=int, help='maximum meters distance for predictions', default=100)
     predict_parser.add_argument('--n_dropout', type=int, help='Epistemic uncertainty evaluation', default=0)
     predict_parser.add_argument('--dropout', type=float, help='dropout parameter', default=0.2)
     predict_parser.add_argument('--show_all', help='only predict ground-truth matches or all', action='store_true')
+    predict_parser.add_argument('--webcam', help='monstereo streaming', action='store_true')
+    predict_parser.add_argument('--camera', help='device to use for webcam streaming', type=int, default=0)
     predict_parser.add_argument('--focal', help='focal length in mm for a sensor size of 7.2x5.4 mm. (nuScenes)',
                                 type=float, default=5.7)
 
     # Social distancing and social interactions
-    predict_parser.add_argument('--social_distance', help='social', action='store_true')
     predict_parser.add_argument('--threshold_prob', type=float, help='concordance for samples', default=0.25)
     predict_parser.add_argument('--threshold_dist', type=float, help='min distance of people', default=2.5)
     predict_parser.add_argument('--radii', type=tuple, help='o-space radii', default=(0.3, 0.5, 1))
@@ -127,8 +134,12 @@ def cli():
 def main():
     args = cli()
     if args.command == 'predict':
-        from .predict import predict
-        predict(args)
+        if args.webcam:
+            from .visuals.webcam import webcam
+            webcam(args)
+        else:
+            from .predict import predict
+            predict(args)
 
     elif args.command == 'prep':
         if 'nuscenes' in args.dataset:

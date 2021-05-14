@@ -8,10 +8,11 @@ from contextlib import contextmanager
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, FancyArrow
 
 from .network.process import laplace_sampling
-from .visuals.pifpaf_show import KeypointPainter, image_canvas
+from .visuals.pifpaf_show import (
+    KeypointPainter, image_canvas, get_pifpaf_outputs, draw_orientation, social_distance_colors
+)
 
 
 def social_interactions(idx, centers, angles, dds, stds=None, social_distance=False,
@@ -23,9 +24,11 @@ def social_interactions(idx, centers, angles, dds, stds=None, social_distance=Fa
     # A) Check whether people are close together
     xx = centers[idx][0]
     zz = centers[idx][1]
-    distances = [math.sqrt((xx - centers[i][0]) ** 2 + (zz - centers[i][1]) ** 2) for i, _ in enumerate(centers)]
+    distances = [math.sqrt((xx - centers[i][0]) ** 2 + (zz - centers[i][1]) ** 2)
+                 for i, _ in enumerate(centers)]
     sorted_idxs = np.argsort(distances)
-    indices = [idx_t for idx_t in sorted_idxs[1:] if distances[idx_t] <= threshold_dist]
+    indices = [idx_t for idx_t in sorted_idxs[1:]
+               if distances[idx_t] <= threshold_dist]
 
     # B) Check whether people are looking inwards and whether there are no intrusions
     # Deterministic
@@ -65,6 +68,56 @@ def social_interactions(idx, centers, angles, dds, stds=None, social_distance=Fa
     return False
 
 
+def is_raising_hand(kp):
+    """
+    Returns flag of alert if someone raises their hand
+    """
+    x=0
+    y=1
+
+    nose = 0
+    l_ear = 3
+    l_shoulder = 5
+    l_elbow = 7
+    l_hand = 9
+    r_ear = 4
+    r_shoulder = 6
+    r_elbow = 8
+    r_hand = 10
+
+    head_width = kp[x][l_ear]- kp[x][r_ear]
+    head_top = (kp[y][nose] - head_width)
+
+    l_forearm = [kp[x][l_hand] - kp[x][l_elbow], kp[y][l_hand] - kp[y][l_elbow]]
+    l_arm = [kp[x][l_shoulder] - kp[x][l_elbow], kp[y][l_shoulder] - kp[y][l_elbow]]
+
+    r_forearm = [kp[x][r_hand] - kp[x][r_elbow], kp[y][r_hand] - kp[y][r_elbow]]
+    r_arm = [kp[x][r_shoulder] - kp[x][r_elbow], kp[y][r_shoulder] - kp[y][r_elbow]]
+
+    l_angle = (90/np.pi) * np.arccos(np.dot(l_forearm/np.linalg.norm(l_forearm), l_arm/np.linalg.norm(l_arm)))
+    r_angle = (90/np.pi) * np.arccos(np.dot(r_forearm/np.linalg.norm(r_forearm), r_arm/np.linalg.norm(r_arm)))
+
+    is_l_up = kp[y][l_hand] < kp[y][l_shoulder]
+    is_r_up = kp[y][r_hand] < kp[y][r_shoulder]
+
+    l_too_close = kp[x][l_hand] <= kp[x][l_shoulder] and kp[y][l_hand]>=head_top
+    r_too_close = kp[x][r_hand] >= kp[x][r_shoulder] and kp[y][r_hand]>=head_top
+
+    is_left_risen = is_l_up and l_angle >= 30 and not l_too_close
+    is_right_risen = is_r_up and r_angle >= 30 and not r_too_close
+
+    if is_left_risen and is_right_risen:
+        return 'both'
+
+    if is_left_risen:
+        return 'left'
+
+    if is_right_risen:
+        return 'right'
+
+    return None
+
+
 def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False):
     """
     Check F-formations for people close together (this function do not expect far away people):
@@ -73,7 +126,8 @@ def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False
     """
 
     # Extract centers and angles
-    other_centers = np.array([cent for l, cent in enumerate(centers) if l not in (idx, idx_t)])
+    other_centers = np.array(
+        [cent for l, cent in enumerate(centers) if l not in (idx, idx_t)])
     theta0 = angles[idx]
     theta1 = angles[idx_t]
 
@@ -92,15 +146,18 @@ def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False
 
         # 1) Verify they are looking inwards.
         # The distance between mus and the center should be less wrt the original position and the center
-        d_new = np.linalg.norm(mu_0 - mu_1) / 2 if social_distance else np.linalg.norm(mu_0 - mu_1)
+        d_new = np.linalg.norm(
+            mu_0 - mu_1) / 2 if social_distance else np.linalg.norm(mu_0 - mu_1)
         d_0 = np.linalg.norm(x_0 - o_c)
         d_1 = np.linalg.norm(x_1 - o_c)
 
         # 2) Verify no intrusion for third parties
         if other_centers.size:
-            other_distances = np.linalg.norm(other_centers - o_c.reshape(1, -1), axis=1)
+            other_distances = np.linalg.norm(
+                other_centers - o_c.reshape(1, -1), axis=1)
         else:
-            other_distances = 100 * np.ones((1, 1))  # Condition verified if no other people
+            # Condition verified if no other people
+            other_distances = 100 * np.ones((1, 1))
 
         # Binary Classification
         # if np.min(other_distances) > radius:  # Ablation without orientation
@@ -109,17 +166,18 @@ def check_f_formations(idx, idx_t, centers, angles, radii, social_distance=False
     return False
 
 
-def show_social(args, image_t, output_path, annotations, dic_out):
+def show_activities(args, image_t, output_path, annotations, dic_out):
     """Output frontal image with poses or combined with bird eye view"""
 
     assert 'front' in args.output_types or 'bird' in args.output_types, "outputs allowed: front and/or bird"
 
+    colors = ['deepskyblue' for _ in dic_out['uv_heads']]
+    if 'social_distance' in args.activities:
+        colors = social_distance_colors(colors, dic_out)
+
     angles = dic_out['angles']
     stds = dic_out['stds_ale']
     xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
-
-    # Prepare color for social distancing
-    colors = ['r' if flag else 'deepskyblue' for flag in dic_out['social_distance']]
 
     # Draw keypoints and orientation
     if 'front' in args.output_types:
@@ -134,29 +192,17 @@ def show_social(args, image_t, output_path, annotations, dic_out):
                           show=args.show,
                           fig_width=10,
                           dpi_factor=1.0) as ax:
-            keypoint_painter.keypoints(ax, keypoint_sets, colors=colors)
-            draw_orientation(ax, uv_centers, sizes, angles, colors, mode='front')
+            keypoint_painter.keypoints(
+                ax, keypoint_sets, activities=args.activities, dic_out=dic_out,
+                size=image_t.size, colors=colors)
+            draw_orientation(ax, uv_centers, sizes,
+                             angles, colors, mode='front')
 
     if 'bird' in args.output_types:
         z_max = min(args.z_max, 4 + max([el[1] for el in xz_centers]))
         with bird_canvas(output_path, z_max) as ax1:
             draw_orientation(ax1, xz_centers, [], angles, colors, mode='bird')
             draw_uncertainty(ax1, xz_centers, stds)
-
-
-def get_pifpaf_outputs(annotations):
-    # TODO extract direct from predictions with pifpaf 0.11+
-    """Extract keypoints sets and scores from output dictionary"""
-    if not annotations:
-        return [], []
-    keypoints_sets = np.array([dic['keypoints'] for dic in annotations]).reshape((-1, 17, 3))
-    score_weights = np.ones((keypoints_sets.shape[0], 17))
-    score_weights[:, 3] = 3.0
-    score_weights /= np.sum(score_weights[0, :])
-    kps_scores = keypoints_sets[:, :, 2]
-    ordered_kps_scores = np.sort(kps_scores, axis=1)[:, ::-1]
-    scores = np.sum(score_weights * ordered_kps_scores, axis=1)
-    return keypoints_sets, scores
 
 
 @contextmanager
@@ -172,56 +218,6 @@ def bird_canvas(output_path, z_max):
     fig.savefig(output_path)
     plt.close(fig)
     print('Bird-eye-view image saved')
-
-
-def draw_orientation(ax, centers, sizes, angles, colors, mode):
-
-    if mode == 'front':
-        length = 5
-        fill = False
-        alpha = 0.6
-        zorder_circle = 0.5
-        zorder_arrow = 5
-        linewidth = 1.5
-        edgecolor = 'k'
-        radiuses = [s / 1.2 for s in sizes]
-    else:
-        length = 1.3
-        head_width = 0.3
-        linewidth = 2
-        radiuses = [0.2] * len(centers)
-        # length = 1.6
-        # head_width = 0.4
-        # linewidth = 2.7
-        radiuses = [0.2] * len(centers)
-        fill = True
-        alpha = 1
-        zorder_circle = 2
-        zorder_arrow = 1
-
-    for idx, theta in enumerate(angles):
-        color = colors[idx]
-        radius = radiuses[idx]
-
-        if mode == 'front':
-            x_arr = centers[idx][0] + (length + radius) * math.cos(theta)
-            z_arr = length + centers[idx][1] + (length + radius) * math.sin(theta)
-            delta_x = math.cos(theta)
-            delta_z = math.sin(theta)
-            head_width = max(10, radiuses[idx] / 1.5)
-
-        else:
-            edgecolor = color
-            x_arr = centers[idx][0]
-            z_arr = centers[idx][1]
-            delta_x = length * math.cos(theta)
-            delta_z = - length * math.sin(theta)  # keep into account kitti convention
-
-        circle = Circle(centers[idx], radius=radius, color=color, fill=fill, alpha=alpha, zorder=zorder_circle)
-        arrow = FancyArrow(x_arr, z_arr, delta_x, delta_z, head_width=head_width, edgecolor=edgecolor,
-                           facecolor=color, linewidth=linewidth, zorder=zorder_arrow)
-        ax.add_patch(circle)
-        ax.add_patch(arrow)
 
 
 def draw_uncertainty(ax, centers, stds):
