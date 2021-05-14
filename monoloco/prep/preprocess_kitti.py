@@ -266,7 +266,7 @@ class PreprocessKitti:
         print(f"Parsed instances: {self.stats['instances']}")
         print(f"Ground truth instances: {gt}")
         print(f"Matched instances: {our}")
-        print(f"Kps_matches: {100 * self.stats['kps_matches'] / gt:.1f}%")
+        print(f"Kps_matches: {100 * self.stats['kps_matches'] / self.stats['gt_val']:.1f}%")
         print(f"Including horizontal flipping: {self.stats['match']}")
 
         if self.mode == 'stereo':
