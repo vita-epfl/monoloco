@@ -207,8 +207,8 @@ python -m monoloco.run predict docs/frame0032.jpg \
 
 <img src="docs/out_frame0032_front_bird.jpg" width="700"/>
 
-## C) Raise hand detection
-To detect a raised hand, you can add `raise_hand` to `--activities`.
+## C) Hand-raising detection
+To detect raised hand, you can add `raise_hand` to `--activities`.
 
 For more info, run:
 `python -m monoloco.run predict --help`
