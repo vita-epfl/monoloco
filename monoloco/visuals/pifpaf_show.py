@@ -209,7 +209,7 @@ class KeypointPainter:
 
     def keypoints(self, ax, keypoint_sets, *,
                   size=None, scores=None, color=None,
-                  colors=None, texts=None, activities=None, dic_out=None):
+                  colors=None, texts=None, activities=[], dic_out=None):
         if keypoint_sets is None:
             return
 
