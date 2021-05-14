@@ -73,7 +73,7 @@ def download_checkpoints(args):
         assert not args.social_distance, "Social distance not supported in stereo modality"
         path = MONSTEREO_MODEL
         name = 'monstereo-201202-1212.pkl'
-    elif (args.activities and 'social_distance' in args.activities) or args.webcam:
+    elif ('social_distance' in args.activities) or args.webcam:
         path = MONOLOCO_MODEL_NU
         name = 'monoloco_pp-201207-1350.pkl'
     else:
@@ -251,7 +251,7 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
     else:
         assert 'json' in args.output_types or args.mode == 'keypoints', \
             "No output saved, please select one among front, bird, multi, json, or pifpaf arguments"
-    if args.activities and 'social_distance' in args.activities:
+    if 'social_distance' in args.activities:
         assert args.mode == 'mono', "Social distancing only works with monocular network"
 
     if args.mode == 'keypoints':
