@@ -193,14 +193,9 @@ class Printer:
         else:
             scores=None
 
-        if activities:
-            keypoint_painter.keypoints(
-                axis, keypoint_sets, size=self.im.size,
-                scores=scores, colors=colors, activities=activities, dic_out=dic_out)
-
-        else:
-            keypoint_painter.keypoints(
-                axis, keypoint_sets, size=self.im.size, colors=colors, scores=scores)
+        keypoint_painter.keypoints(
+            axis, keypoint_sets, size=self.im.size,
+            scores=scores, colors=colors, activities=activities, dic_out=dic_out)
 
         draw_orientation(axis, self.centers,
                         sizes, self.angles, colors, mode='front')
@@ -248,7 +243,7 @@ class Printer:
         if any(xx in self.output_types for xx in ['front', 'multi']):
             number['flag'] = True  # add numbers
             # Remove image if social distance is activated
-            if not self.activities or 'social_distance' not in self.activities:
+            if 'social_distance' not in self.activities:
                 self.mpl_im0.set_data(image)
 
         self._front_loop(iterator, axes, number, colors, annotations, dic_out)
