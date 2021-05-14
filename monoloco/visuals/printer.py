@@ -11,6 +11,7 @@ from matplotlib.patches import Rectangle
 from ..utils import pixel_to_camera
 
 
+
 def get_angle(xx, zz):
     """Obtain the points to plot the confidence of each annotation"""
 

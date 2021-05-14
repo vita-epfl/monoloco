@@ -111,10 +111,12 @@ class PreprocessKitti:
             for ii, boxes_gt in enumerate(dic_boxes['gt']):
                 kps, kps_r = torch.tensor(dic_kps['left'][ii]), torch.tensor(dic_kps['right'][ii])
                 matches = get_iou_matches(dic_boxes['left'][ii], boxes_gt, self.iou_min)
+                if ii == 0 and self.phase == 'val':
+                    self.get_kps_matches(dic_kps['left'][ii], boxes_gt)
                 self.stats['flipping_match'] += len(matches) if ii == 1 else 0
                 for (idx, idx_gt) in matches:
                     cat_gt = dic_gt['labels'][ii][idx_gt][-1]
-                    if cat_gt not in self.categories_gt[self.phase]: # only for training as cyclists are also extracted
+                    if cat_gt not in self.categories_gt[self.phase]:  # only for training as cyclists are also extracted
                         continue
                     kp = kps[idx:idx + 1]
                     kk = dic_gt['K']
@@ -260,10 +262,11 @@ class PreprocessKitti:
         print('-' * 100)
         our = self.stats['match'] - self.stats['flipping_match']
         gt = self.stats['gt_train'] + self.stats['gt_val']
-        print(f"Ground truth matches: {100 * our  / gt:.1f} for left images (train and val)")
+        print(f"Ground truth matches: {100 * our / gt:.1f} for left images (train and val)")
         print(f"Parsed instances: {self.stats['instances']}")
         print(f"Ground truth instances: {gt}")
         print(f"Matched instances: {our}")
+        print(f"Kps_matches: {100 * self.stats['kps_matches'] / gt:.1f}%")
         print(f"Including horizontal flipping: {self.stats['match']}")
 
         if self.mode == 'stereo':
@@ -333,6 +336,23 @@ class PreprocessKitti:
         else:
             flag = True
         return phase, flag
+
+    def get_kps_matches(self, kps_orig, boxes_gt_orig):
+        kps = copy.deepcopy(kps_orig)
+        boxes_gt = copy.deepcopy(boxes_gt_orig)
+        for idx_box, box in enumerate(boxes_gt):
+            match = False
+            for idx, kp in enumerate(kps):
+                for i in range(17):
+                    if box[0] <= kp[0][i] <= box[2] and box[1] <= kp[1][i] <= box[3]:
+                        self.stats['kps_matches'] += 1
+                        match = True
+                        break
+                if match == True:
+                    kps.pop(idx)
+                    break
+
+
 
 
 def parse_ground_truth(path_gt, category, spherical=False):
