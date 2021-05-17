@@ -16,7 +16,11 @@ import sys
 import time
 from itertools import chain
 
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
+
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
@@ -328,6 +332,10 @@ class Trainer:
         if not self.print_loss:
             return
         os.makedirs(self.dir_figures, exist_ok=True)
+
+        if plt is None:
+            raise Exception('please install matplotlib')
+
         for idx, phase in enumerate(epoch_losses):
             for idx_2, el in enumerate(epoch_losses['train']):
                 plt.figure(idx + idx_2)

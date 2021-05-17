@@ -37,7 +37,7 @@ def image_attributes(dpi, output_types):
                 mono=dict(color='red',
                           numcolor='firebrick',
                           linewidth=2 * c)
-    )
+                )
 
 
 class Printer:

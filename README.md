@@ -59,6 +59,7 @@ For quick installation, do not clone this repository, make sure there is no fold
 
 ```
 pip3 install monoloco
+pip3 install matplotlib
 ```
 
 For development of the source code itself, you need to clone this repository and then:
@@ -187,6 +188,10 @@ An example from the Collective Activity Dataset is provided below.
 To visualize social distancing run the below, command:
 
 ```sh
+pip install scipy
+```
+
+```sh
 python -m monoloco.run predict docs/frame0032.jpg \
 --activities social_distance --output_types front bird 
 ```
@@ -196,6 +201,10 @@ python -m monoloco.run predict docs/frame0032.jpg \
 ## C) Hand-raising detection
 To detect raised hand, you can add the argument `--activities raise_hand` to the prediction command.
 
+For example, the below image is obtained with:
+```sh
+python -m monoloco.run predict --activities raise_hand social_distance output_types front
+```
 
 <img src="docs/out_raising_hand.jpg.front.jpg" width="500"/>
 
