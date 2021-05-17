@@ -17,7 +17,7 @@ This library is based on three research projects for monocular/stereo 3D human l
 [T. Mordan](https://people.epfl.ch/taylor.mordan/?lang=en), [A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICRA 2021 <br /> 
 __[Article](https://arxiv.org/abs/2008.10913)__  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;   __[Citation](#Citation)__  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; __[Video](https://www.youtube.com/watch?v=pGssROjckHU)__
      
-<img src="docs/out_000840_multi.jpg" width="700"/>
+<img src="docs/out_test_stereo_multi.jpg" width="700"/>
 
 ---
 
@@ -161,7 +161,7 @@ python3 -m monoloco.run predict --mode stereo \
  -o data/output  -long_edge 2500
  ```
  
-![Crowded scene](docs/out_000840_multi.jpg)
+![Crowded scene](docs/out_test_stereo_multi.jpg)
 
 ```sh
 python3 -m monoloco.run predict --glob docs/005523*.png \ --output_types multi \
