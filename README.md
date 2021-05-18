@@ -156,7 +156,7 @@ You can load one or more image pairs using glob expressions. For example:
 
 ```sh
 python3 -m monoloco.run predict --mode stereo \
---glob docs/000840*.png
+--glob docs/test_000840*.png
  --path_gt <to match results with ground-truths> \
  -o data/output  -long_edge 2500
  ```
