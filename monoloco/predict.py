@@ -61,7 +61,8 @@ def download_checkpoints(args):
         pifpaf_model = args.checkpoint
     dic_models = {'keypoints': pifpaf_model}
     if not os.path.exists(pifpaf_model):
-        assert DOWNLOAD is not None, "install gdown to download pifpaf model, or pass it as --checkpoint"
+        assert DOWNLOAD is not None, \
+            "pip install gdown to download a pifpaf model, or pass the model path as --checkpoint"
         LOG.info('Downloading OpenPifPaf model in %s', torch_dir)
         DOWNLOAD(OPENPIFPAF_MODEL, pifpaf_model, quiet=False)
 
@@ -86,7 +87,8 @@ def download_checkpoints(args):
     dic_models[args.mode] = model
     if not os.path.exists(model):
         os.makedirs(torch_dir, exist_ok=True)
-        assert DOWNLOAD is not None, "pip install gdown to download monoloco model, or pass it as --model"
+        assert DOWNLOAD is not None, \
+            "pip install gdown to download a monoloco model, or pass the model path as --model"
         LOG.info('Downloading model in %s', torch_dir)
         DOWNLOAD(path, model, quiet=False)
     return dic_models
