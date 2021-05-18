@@ -17,7 +17,7 @@ This library is based on three research projects for monocular/stereo 3D human l
 [T. Mordan](https://people.epfl.ch/taylor.mordan/?lang=en), [A. Alahi](https://scholar.google.com/citations?user=UIhXQ64AAAAJ&hl=en)_, ICRA 2021 <br /> 
 __[Article](https://arxiv.org/abs/2008.10913)__  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;   __[Citation](#Citation)__  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; __[Video](https://www.youtube.com/watch?v=pGssROjckHU)__
      
-<img src="docs/out_test_stereo_multi.jpg" width="700"/>
+<img src="docs/out_test_000840_multi.jpg" width="700"/>
 
 ---
 
@@ -125,24 +125,24 @@ If you provide a ground-truth json file to compare the predictions of the networ
 For an example image, run the following command:
 
 ```sh
-python -m monoloco.run predict docs/test_mono.png \
+python -m monoloco.run predict docs/test_002282.png \
 --path_gt names-kitti-200615-1022.json \
 -o <output directory> \
 --long-edge <rescale the image by providing dimension of long side>
 --n_dropout <50 to include epistemic uncertainty, 0 otherwise>
 ```
 
-![predict](docs/out_test_mono.png.multi.jpg)
+![predict](docs/out_test_002282.png.multi.jpg)
 
 To show all the instances estimated by MonoLoco add the argument `--show_all` to the above command.
 
-![predict_all](docs/out_test_mono.png.multi_all.jpg)
+![predict_all](docs/out_test_002282.png.multi_all.jpg)
 
 It is also possible to run [openpifpaf](https://github.com/vita-epfl/openpifpaf) directly
 by using `--mode keypoints`. All the other pifpaf arguments are also supported 
 and can be checked with `python -m monoloco.run predict --help`.
 
-![predict](docs/out_test_mono_pifpaf.jpg)
+![predict](docs/out_test_002282_pifpaf.jpg)
 
 
 **Stereo Examples** <br /> 
@@ -161,7 +161,7 @@ python3 -m monoloco.run predict --mode stereo \
  -o data/output  -long_edge 2500
  ```
  
-![Crowded scene](docs/out_test_stereo_multi.jpg)
+![Crowded scene](docs/out_test_000840_multi.jpg)
 
 ```sh
 python3 -m monoloco.run predict --glob docs/005523*.png \ --output_types multi \
@@ -183,7 +183,7 @@ For more info, run:
 **Examples** <br>
 An example from the Collective Activity Dataset is provided below.
 
-<img src="docs/test_social.jpg" width="500"/>
+<img src="docs/test_frame0032.jpg" width="500"/>
 
 To visualize social distancing run the below, command:
 
@@ -192,11 +192,11 @@ pip install scipy
 ```
 
 ```sh
-python -m monoloco.run predict docs/test_social.jpg \
+python -m monoloco.run predict docs/test_frame0032.jpg \
 --activities social_distance --output_types front bird 
 ```
 
-<img src="docs/out_test_social_front_bird.jpg" width="700"/>
+<img src="docs/out_test_frame0032_front_bird.jpg" width="700"/>
 
 ## C) Hand-raising detection
 To detect raised hand, you can add the argument `--activities raise_hand` to the prediction command.
