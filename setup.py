@@ -32,7 +32,7 @@ setup(
     zip_safe=False,
 
     install_requires=[
-        'openpifpaf>=v0.12.1',
+        'openpifpaf>=v0.12.10',
         'matplotlib',
     ],
     extras_require={

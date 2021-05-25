@@ -17,9 +17,9 @@ try:
 except ImportError:
     cv2 = None
 
+import openpifpaf
 from openpifpaf import decoder, network, visualizer, show, logger
 import openpifpaf.datasets as datasets
-from openpifpaf.predict import processor_factory, preprocess_factory
 
 from ..visuals import Printer
 from ..network import Loco
@@ -73,6 +73,7 @@ def factory_from_args(args):
 def webcam(args):
 
     assert args.mode in 'mono'
+    assert cv2
 
     args, dic_models = factory_from_args(args)
 
@@ -80,8 +81,8 @@ def webcam(args):
     net = Loco(model=dic_models[args.mode], mode=args.mode, device=args.device,
                n_dropout=args.n_dropout, p_dropout=args.dropout)
 
-    processor, pifpaf_model = processor_factory(args)
-    preprocess = preprocess_factory(args)
+    # for openpifpaf predicitons
+    predictor = openpifpaf.Predictor(checkpoint=args.checkpoint)
 
     # Start recording
     cam = cv2.VideoCapture(args.camera)
@@ -93,28 +94,25 @@ def webcam(args):
         scale = (args.long_edge)/frame.shape[0]
         image = cv2.resize(frame, None, fx=scale, fy=scale)
         height, width, _ = image.shape
-        print('resized image size: {}'.format(image.shape))
+        LOG.debug('resized image size: {}'.format(image.shape))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         pil_image = Image.fromarray(image)
 
         data = datasets.PilImageList(
-            [pil_image], preprocess=preprocess)
+            [pil_image], preprocess=predictor.preprocess)
 
         data_loader = torch.utils.data.DataLoader(
             data, batch_size=1, shuffle=False,
             pin_memory=False, collate_fn=datasets.collate_images_anns_meta)
 
-        for (image_tensors_batch, _, meta_batch) in data_loader:
-            pred_batch = processor.batch(
-                pifpaf_model, image_tensors_batch, device=args.device)
+        for (_, _, _) in data_loader:
 
-            for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
-                pred = [ann.inverse_transform(meta) for ann in pred]
+            for idx, (preds, _, _) in enumerate(predictor.dataset(data)):
 
                 if idx == 0:
                     pifpaf_outs = {
-                        'pred': pred,
-                        'left': [ann.json_data() for ann in pred],
+                        'pred': preds,
+                        'left': [ann.json_data() for ann in preds],
                         'image': image}
 
         if not ret:
@@ -122,7 +120,7 @@ def webcam(args):
         key = cv2.waitKey(1)
         if key % 256 == 27:
             # ESC pressed
-            print("Escape hit, closing...")
+            LOG.info("Escape hit, closing...")
             break
 
         kk, dic_gt = factory_for_gt(pil_image.size, focal_length=args.focal)
@@ -140,11 +138,11 @@ def webcam(args):
             visualizer_mono = Visualizer(kk, args)(pil_image)  # create it with the first image
             visualizer_mono.send(None)
 
-        print(dic_out)
+        LOG.debug(dic_out)
         visualizer_mono.send((pil_image, dic_out, pifpaf_outs))
 
         end = time.time()
-        print("run-time: {:.2f} ms".format((end-start)*1000))
+        LOG.info("run-time: {:.2f} ms".format((end-start)*1000))
 
     cam.release()
 

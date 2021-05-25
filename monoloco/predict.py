@@ -18,7 +18,6 @@ import torch
 import PIL
 import openpifpaf
 import openpifpaf.datasets as datasets
-from openpifpaf.predict import processor_factory, preprocess_factory
 from openpifpaf import decoder, network, visualizer, show, logger
 try:
     import gdown
@@ -162,12 +161,11 @@ def predict(args):
             n_dropout=args.n_dropout,
             p_dropout=args.dropout)
 
-    # data
-    processor, pifpaf_model = processor_factory(args)
-    preprocess = preprocess_factory(args)
+    # for openpifpaf predicitons
+    predictor = openpifpaf.Predictor(checkpoint=args.checkpoint)
 
     # data
-    data = datasets.ImageList(args.images, preprocess=preprocess)
+    data = datasets.ImageList(args.images, preprocess=predictor.preprocess)
     if args.mode == 'stereo':
         assert len(
             data.image_paths) % 2 == 0, "Odd number of images in a stereo setting"
@@ -176,22 +174,19 @@ def predict(args):
         data, batch_size=args.batch_size, shuffle=False,
         pin_memory=False, collate_fn=datasets.collate_images_anns_meta)
 
-    for batch_i, (image_tensors_batch, _, meta_batch) in enumerate(data_loader):
-        pred_batch = processor.batch(
-            pifpaf_model, image_tensors_batch, device=args.device)
+    for batch_i, (_, _, meta_batch) in enumerate(data_loader):
 
         # unbatch (only for MonStereo)
-        for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
+        for idx, (preds, _, meta) in enumerate(predictor.dataset(data)):
             LOG.info('batch %d: %s', batch_i, meta['file_name'])
-            pred = [ann.inverse_transform(meta) for ann in pred]
 
             # Load image and collect pifpaf results
             if idx == 0:
                 with open(meta_batch[0]['file_name'], 'rb') as f:
                     cpu_image = PIL.Image.open(f).convert('RGB')
                 pifpaf_outs = {
-                    'pred': pred,
-                    'left': [ann.json_data() for ann in pred],
+                    'pred': preds,
+                    'left': [ann.json_data() for ann in preds],
                     'image': cpu_image}
 
                 # Set output image name
@@ -208,7 +203,7 @@ def predict(args):
 
             # Only for MonStereo
             else:
-                pifpaf_outs['right'] = [ann.json_data() for ann in pred]
+                pifpaf_outs['right'] = [ann.json_data() for ann in preds]
 
         # 3D Predictions
         if args.mode != 'keypoints':
