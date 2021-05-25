@@ -93,7 +93,7 @@ def webcam(args):
         scale = (args.long_edge)/frame.shape[0]
         image = cv2.resize(frame, None, fx=scale, fy=scale)
         height, width, _ = image.shape
-        print('resized image size: {}'.format(image.shape))
+        LOG.debug('resized image size: {}'.format(image.shape))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         pil_image = Image.fromarray(image)
 
@@ -104,9 +104,9 @@ def webcam(args):
             data, batch_size=1, shuffle=False,
             pin_memory=False, collate_fn=datasets.collate_images_anns_meta)
 
-        for (image_tensors_batch, _, meta_batch) in data_loader:
+        for (_, _, _) in data_loader:
 
-            for idx, (preds, _, meta) in enumerate(predictor.dataset(data)):
+            for idx, (preds, _, _) in enumerate(predictor.dataset(data)):
 
                 if idx == 0:
                     pifpaf_outs = {
@@ -119,7 +119,7 @@ def webcam(args):
         key = cv2.waitKey(1)
         if key % 256 == 27:
             # ESC pressed
-            print("Escape hit, closing...")
+            LOG.info("Escape hit, closing...")
             break
 
         kk, dic_gt = factory_for_gt(pil_image.size, focal_length=args.focal)
@@ -137,11 +137,11 @@ def webcam(args):
             visualizer_mono = Visualizer(kk, args)(pil_image)  # create it with the first image
             visualizer_mono.send(None)
 
-        print(dic_out)
+        LOG.debug(dic_out)
         visualizer_mono.send((pil_image, dic_out, pifpaf_outs))
 
         end = time.time()
-        print("run-time: {:.2f} ms".format((end-start)*1000))
+        LOG.info("run-time: {:.2f} ms".format((end-start)*1000))
 
     cam.release()
 

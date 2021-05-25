@@ -32,8 +32,8 @@ from .activity import show_activities
 LOG = logging.getLogger(__name__)
 
 OPENPIFPAF_MODEL = 'https://drive.google.com/uc?id=1b408ockhh29OLAED8Tysd2yGZOo0N_SQ'
-MONOLOCO_MODEL_KI = 'https://drive.google.com/uc?id=1krkB8J9JhgQp4xppmDu-YBRUxZvOs96r' 
-MONOLOCO_MODEL_NU = 'https://drive.google.com/uc?id=1BKZWJ1rmkg5AF9rmBEfxF1r8s8APwcyC' 
+MONOLOCO_MODEL_KI = 'https://drive.google.com/uc?id=1krkB8J9JhgQp4xppmDu-YBRUxZvOs96r'
+MONOLOCO_MODEL_NU = 'https://drive.google.com/uc?id=1BKZWJ1rmkg5AF9rmBEfxF1r8s8APwcyC'
 MONSTEREO_MODEL = 'https://drive.google.com/uc?id=1xztN07dmp2e_nHI6Lcn103SAzt-Ntg49'
 
 
@@ -163,7 +163,7 @@ def predict(args):
 
     # data
     predictor = openpifpaf.Predictor(checkpoint=args.checkpoint)
-    
+
     # data
     data = datasets.ImageList(args.images, preprocess=predictor.preprocess)
     if args.mode == 'stereo':
@@ -174,7 +174,7 @@ def predict(args):
         data, batch_size=args.batch_size, shuffle=False,
         pin_memory=False, collate_fn=datasets.collate_images_anns_meta)
 
-    for batch_i, (image_tensors_batch, _, meta_batch) in enumerate(data_loader):
+    for batch_i, (_, _, meta_batch) in enumerate(data_loader):
 
         # unbatch (only for MonStereo)
         for idx, (preds, _, meta) in enumerate(predictor.dataset(data)):
