@@ -81,6 +81,7 @@ def webcam(args):
     net = Loco(model=dic_models[args.mode], mode=args.mode, device=args.device,
                n_dropout=args.n_dropout, p_dropout=args.dropout)
 
+    # for openpifpaf predicitons
     predictor = openpifpaf.Predictor(checkpoint=args.checkpoint)
 
     # Start recording
