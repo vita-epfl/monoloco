@@ -179,7 +179,6 @@ def predict(args):
         # unbatch (only for MonStereo)
         for idx, (preds, _, meta) in enumerate(predictor.dataset(data)):
             LOG.info('batch %d: %s', batch_i, meta['file_name'])
-            # pred = [ann.inverse_transform(meta) for ann in preds]
 
             # Load image and collect pifpaf results
             if idx == 0:
