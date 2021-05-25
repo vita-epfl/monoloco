@@ -17,9 +17,9 @@ try:
 except ImportError:
     cv2 = None
 
+import openpifpaf
 from openpifpaf import decoder, network, visualizer, show, logger
 import openpifpaf.datasets as datasets
-from openpifpaf.predict import processor_factory, preprocess_factory
 
 from ..visuals import Printer
 from ..network import Loco
@@ -73,6 +73,7 @@ def factory_from_args(args):
 def webcam(args):
 
     assert args.mode in 'mono'
+    assert cv2
 
     args, dic_models = factory_from_args(args)
 
@@ -80,8 +81,7 @@ def webcam(args):
     net = Loco(model=dic_models[args.mode], mode=args.mode, device=args.device,
                n_dropout=args.n_dropout, p_dropout=args.dropout)
 
-    processor, pifpaf_model = processor_factory(args)
-    preprocess = preprocess_factory(args)
+    predictor = openpifpaf.Predictor(checkpoint=args.checkpoint)
 
     # Start recording
     cam = cv2.VideoCapture(args.camera)
@@ -98,23 +98,20 @@ def webcam(args):
         pil_image = Image.fromarray(image)
 
         data = datasets.PilImageList(
-            [pil_image], preprocess=preprocess)
+            [pil_image], preprocess=predictor.preprocess)
 
         data_loader = torch.utils.data.DataLoader(
             data, batch_size=1, shuffle=False,
             pin_memory=False, collate_fn=datasets.collate_images_anns_meta)
 
         for (image_tensors_batch, _, meta_batch) in data_loader:
-            pred_batch = processor.batch(
-                pifpaf_model, image_tensors_batch, device=args.device)
 
-            for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
-                pred = [ann.inverse_transform(meta) for ann in pred]
+            for idx, (preds, _, meta) in enumerate(predictor.dataset(data)):
 
                 if idx == 0:
                     pifpaf_outs = {
-                        'pred': pred,
-                        'left': [ann.json_data() for ann in pred],
+                        'pred': preds,
+                        'left': [ann.json_data() for ann in preds],
                         'image': image}
 
         if not ret:

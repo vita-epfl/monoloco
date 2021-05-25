@@ -125,7 +125,7 @@ If you provide a ground-truth json file to compare the predictions of the networ
 For an example image, run the following command:
 
 ```sh
-python -m monoloco.run predict docs/test_002282.png \
+python3 -m monoloco.run predict docs/test_002282.png \
 --path_gt names-kitti-200615-1022.json \
 -o <output directory> \
 --long-edge <rescale the image by providing dimension of long side>
@@ -140,7 +140,7 @@ To show all the instances estimated by MonoLoco add the argument `--show_all` to
 
 It is also possible to run [openpifpaf](https://github.com/vita-epfl/openpifpaf) directly
 by using `--mode keypoints`. All the other pifpaf arguments are also supported 
-and can be checked with `python -m monoloco.run predict --help`.
+and can be checked with `python3 -m monoloco.run predict --help`.
 
 ![predict](docs/out_test_002282_pifpaf.jpg)
 
@@ -178,7 +178,7 @@ To visualize social distancing compliance, simply add the argument `social_dista
 Threshold distance and radii (for F-formations) can be set using `--threshold-dist` and `--radii`, respectively.
 
 For more info, run:
-`python -m monoloco.run predict --help`
+`python3 -m monoloco.run predict --help`
 
 **Examples** <br>
 An example from the Collective Activity Dataset is provided below.
@@ -188,11 +188,11 @@ An example from the Collective Activity Dataset is provided below.
 To visualize social distancing run the below, command:
 
 ```sh
-pip install scipy
+pip3 install scipy
 ```
 
 ```sh
-python -m monoloco.run predict docs/test_frame0032.jpg \
+python3 -m monoloco.run predict docs/test_frame0032.jpg \
 --activities social_distance --output_types front bird 
 ```
 
@@ -203,13 +203,14 @@ To detect raised hand, you can add the argument `--activities raise_hand` to the
 
 For example, the below image is obtained with:
 ```sh
-python -m monoloco.run predict --activities raise_hand social_distance output_types front
+python3 -m monoloco.run predict docs/raising_hand.jpg \
+--activities raise_hand social_distance --output_types front
 ```
 
 <img src="docs/out_raising_hand.jpg.front.jpg" width="500"/>
 
 For more info, run:
-`python -m monoloco.run predict --help`
+`python3 -m monoloco.run predict --help`
 
 ## D) Orientation and Bounding Box dimensions 
 The network estimates orientation and box dimensions as well. Results are saved in a json file when using the command 
@@ -218,11 +219,14 @@ The network estimates orientation and box dimensions as well. Results are saved 
 
 ## E) Webcam
 You can use the webcam as input by using the `--webcam` argument. By default the `--z_max` is set to 10 while using the webcam and the `--long-edge` is set to 144. If multiple webcams are plugged in you can choose between them using `--camera`, for instance to use the second camera you can add `--camera 1`.
-
+You also need to install `opencv-python` to use this feature :
+```sh
+pip3 install opencv-python
+```
 Example command:
 
 ```sh
-python -m monoloco.run predict --webcam \
+python3 -m monoloco.run predict --webcam \
 --activities raise_hand social_distance
 ```
 
@@ -231,21 +235,22 @@ We train on the KITTI dataset (MonoLoco/Monoloco++/MonStereo) or the nuScenes da
 
 Results for [MonoLoco++](###Tables) are obtained with: 
 
-```
-python -m monoloco.run train --joints data/arrays/joints-kitti-mono-210422-1600.json
+```sh
+python3 -m monoloco.run train --joints data/arrays/joints-kitti-mono-210422-1600.json
 ```
 
 While for the [MonStereo](###Tables) results run:
 
 ```sh
-python -m monoloco.run train --joints data/arrays/joints-kitti-stereo-210422-1601.json --lr 0.003 --mode stereo 
+python3 -m monoloco.run train --joints data/arrays/joints-kitti-stereo-210422-1601.json \
+--lr 0.003 --mode stereo 
 ```
 
 If you are interested in the original results of the MonoLoco ICCV article (now improved with MonoLoco++), please refer to the tag v0.4.9 in this repository.
 
 Finally, for a more extensive list of available parameters, run:
 
-`python -m monstereo.run train --help`
+`python3 -m monstereo.run train --help`
 
 <br /> 
 
@@ -284,7 +289,7 @@ Download kitti images (from left and right cameras), ground-truth files (labels)
 The network takes as inputs 2D keypoints annotations. To create them run PifPaf over the saved images:
 
 ```sh
-python -m openpifpaf.predict \
+python3 -m openpifpaf.predict \
 --glob "data/kitti/images/*.png" \
 --json-output <directory to contain predictions> \
 --checkpoint=shufflenetv2k30 \
@@ -306,12 +311,12 @@ Once this step is complete, the below commands transform all the annotations int
 
 For MonoLoco++:
 ```sh
-python -m monoloco.run prep --dir_ann <directory that contains annotations>
+python3 -m monoloco.run prep --dir_ann <directory that contains annotations>
 ```
 
 For MonStereo:
 ```sh
-python -m monoloco.run prep --mode stereo --dir_ann <directory that contains left annotations> 
+python3 -m monoloco.run prep --mode stereo --dir_ann <directory that contains left annotations> 
 ```
 
 ## Collective Activity Dataset
@@ -341,7 +346,7 @@ which for example change the name of all the jpg images in that folder adding th
 Pifpaf annotations should also be saved in a single folder and can be created with:
 
 ```sh
-python -m openpifpaf.predict \
+python3 -m openpifpaf.predict \
 --glob "data/collective_activity/images/*.jpg"  \
 --checkpoint=shufflenetv2k30 \
 --instance-threshold=0.05 --seed-threshold 0.05 \--force-complete-pose \
@@ -381,7 +386,7 @@ To include also geometric baselines and MonoLoco, download a monoloco model, sav
 The evaluation file will run the model over all the annotations and compare the results with KITTI  ground-truth and the downloaded baselines. For this run:
 
 ```sh
-python -m monoloco.run eval \
+python3 -m monoloco.run eval \
 --dir_ann <annotation directory> \
 --model data/outputs/monoloco_pp-210422-1601.pkl \
 --generate \
@@ -411,7 +416,7 @@ Evaluation on this dataset is done with models trained on either KITTI or nuScen
 For optimal performances, we suggest the model trained on nuScenes teaser.
 
 ```sh
-python -m monstereo.run eval \
+python3 -m monstereo.run eval \
 --activity \
 --dataset collective \
 --model <path to the model> \
