@@ -161,7 +161,7 @@ def predict(args):
             n_dropout=args.n_dropout,
             p_dropout=args.dropout)
 
-    # data
+    # for openpifpaf predicitons
     predictor = openpifpaf.Predictor(checkpoint=args.checkpoint)
 
     # data
