@@ -145,7 +145,7 @@ def show_task_error(dir_fig, show, save):
     plt.plot(xx, yy_gender, '--', color='lightgreen', linewidth=2.8, label='Generic adult (task error)')
     plt.plot(xx, yy_female, '-.', linewidth=1.7, color='darkorange', label='Adult female')
     plt.plot(xx, yy_male, '-.', linewidth=1.7, color='b', label='Adult male')
-    # plt.plot(xx, yy_stereo, linewidth=2.5, color='k', label='Pixel error')
+    plt.plot(xx, yy_stereo, linewidth=2.5, color='k', label='Pixel error')
     plt.xlim(np.min(xx), np.max(xx))
     plt.ylim(0, 5)
     plt.xlabel("Ground-truth distance from the camera $d_{gt}$ [m]")
