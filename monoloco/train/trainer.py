@@ -28,8 +28,8 @@ from torch.optim import lr_scheduler
 from .. import __version__
 from .datasets import KeypointsDataset
 from .losses import CompositeLoss, MultiTaskLoss, AutoTuneMultiTaskLoss
-from ..network import extract_outputs, extract_labels
-from ..network.architectures import LocoModel
+from ..network import extract_outputs_xyd, extract_labels, extract_outputs_hwl
+from ..network.architectures import MonoLocoPPModel, MonStereoModel
 from ..utils import set_logger
 
 
@@ -39,7 +39,8 @@ class Trainer:
 
     tasks = ('d', 'x', 'y', 'h', 'w', 'l', 'ori', 'aux')
     val_task = 'd'
-    lambdas = (1, 1, 1, 0, 0, 0, 0, 0)
+    lambdas = (1, 1, 1, 1, 1, 1, 1, 1)
+    # lambdas = (0, 0, 0, 0, 0, 0, 1, 0)
     clusters = ['10', '20', '30', '40']
     input_size = dict(mono=34, stereo=68)
     output_size = dict(mono=9, stereo=10)
@@ -90,14 +91,14 @@ class Trainer:
             self.tasks = self.tasks[:-1]
             self.lambdas = self.lambdas[:-1]
 
-        losses_tr, losses_val = CompositeLoss(self.tasks)()
-
-        if self.auto_tune_mtl:
-            self.mt_loss = AutoTuneMultiTaskLoss(losses_tr, losses_val, self.lambdas, self.tasks)
-        else:
-            self.mt_loss = MultiTaskLoss(losses_tr, losses_val, self.lambdas, self.tasks)
-        self.mt_loss.to(self.device)
-
+        self.tasks_2 = ('d', 'x', 'y')
+        self.tasks_1 = ('w', 'l', 'h')
+        losses_tr_2, losses_val_2 = CompositeLoss(self.tasks_2)()
+        losses_tr_1, losses_val_1 = CompositeLoss(self.tasks_1)()
+        self.loss_2 = MultiTaskLoss(losses_tr_2, losses_val_2, (1, 1, 1), self.tasks_2)
+        self.loss_1 = MultiTaskLoss(losses_tr_1, losses_val_1, (1, 1, 1), self.tasks_1)
+        self.loss_2.to(self.device)
+        self.loss_1.to(self.device)
         # Dataloader
         self.dataloaders = {phase: DataLoader(KeypointsDataset(self.joints, phase=phase),
                                               batch_size=args.bs, shuffle=True) for phase in ['train', 'val']}
@@ -111,28 +112,41 @@ class Trainer:
         # Define the model
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
         print(">>> creating model")
+        model = MonoLocoPPModel if self.mode == 'mono' else MonStereoModel
 
-        self.model = LocoModel(
+        self.model_2 = model(
             input_size=self.input_size[self.mode],
-            output_size=self.output_size[self.mode],
+            output_size=4,
             linear_size=args.hidden_size,
             p_dropout=args.dropout,
             num_stage=self.n_stage,
             device=self.device,
         )
-        self.model.to(self.device)
-        print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model.parameters()) / 1000000.0))
-        print(">>> loss params: {}".format(sum(p.numel() for p in self.mt_loss.parameters())))
+        self.model_1 = model(
+            input_size=self.input_size[self.mode],
+            output_size=3,
+            linear_size=args.hidden_size,
+            p_dropout=args.dropout,
+            num_stage=self.n_stage,
+            device=self.device,
+        )
+
+        self.model_2.to(self.device)
+        self.model_1.to(self.device)
+
+        print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model_2.parameters()) / 1000000.0))
+        print(">>> loss params: {}".format(sum(p.numel() for p in self.loss_2.parameters())))
 
         # Optimizer and scheduler
-        all_params = chain(self.model.parameters(), self.mt_loss.parameters())
+        all_params = chain(self.model_2.parameters(), self.loss_2.parameters())
         self.optimizer = torch.optim.Adam(params=all_params, lr=args.lr)
         self.scheduler = lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min')
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
 
     def train(self):
         since = time.time()
-        best_model_wts = copy.deepcopy(self.model.state_dict())
+        best_model_wts_2 = copy.deepcopy(self.model_2.state_dict())
+        best_model_wts_1 = copy.deepcopy(self.model_1.state_dict())
         best_acc = 1e6
         best_training_acc = 1e6
         best_epoch = 0
@@ -143,9 +157,11 @@ class Trainer:
             # Each epoch has a training and validation phase
             for phase in ['train', 'val']:
                 if phase == 'train':
-                    self.model.train()  # Set model to training mode
+                    self.model_2.train()
+                    # self.model_1.train()
                 else:
-                    self.model.eval()  # Set model to evaluate mode
+                    self.model_2.eval()
+                    # self.model_1.eval()
 
                 for inputs, labels, _, _ in self.dataloaders[phase]:
                     inputs = inputs.to(self.device)
@@ -153,17 +169,17 @@ class Trainer:
                     with torch.set_grad_enabled(phase == 'train'):
                         if phase == 'train':
                             self.optimizer.zero_grad()
-                            outputs = self.model(inputs)
-                            loss, _ = self.mt_loss(outputs, labels, phase=phase)
+                            outputs = self.model_2(inputs)
+                            loss, _ = self.loss_2(outputs, labels, phase=phase)
                             loss.backward()
-                            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3)
+                            torch.nn.utils.clip_grad_norm_(self.model_2.parameters(), 3)
                             self.optimizer.step()
                             self.scheduler.step()
 
                         else:
-                            outputs = self.model(inputs)
+                            outputs = self.model_2(inputs)
                         with torch.no_grad():
-                            loss_eval, loss_values_eval = self.mt_loss(outputs, labels, phase='val')
+                            loss_eval, loss_values_eval = self.loss_2(outputs, labels, phase='val')
                             self.epoch_logs(phase, loss_eval, loss_values_eval, inputs, running_loss)
 
             self.cout_values(epoch, epoch_losses, running_loss)
@@ -174,7 +190,7 @@ class Trainer:
                 best_acc = epoch_losses['val'][self.val_task][-1]
                 best_training_acc = epoch_losses['train']['all'][-1]
                 best_epoch = epoch
-                best_model_wts = copy.deepcopy(self.model.state_dict())
+                best_model_wts_2 = copy.deepcopy(self.model_2.state_dict())
 
         time_elapsed = time.time() - since
         print('\n\n' + '-' * 120)
@@ -187,25 +203,27 @@ class Trainer:
         self._print_losses(epoch_losses)
 
         # load best model weights
-        self.model.load_state_dict(best_model_wts)
+        self.model_2.load_state_dict(best_model_wts_2)
         return best_epoch
 
     def epoch_logs(self, phase, loss, loss_values, inputs, running_loss):
 
         running_loss[phase]['all'] += loss.item() * inputs.size(0)
-        for i, task in enumerate(self.tasks):
+        tasks = self.tasks[:3]
+        for i, task in enumerate(tasks):
             running_loss[phase][task] += loss_values[i].item() * inputs.size(0)
 
     def evaluate(self, load=False, model=None, debug=False):
 
         # To load a model instead of using the trained one
         if load:
-            self.model.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
+            self.model_2.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
 
         # Average distance on training and test set after unnormalizing
-        self.model.eval()
+        tasks = self.tasks[:3]
+        self.model_2.eval()
         dic_err = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0)))  # initialized to zero
-        dic_err['val']['sigmas'] = [0.] * len(self.tasks)
+        dic_err['val']['sigmas'] = [0.] * len(tasks)
         dataset = KeypointsDataset(self.joints, phase='val')
         size_eval = len(dataset)
         start = 0
@@ -223,7 +241,7 @@ class Trainer:
                     sys.exit()
 
                 # Forward pass
-                outputs = self.model(inputs)
+                outputs = self.model_2(inputs)
                 self.compute_stats(outputs, labels, dic_err['val'], size_eval, clst='all')
 
             self.cout_stats(dic_err['val'], size_eval, clst='all')
@@ -233,37 +251,35 @@ class Trainer:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
 
                 # Forward pass on each cluster
-                outputs = self.model(inputs)
+                outputs = self.model_2(inputs)
                 self.compute_stats(outputs, labels, dic_err['val'], size_eval, clst=clst)
                 self.cout_stats(dic_err['val'], size_eval, clst=clst)
 
         # Save the model and the results
         if not (self.no_save or load):
-            torch.save(self.model.state_dict(), self.path_model)
+            torch.save(self.model_2.state_dict(), self.path_model)
             print('-' * 120)
             self.logger.info("\nmodel saved: {} \n".format(self.path_model))
         else:
             self.logger.info("\nmodel not saved\n")
 
-        return dic_err, self.model
+        return dic_err, self.model_2
 
     def compute_stats(self, outputs, labels, dic_err, size_eval, clst):
         """Compute mean, bi and max of torch tensors"""
 
-        _, loss_values = self.mt_loss(outputs, labels, phase='val')
+        _, loss_values = self.loss_2(outputs, labels, phase='val')
         rel_frac = outputs.size(0) / size_eval
 
-        tasks = self.tasks[:-1] if self.tasks[-1] == 'aux' else self.tasks  # Exclude auxiliary
-
-        for idx, task in enumerate(tasks):
+        for idx, task in enumerate(self.tasks_2):
             dic_err[clst][task] += float(loss_values[idx].item()) * (outputs.size(0) / size_eval)
 
         # Distance
-        errs = torch.abs(extract_outputs(outputs)['d'] - extract_labels(labels)['d'])
+        errs = torch.abs(extract_outputs_xyd(outputs)['d'] - extract_labels(labels)['d'])
         assert rel_frac > 0.99, "Variance of errors not supported with partial evaluation"
 
         # Uncertainty
-        bis = extract_outputs(outputs)['bi'].cpu()
+        bis = extract_outputs_xyd(outputs)['bi'].cpu()
         bi = float(torch.mean(bis).item())
         bi_perc = float(torch.sum(errs <= bis)) / errs.shape[0]
         dic_err[clst]['bi'] += bi * rel_frac
@@ -275,13 +291,13 @@ class Trainer:
             dic_err[clst]['aux'] = 0
             dic_err['sigmas'].append(0)
         else:
-            acc_aux = get_accuracy(extract_outputs(outputs)['aux'], extract_labels(labels)['aux'])
+            acc_aux = get_accuracy(extract_outputs_xyd(outputs)['aux'], extract_labels(labels)['aux'])
             dic_err[clst]['aux'] += acc_aux * rel_frac
 
         if self.auto_tune_mtl:
             assert len(loss_values) == 2 * len(self.tasks)
             for i, _ in enumerate(self.tasks):
-                dic_err['sigmas'][i] += float(loss_values[len(tasks) + i + 1].item()) * rel_frac
+                dic_err['sigmas'][i] += float(loss_values[len(self.tasks_1) + i + 1].item()) * rel_frac
 
     def cout_stats(self, dic_err, size_eval, clst):
         if clst == 'all':
