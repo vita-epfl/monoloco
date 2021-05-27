@@ -59,7 +59,7 @@ class MultiTaskLoss(torch.nn.Module):
     def forward(self, outputs, labels, phase='train'):
 
         assert phase in ('train', 'val')
-        out = extract_outputs(outputs, tasks=self.tasks)
+        out = [outputs[:, idx:idx+1] if task != 'd' else outputs[:, idx:idx+2] for idx, task in enumerate(self.tasks)]
         if self.flag_aux:
             gt_out = extract_labels_aux(labels, tasks=self.tasks)
         else:

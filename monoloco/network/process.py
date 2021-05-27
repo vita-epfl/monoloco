@@ -222,7 +222,7 @@ def image_transform(image):
     return transforms(image)
 
 
-def extract_outputs(outputs, tasks=()):
+def extract_outputs(outputs, tasks):
     """
     Extract the outputs for multi-task training and predictions
     Inputs:
@@ -231,86 +231,33 @@ def extract_outputs(outputs, tasks=()):
          - if tasks are provided return ordered list of raw tensors
          - else return a dictionary with processed outputs
     """
-    dic_out = {'x': outputs[:, 0:1],
-               'y': outputs[:, 1:2],
-               'd': outputs[:, 2:4],
-               'h': outputs[:, 4:5],
-               'w': outputs[:, 5:6],
-               'l': outputs[:, 6:7],
-               'ori': outputs[:, 7:9]}
-
-    if outputs.shape[1] == 10:
-        dic_out['aux'] = outputs[:, 9:10]
-
-    # Multi-task training
-    if len(tasks) >= 1:
-        assert isinstance(tasks, tuple), "tasks need to be a tuple"
-        return [dic_out[task] for task in tasks]
-
-    # Preprocess the tensor
-    # AV_H, AV_W, AV_L, HWL_STD = 1.72, 0.75, 0.68, 0.1
-    bi = unnormalize_bi(dic_out['d'])
-    dic_out['bi'] = bi
-
-    dic_out = {key: el.detach().cpu() for key, el in dic_out.items()}
-    x = to_cartesian(outputs[:, 0:3].detach().cpu(), mode='x')
-    y = to_cartesian(outputs[:, 0:3].detach().cpu(), mode='y')
-    d = dic_out['d'][:, 0:1]
-    z = torch.sqrt(d**2 - x**2 - y**2)
-    dic_out['xyzd'] = torch.cat((x, y, z, d), dim=1)
-    dic_out.pop('d')
-    dic_out.pop('x')
-    dic_out.pop('y')
-    dic_out['d'] = d
-
-    yaw_pred = torch.atan2(dic_out['ori'][:, 0:1], dic_out['ori'][:, 1:2])
-    yaw_orig = back_correct_angles(yaw_pred, dic_out['xyzd'][:, 0:3])
-    dic_out['yaw'] = (yaw_pred, yaw_orig)  # alpha, ry
-
-    if outputs.shape[1] == 10:
-        dic_out['aux'] = torch.sigmoid(dic_out['aux'])
-    return dic_out
-
-
-def extract_outputs_xyd(outputs, tasks=()):
-    dic_out = {'x': outputs[:, 0:1],
-               'y': outputs[:, 1:2],
-               'd': outputs[:, 2:4],
-               }
-
-    # Multi-task training
-    if len(tasks) >= 1:
-        assert isinstance(tasks, tuple), "tasks need to be a tuple"
-        return [dic_out[task] for task in tasks]
-
-    # Preprocess the tensor
-    bi = unnormalize_bi(dic_out['d'])
-    dic_out['bi'] = bi
-
-    dic_out = {key: el.detach().cpu() for key, el in dic_out.items()}
-    x = to_cartesian(outputs[:, 0:3].detach().cpu(), mode='x')
-    y = to_cartesian(outputs[:, 0:3].detach().cpu(), mode='y')
-    d = dic_out['d'][:, 0:1]
-    z = torch.sqrt(d**2 - x**2 - y**2)
-    dic_out['xyzd'] = torch.cat((x, y, z, d), dim=1)
-    dic_out.pop('d')
-    dic_out.pop('x')
-    dic_out.pop('y')
-    dic_out['d'] = d
-    return dic_out
-
-
-def extract_outputs_hwl(outputs, tasks=()):
     dic_out = {
-               'h': outputs[:, 0:1],
-               'w': outputs[:, 2:3],
-               'l': outputs[:, 3:4],
+        task: outputs[:, idx:idx+2] if task in ('d', 'ori') else outputs[:, idx:idx+1] for idx, task in enumerate(tasks)
     }
 
-    # Multi-task training
-    if len(tasks) >= 1:
-        assert isinstance(tasks, tuple), "tasks need to be a tuple"
-        return [dic_out[task] for task in tasks]
+    # Preprocess the tensor
+    if 'd' in tasks:
+        dic_out['bi'] = unnormalize_bi(dic_out['d'])
+        dic_out = {key: el.detach().cpu() for key, el in dic_out.items()}
+        d = dic_out['d'][:, 0:1]
+        tpr = torch.cat((dic_out['x'], dic_out['y'], d), 1)
+        x = to_cartesian(tpr, mode='x')
+        y = to_cartesian(tpr, mode='y')
+        z = torch.sqrt(d**2 - x**2 - y**2)
+        dic_out['xyzd'] = torch.cat((x, y, z, d), dim=1)
+        dic_out.pop('d')
+        dic_out.pop('x')
+        dic_out.pop('y')
+        dic_out['d'] = d
+
+    if 'ori' in tasks:
+        yaw_pred = torch.atan2(dic_out['ori'][:, 0:1], dic_out['ori'][:, 1:2])
+        yaw_orig = back_correct_angles(yaw_pred, dic_out['xyzd'][:, 0:3])
+        dic_out['yaw'] = (yaw_pred, yaw_orig)  # alpha, ry
+
+    if 'aux' in tasks:
+        dic_out['aux'] = torch.sigmoid(dic_out['aux'])
+
     return dic_out
 
 
