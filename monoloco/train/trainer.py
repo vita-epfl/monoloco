@@ -95,7 +95,7 @@ class Trainer:
         self.tasks_1 = ('w', 'l', 'h')
         losses_tr_2, losses_val_2 = CompositeLoss(self.tasks_2)()
         losses_tr_1, losses_val_1 = CompositeLoss(self.tasks_1)()
-        self.loss_2 = MultiTaskLoss(losses_tr_2, losses_val_2, (1, 1, 1), self.tasks_2)
+        self.loss_2 = MultiTaskLoss(losses_tr_2, losses_val_2, (1, 1, 1, 1), self.tasks_2)
         self.loss_1 = MultiTaskLoss(losses_tr_1, losses_val_1, (1, 1, 1), self.tasks_1)
         self.loss_2.to(self.device)
         self.loss_1.to(self.device)
