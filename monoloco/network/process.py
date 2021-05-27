@@ -272,6 +272,48 @@ def extract_outputs(outputs, tasks=()):
     return dic_out
 
 
+def extract_outputs_xyd(outputs, tasks=()):
+    dic_out = {'x': outputs[:, 0:1],
+               'y': outputs[:, 1:2],
+               'd': outputs[:, 2:4],
+               }
+
+    # Multi-task training
+    if len(tasks) >= 1:
+        assert isinstance(tasks, tuple), "tasks need to be a tuple"
+        return [dic_out[task] for task in tasks]
+
+    # Preprocess the tensor
+    bi = unnormalize_bi(dic_out['d'])
+    dic_out['bi'] = bi
+
+    dic_out = {key: el.detach().cpu() for key, el in dic_out.items()}
+    x = to_cartesian(outputs[:, 0:3].detach().cpu(), mode='x')
+    y = to_cartesian(outputs[:, 0:3].detach().cpu(), mode='y')
+    d = dic_out['d'][:, 0:1]
+    z = torch.sqrt(d**2 - x**2 - y**2)
+    dic_out['xyzd'] = torch.cat((x, y, z, d), dim=1)
+    dic_out.pop('d')
+    dic_out.pop('x')
+    dic_out.pop('y')
+    dic_out['d'] = d
+    return dic_out
+
+
+def extract_outputs_hwl(outputs, tasks=()):
+    dic_out = {
+               'h': outputs[:, 0:1],
+               'w': outputs[:, 2:3],
+               'l': outputs[:, 3:4],
+    }
+
+    # Multi-task training
+    if len(tasks) >= 1:
+        assert isinstance(tasks, tuple), "tasks need to be a tuple"
+        return [dic_out[task] for task in tasks]
+    return dic_out
+
+
 def extract_labels_aux(labels, tasks=None):
 
     dic_gt_out = {'aux': labels[:, 0:1]}

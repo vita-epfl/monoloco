@@ -200,13 +200,15 @@ def correct_angle(yaw, xyz):
 
 
 def back_correct_angles(yaws, xyz):
+    eps = 0.1  # 7 degrees tolerance
     corrections = torch.atan2(xyz[:, 0], xyz[:, 2])
     yaws = yaws + corrections.view(-1, 1)
     mask_up = yaws > math.pi
     yaws[mask_up] -= 2 * math.pi
     mask_down = yaws < -math.pi
     yaws[mask_down] += 2 * math.pi
-    assert torch.all(yaws < math.pi) & torch.all(yaws > - math.pi)
+    if not torch.all(yaws < math.pi + eps) & torch.all(yaws > - math.pi - eps):
+        print(yaws)
     return yaws
 
 
