@@ -39,7 +39,7 @@ class Trainer:
 
     tasks = ('d', 'x', 'y', 'h', 'w', 'l', 'ori', 'aux')
     val_task = 'd'
-    lambdas = (1, 1, 1, 1, 1, 1, 1, 1)
+    lambdas = (1, 1, 1, 0, 0, 0, 0, 0)
     clusters = ['10', '20', '30', '40']
     input_size = dict(mono=34, stereo=68)
     output_size = dict(mono=9, stereo=10)
