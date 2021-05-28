@@ -11,7 +11,7 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ..network import extract_labels, extract_labels_aux, extract_outputs
+from ..network import extract_labels, extract_outputs
 
 
 class AutoTuneMultiTaskLoss(torch.nn.Module):
@@ -28,8 +28,8 @@ class AutoTuneMultiTaskLoss(torch.nn.Module):
     def forward(self, outputs, labels, phase='train'):
 
         assert phase in ('train', 'val')
-        out = extract_outputs(outputs, tasks=self.tasks)
-        gt_out = extract_labels(labels, tasks=self.tasks)
+        out = extract_outputs(outputs, self.tasks, raw=True)
+        gt_out = extract_labels(labels, self.tasks)
         loss_values = [lam * l(o, g) / (2.0 * (log_sigma.exp() ** 2))
                        for lam, log_sigma, l, o, g in zip(self.lambdas, self.log_sigmas, self.losses, out, gt_out)]
 
@@ -47,23 +47,18 @@ class MultiTaskLoss(torch.nn.Module):
     def __init__(self, losses_tr, losses_val, lambdas, tasks):
         super().__init__()
 
+        assert len(lambdas) == len(tasks)
         self.losses = torch.nn.ModuleList(losses_tr)
         self.losses_val = losses_val
         self.lambdas = lambdas
         self.tasks = tasks
-        if len(self.tasks) == 1 and self.tasks[0] == 'aux':
-            self.flag_aux = True
-        else:
-            self.flag_aux = False
 
     def forward(self, outputs, labels, phase='train'):
 
         assert phase in ('train', 'val')
-        out = [outputs[:, idx:idx+1] if task != 'd' else outputs[:, idx:idx+2] for idx, task in enumerate(self.tasks)]
-        if self.flag_aux:
-            gt_out = extract_labels_aux(labels, tasks=self.tasks)
-        else:
-            gt_out = extract_labels(labels, tasks=self.tasks)
+        out = extract_outputs(outputs, self.tasks, raw=True)
+        gt_out = extract_labels(labels, self.tasks, raw=True)
+
         loss_values = [lam * l(o, g) for lam, l, o, g in zip(self.lambdas, self.losses, out, gt_out)]
         loss = sum(loss_values)
 

@@ -222,7 +222,7 @@ def image_transform(image):
     return transforms(image)
 
 
-def extract_outputs(outputs, tasks):
+def extract_outputs(outputs, tasks, raw=False):
     """
     Extract the outputs for multi-task training and predictions
     Inputs:
@@ -234,6 +234,8 @@ def extract_outputs(outputs, tasks):
     dic_out = {
         task: outputs[:, idx:idx+2] if task in ('d', 'ori') else outputs[:, idx:idx+1] for idx, task in enumerate(tasks)
     }
+    if raw:
+        return [dic_out[task] for task in tasks]
 
     # Preprocess the tensor
     if 'd' in tasks:
@@ -261,30 +263,16 @@ def extract_outputs(outputs, tasks):
     return dic_out
 
 
-def extract_labels_aux(labels, tasks=None):
-
-    dic_gt_out = {'aux': labels[:, 0:1]}
-
-    if tasks is not None:
-        assert isinstance(tasks, tuple), "tasks need to be a tuple"
-        return [dic_gt_out[task] for task in tasks]
-
-    dic_gt_out = {key: el.detach().cpu() for key, el in dic_gt_out.items()}
-    return dic_gt_out
-
-
-def extract_labels(labels, tasks=None):
+def extract_labels(labels, tasks=None, raw=False):
 
     dic_gt_out = {'x': labels[:, 0:1], 'y': labels[:, 1:2], 'z': labels[:, 2:3], 'd': labels[:, 3:4],
-                  'h': labels[:, 4:5], 'w': labels[:, 5:6], 'l': labels[:, 6:7],
-                  'ori': labels[:, 7:9], 'aux': labels[:, 10:11]}
+                 'h': labels[:, 4:5], 'w': labels[:, 5:6], 'l': labels[:, 6:7],
+                 'ori': labels[:, 7:9], 'aux': labels[:, 10:11]}
 
-    if tasks is not None:
-        assert isinstance(tasks, tuple), "tasks need to be a tuple"
+    if raw:
+        assert tasks is not None
         return [dic_gt_out[task] for task in tasks]
-
-    dic_gt_out = {key: el.detach().cpu() for key, el in dic_gt_out.items()}
-    return dic_gt_out
+    return {key: el.detach().cpu() for key, el in dic_gt_out.items()}
 
 
 def cluster_outputs(outputs, clusters):

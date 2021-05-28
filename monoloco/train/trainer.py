@@ -39,15 +39,19 @@ class Trainer:
     tasks = []
     lambdas = []
     tasks_1 = ('w', 'l', 'h')
-    tasks_2 = ('d', 'x', 'y')
+    tasks_2 = ('d', 'x', 'y', 'h', 'w', 'l', 'ori')
     val_task = 'd'
     lambdas_1 = (1, 1, 1)
-    lambdas_2 = (1, 1, 1)
+    lambdas_2 = (1, 1, 1, 1, 1, 1, 1)
     # lambdas = (0, 0, 0, 0, 0, 0, 1, 0)
     clusters = ['10', '20', '30', '40']
     input_size = dict(mono=34, stereo=68)
-    output_size = len(tasks_2) + 1 if 'd' in tasks else len(tasks_2)
-    output_size = dict(mono=output_size, stereo=output_size+1)
+    output_size = len(tasks_2)
+    if 'd' in tasks_2:
+        output_size += 1
+    if 'ori' in tasks_2:
+        output_size += 1
+    output_size = dict(mono=output_size, stereo=output_size + 1)
     dir_figures = os.path.join('figures', 'losses')
 
     def __init__(self, args):
@@ -84,7 +88,7 @@ class Trainer:
         print(self.path_out)
         # Select the device
         use_cuda = torch.cuda.is_available()
-        self.device = torch.device("cuda:1" if use_cuda else "cpu")
+        self.device = torch.device("cuda" if use_cuda else "cpu")
         print('Device: ', self.device)
         torch.manual_seed(self.r_seed)
         if use_cuda:
@@ -95,8 +99,6 @@ class Trainer:
             self.tasks.append('aux')
             self.lambdas.append(1)
 
-        self.tasks_1 = ('w', 'l', 'h')
-        self.tasks_2 = ('d', 'x', 'y')
         losses_tr_1, losses_val_1 = CompositeLoss(self.tasks_1)()
         losses_tr_2, losses_val_2 = CompositeLoss(self.tasks_2)()
         self.loss_1 = MultiTaskLoss(losses_tr_1, losses_val_1, self.lambdas_1, self.tasks_1)
@@ -231,8 +233,6 @@ class Trainer:
         dic_err = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0)))  # initialized to zero
         dic_err['val']['sigmas'] = [0.] * len(self.tasks_2)
         dataset = KeypointsDataset(self.joints, phase='val')
-        size_eval = len(dataset)
-        start = 0
         with torch.no_grad():
 
             # Evaluate performances on different clusters and save statistics
@@ -246,6 +246,8 @@ class Trainer:
                 cout_stats(self.logger, dic_err['val'], size_eval, clst=clst)
 
             # Evaluate on all the instances
+            start = 0
+            size_eval = len(dataset)
             for end in range(self.VAL_BS, size_eval + self.VAL_BS, self.VAL_BS):
                 end = end if end < size_eval else size_eval
                 inputs, labels, _, _ = dataset[start:end]
@@ -310,8 +312,8 @@ def compute_stats(tasks, loss, outputs, labels, dic_err, size_eval, clst):
         errs = torch.abs(extract_outputs(outputs, tasks)['d'] - extract_labels(labels)['d'])
         assert rel_frac > 0.99, "Variance of errors not supported with partial evaluation"
         bis = extract_outputs(outputs, tasks)['bi'].cpu()
-        bi = float(torch.mean(bis).item()) / 100
-        bi_perc = float(torch.sum(errs <= bis)) / errs.shape[0] / 100
+        bi = float(torch.mean(bis).item())
+        bi_perc = float(torch.sum(errs <= bis)) / errs.shape[0]
         dic_err[clst]['bi'] += bi * rel_frac
         dic_err[clst]['bi%'] += bi_perc * rel_frac
         dic_err[clst]['std'] = errs.std()
@@ -326,13 +328,19 @@ def cout_stats(logger, dic_err, size_eval, clst):
 
     logger.info('-' * 80)
     logger.info(f'Validation set for the cluster {clst} with {size_eval} people')
-    for task in dic_err['all']:
-        logger.info(f'{task.upper()}: {dic_err[clst][task]*100:.2f} cm')
+    for task in dic_err[clst]:
+        if task == 'bi%':
+            unit = '%'
+            dic_err[clst][task] *= 100
+        elif task == 'ori':
+            unit = 'degrees'
+        else:
+            unit = 'meters'
+        logger.info(f'{task.upper()}: {dic_err[clst][task]:.3f} {unit}')
     logger.info('-' * 100 + '\n')
 
 
 def cout_values(epoch, epoch_losses, running_loss, data_size):
-
     string = '\r' + '{:.0f} '
     format_list = [epoch]
     for phase in running_loss:
