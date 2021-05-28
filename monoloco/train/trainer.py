@@ -29,7 +29,7 @@ from .. import __version__
 from .datasets import KeypointsDataset
 from .losses import CompositeLoss, MultiTaskLoss
 from ..network import extract_labels, extract_outputs
-from ..network.architectures import MonStereoModel
+from ..network.architectures import MonStereoModel, MonoLocoPPModel
 from ..utils import set_logger
 
 
@@ -119,7 +119,7 @@ class Trainer:
         # Define the model
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
         print(">>> creating model")
-        model = MonStereoModel
+        model = MonStereoModel if self.mode == 'stereo' else MonoLocoPPModel
 
         self.model_1 = model(
             input_size=self.input_size[self.mode],

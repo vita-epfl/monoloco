@@ -231,9 +231,15 @@ def extract_outputs(outputs, tasks, raw=False):
          - if tasks are provided return ordered list of raw tensors
          - else return a dictionary with processed outputs
     """
-    dic_out = {
-        task: outputs[:, idx:idx+2] if task in ('d', 'ori') else outputs[:, idx:idx+1] for idx, task in enumerate(tasks)
-    }
+    dic_out = {}
+    idx = 0
+    for task in tasks:
+        if task in ('d', 'ori'):
+            dic_out[task] = outputs[:, idx:idx+2]
+            idx += 2
+        else:
+            dic_out[task] = outputs[:, idx:idx + 1]
+            idx += 1
     if raw:
         return [dic_out[task] for task in tasks]
 
@@ -266,8 +272,8 @@ def extract_outputs(outputs, tasks, raw=False):
 def extract_labels(labels, tasks=None, raw=False):
 
     dic_gt_out = {'x': labels[:, 0:1], 'y': labels[:, 1:2], 'z': labels[:, 2:3], 'd': labels[:, 3:4],
-                 'h': labels[:, 4:5], 'w': labels[:, 5:6], 'l': labels[:, 6:7],
-                 'ori': labels[:, 7:9], 'aux': labels[:, 10:11]}
+                  'h': labels[:, 4:5], 'w': labels[:, 5:6], 'l': labels[:, 6:7],
+                  'ori': labels[:, 7:9], 'aux': labels[:, 10:11]}
 
     if raw:
         assert tasks is not None
