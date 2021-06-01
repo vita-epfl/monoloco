@@ -14,6 +14,7 @@ import datetime
 from PIL import Image
 
 import torch
+import numpy as np
 
 from .. import __version__
 from ..utils import split_training, get_iou_matches, append_cluster, get_calibration, open_annotations, \
@@ -83,6 +84,8 @@ class PreprocessKitti:
 
     def run(self):
         # self.names_gt = ('002282.txt',)
+        constant_kp = []
+        constant_gt = []
         for self.name in self.names_gt:
             # Extract ground truth
             path_gt = os.path.join(self.dir_gt, self.name)
@@ -101,7 +104,7 @@ class PreprocessKitti:
             self.dic_names[basename + '.png']['ys'] = copy.deepcopy(labels)
 
             # Extract annotations
-            dic_boxes, dic_kps, dic_gt = self.parse_annotations(boxes_gt, labels, basename)
+            dic_boxes, dic_kps, dic_gt = self.parse_annotations(boxes_gt, labels, basename, flip=False)
             if dic_boxes is None:  # No annotations
                 continue
             self.dic_names[basename + '.png']['K'] = copy.deepcopy(dic_gt['K'])
@@ -114,11 +117,19 @@ class PreprocessKitti:
                 self.stats['flipping_match'] += len(matches) if ii == 1 else 0
                 for (idx, idx_gt) in matches:
                     cat_gt = dic_gt['labels'][ii][idx_gt][-1]
-                    if cat_gt not in self.categories_gt[self.phase]: # only for training as cyclists are also extracted
+                    if cat_gt not in self.categories_gt[self.phase]:  # only for training as cyclists are also extracted
                         continue
                     kp = kps[idx:idx + 1]
                     kk = dic_gt['K']
                     label = dic_gt['labels'][ii][idx_gt][:-1]
+                    H = dic_gt['labels'][ii][idx_gt][4]
+                    d = dic_gt['labels'][ii][idx_gt][3]
+                    kp_y = kp[0, 1, :].tolist()
+                    box = dic_boxes['gt'][ii][idx_gt]
+                    h_kp = max(kp_y) - min(kp_y)
+                    h_gt = box[3] - box[1]
+                    constant_kp.append(h_kp * d / H)
+                    constant_gt.append(h_gt * d / H)
                     self.stats['match'] += 1
                     assert len(label) == 10, 'dimensions of monocular label is wrong'
 
@@ -132,8 +143,16 @@ class PreprocessKitti:
         with open(os.path.join(self.path_names), 'w') as file:
             json.dump(self.dic_names, file)
         self._cout()
+        constant_kp = np.array(constant_kp)
+        constant_gt = np.array(constant_gt)
+        C_kp = np.mean(constant_kp)
+        std_kp = np.std(constant_kp)
+        C_gt = np.mean(constant_gt)
+        std_gt = np.std(constant_gt)
+        print(f'For KP constant. C: {C_kp:.1f} std %: {100 *  std_kp / C_kp:.1f}%')
+        print(f'For GT constant. C: {C_gt:.1f} std: {100 *  std_gt / C_gt:.1f}%')
 
-    def parse_annotations(self, boxes_gt, labels, basename):
+    def parse_annotations(self, boxes_gt, labels, basename, flip=True):
 
         path_im = os.path.join(self.dir_images, basename + '.png')
         path_calib = os.path.join(self.dir_kk, basename + '.txt')
@@ -151,36 +170,37 @@ class PreprocessKitti:
 
         # Stereo-based horizontal flipping for training (obtaining ground truth for right images)
         self.stats['instances'] += len(keypoints)
-        annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
-        boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(width, height), min_conf=min_conf)
+        if flip and self.phase == 'train':
+            annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
+            boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(width, height), min_conf=min_conf)
 
-        if not keypoints_r:  # Duplicate the left one(s)
+            if keypoints_r:
+                # GT)
+                boxes_gt_flip, ys_flip = flip_labels(boxes_gt, labels, im_w=width)
+                # New left
+                boxes_flip = flip_inputs(boxes_r, im_w=width, mode='box')
+                keypoints_flip = flip_inputs(keypoints_r, im_w=width)
+
+                # New right
+                keypoints_r_flip = flip_inputs(keypoints, im_w=width)
+
+                # combine the 2 modes
+                all_boxes_gt = [boxes_gt, boxes_gt_flip]
+                all_labels = [labels, ys_flip]
+                all_boxes = [boxes, boxes_flip]
+                all_keypoints = [keypoints, keypoints_flip]
+                all_keypoints_r = [keypoints_r, keypoints_r_flip]
+            else:
+                # Duplicate the left one(s). Not used
+                all_boxes_gt, all_labels = [boxes_gt], [labels]
+                boxes_r, keypoints_r = boxes[0:1].copy(), keypoints[0:1].copy()
+                all_boxes, all_keypoints = [boxes], [keypoints]
+                all_keypoints_r = [keypoints_r]
+
+        else:  # Validation
             all_boxes_gt, all_labels = [boxes_gt], [labels]
-            boxes_r, keypoints_r = boxes[0:1].copy(), keypoints[0:1].copy()
             all_boxes, all_keypoints = [boxes], [keypoints]
-            all_keypoints_r = [keypoints_r]
-
-        elif self.phase == 'train':
-            # GT)
-            boxes_gt_flip, ys_flip = flip_labels(boxes_gt, labels, im_w=width)
-            # New left
-            boxes_flip = flip_inputs(boxes_r, im_w=width, mode='box')
-            keypoints_flip = flip_inputs(keypoints_r, im_w=width)
-
-            # New right
-            keypoints_r_flip = flip_inputs(keypoints, im_w=width)
-
-            # combine the 2 modes
-            all_boxes_gt = [boxes_gt, boxes_gt_flip]
-            all_labels = [labels, ys_flip]
-            all_boxes = [boxes, boxes_flip]
-            all_keypoints = [keypoints, keypoints_flip]
-            all_keypoints_r = [keypoints_r, keypoints_r_flip]
-
-        else:
-            all_boxes_gt, all_labels = [boxes_gt], [labels]
-            all_boxes, all_keypoints = [boxes], [keypoints]
-            all_keypoints_r = [keypoints_r]
+            all_keypoints_r = [[]]
 
         dic_boxes = dict(left=all_boxes, gt=all_boxes_gt)
         dic_kps = dict(left=all_keypoints, right=all_keypoints_r)

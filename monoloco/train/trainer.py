@@ -110,10 +110,13 @@ class Trainer:
 
         losses_tr_1, losses_val_1 = CompositeLoss(self.tasks_1)()
         losses_tr_2, losses_val_2 = CompositeLoss(self.tasks_2)()
+        losses_tr_h, losses_val_h = CompositeLoss(('consistency',))()
         self.loss_1 = MultiTaskLoss(losses_tr_1, losses_val_1, self.lambdas_1, self.tasks_1)
         self.loss_2 = MultiTaskLoss(losses_tr_2, losses_val_2, self.lambdas_2, self.tasks_2)
+        self.loss_h = losses_tr_h[0]
         self.loss_1.to(self.device)
         self.loss_2.to(self.device)
+        self.loss_h.to(self.device)
 
         # Dataloader
         self.dataloaders = {phase: DataLoader(KeypointsDataset(self.joints, phase=phase),
