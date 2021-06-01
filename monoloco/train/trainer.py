@@ -44,7 +44,7 @@ class Trainer:
     tasks_2 = ('d', 'x', 'y')
     val_task = 'd'
     lambdas_1 = (1, 1, 1)
-    lambdas_2 = (1, 1, 1)
+    lambdas_2 = (10, 1, 1)
     # lambdas = (0, 0, 0, 0, 0, 0, 1, 0)
     clusters = ['10', '20', '30', '40']
     input_size = dict(mono=34, stereo=68)
@@ -150,7 +150,7 @@ class Trainer:
         )
 
         self.model_h = TwoBlocks(
-            input_size=2,
+            input_size=3,
             output_size=1,
         )
 
@@ -210,11 +210,11 @@ class Trainer:
                             h_max, _ = torch.max(inputs_y, dim=1)
                             h_min, _ = torch.min(inputs_y, dim=1)
                             h = h_max - h_min
-                            inputs_h = torch.cat((outputs_1[:, 0:1], h.reshape(-1,1)), dim=1)  # (batch, 2)
+                            inputs_h = torch.cat((outputs_1[:, 0:1], h.reshape(-1, 1), h_min.reshape(-1, 1)), dim=1)
                             outputs_h = self.model_h(inputs_h)
                             loss_1, _ = self.loss_1(outputs_1, labels, phase=phase)
                             loss_2, _ = self.loss_2(outputs_2, labels, phase=phase)
-                            loss_h = self.loss_h(outputs_h, labels[:, 0:1])
+                            loss_h = self.loss_h(outputs_h, outputs_2[:, 0:1])
                             loss = loss_1 + loss_2 + loss_h
                             loss.backward()
                             torch.nn.utils.clip_grad_norm_(self.model_1.parameters(), 3)
