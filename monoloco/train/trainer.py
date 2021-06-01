@@ -18,6 +18,8 @@ from itertools import chain
 
 try:
     import matplotlib.pyplot as plt
+    import matplotlib
+    matplotlib.rcParams['figure.dpi'] = 300
 except ImportError:
     plt = None
 
@@ -35,10 +37,10 @@ from ..utils import set_logger
 
 class Trainer:
     # Constants
-    VAL_BS = 10000
+    VAL_BS = 100000
     tasks = []
     lambdas = []
-    tasks_1 = ('w', 'l', 'h')
+    tasks_1 = ('h', 'w', 'l')
     tasks_2 = ('d', 'x', 'y')
     val_task = 'd'
     lambdas_1 = (1, 1, 1)
@@ -238,7 +240,7 @@ class Trainer:
         self.model_2.load_state_dict(best_model_wts_2)
         return best_epoch
 
-    def evaluate(self, load=False, model=None, debug=False):
+    def evaluate(self, load=False, model=None, debug=True):
 
         # To load a model instead of using the trained one
         if load:
@@ -262,6 +264,8 @@ class Trainer:
                 cout_stats(self.logger, dic_err['val'], size_eval, clst=clst)
 
             # Evaluate on all the instances
+            # Debug plot for input-output distributions
+
             start = 0
             size_eval = len(dataset)
             for end in range(self.VAL_BS, size_eval + self.VAL_BS, self.VAL_BS):
@@ -271,15 +275,13 @@ class Trainer:
                 inputs = inputs.to(self.device)
                 labels = labels.to(self.device)
 
-                # Debug plot for input-output distributions
-                if debug:
-                    debug_plots(inputs, labels)
-                    sys.exit()
-
                 # Forward pass
                 outputs = self.model_2(inputs)
                 compute_stats(self.tasks_2, self.loss_2, outputs, labels, dic_err['val'], size_eval, clst='all')
             cout_stats(self.logger, dic_err['val'], size_eval, clst='all')
+            if debug:
+                debug_plots(self.model_1(inputs), labels)
+                sys.exit()
 
         # Save the model and the results
         if not (self.no_save or load):
@@ -401,16 +403,18 @@ def print_losses(epoch_losses, dir_figures):
             plt.close()
 
 
-def debug_plots(inputs, labels):
-    inputs_shoulder = inputs.cpu().numpy()[:, 5]
-    inputs_hip = inputs.cpu().numpy()[:, 11]
-    labels = labels.cpu().numpy()
-    heights = inputs_hip - inputs_shoulder
+def debug_plots(outputs, labels):
+    outputs = outputs.cpu().numpy()[:, 0]
+    labels = labels.cpu().numpy()[:, 4:5]
     plt.figure(1)
-    plt.hist(heights, bins='auto')
-    plt.show()
-    plt.figure(2)
     plt.hist(labels, bins='auto')
+    plt.hist(outputs, bins='auto')
+    plt.title("Bounding box height analysis")
+    plt.ylabel("Number of instances")
+    plt.xlabel("Box Height [m]")
+    plt.ylabel("Number of instances")
+    plt.xlabel("Box Height [m]")
+    plt.legend(("Ground-truth", "Network predictions"))
     plt.show()
 
 
