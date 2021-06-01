@@ -31,7 +31,7 @@ from .. import __version__
 from .datasets import KeypointsDataset
 from .losses import CompositeLoss, MultiTaskLoss
 from ..network import extract_labels, extract_outputs
-from ..network.architectures import MonStereoModel, MonoLocoPPModel
+from ..network.architectures import MonStereoModel, MonoLocoPPModel, TwoBlocks
 from ..utils import set_logger
 
 
@@ -139,7 +139,6 @@ class Trainer:
             linear_size=args.hidden_size,
             p_dropout=args.dropout,
             num_stage=self.n_stage,
-            device=self.device,
         )
 
         self.model_2 = model(
@@ -148,11 +147,16 @@ class Trainer:
             linear_size=args.hidden_size,
             p_dropout=args.dropout,
             num_stage=self.n_stage,
-            device=self.device,
+        )
+
+        self.model_h = TwoBlocks(
+            input_size=2,
+            output_size=1,
         )
 
         self.model_1.to(self.device)
         self.model_2.to(self.device)
+        self.model_h.to(self.device)
 
         print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model_2.parameters()) / 1000000.0))
         print(">>> loss params: {}".format(sum(p.numel() for p in self.loss_2.parameters())))
@@ -163,13 +167,14 @@ class Trainer:
             self.loss_1.parameters(),
             self.model_2.parameters(),
             self.loss_2.parameters(),
+            self.model_h.parameters(),
+            self.loss_h.parameters(),
         )
         self.optimizer = torch.optim.Adam(params=all_params, lr=args.lr)
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
 
     def train(self):
         since = time.time()
-        best_model_wts_1 = copy.deepcopy(self.model_1.state_dict())
         best_model_wts_2 = copy.deepcopy(self.model_2.state_dict())
         best_acc = 1e6
         best_training_acc = 1e6
@@ -185,10 +190,12 @@ class Trainer:
                 if phase == 'train':
                     self.model_1.train()
                     self.model_2.train()
+                    self.model_h.train()
 
                 else:
                     self.model_1.eval()
                     self.model_2.eval()
+                    self.model_h.eval()
 
                 for inputs, labels, _, _ in self.dataloaders[phase]:
                     inputs = inputs.to(self.device)
@@ -199,12 +206,20 @@ class Trainer:
 
                             outputs_1 = self.model_1(inputs)
                             outputs_2 = self.model_2(inputs)
+                            inputs_y = inputs[:, 1::2]
+                            h_max, _ = torch.max(inputs_y, dim=1)
+                            h_min, _ = torch.min(inputs_y, dim=1)
+                            h = h_max - h_min
+                            inputs_h = torch.cat((outputs_1[:, 0:1], h.reshape(-1,1)), dim=1)  # (batch, 2)
+                            outputs_h = self.model_h(inputs_h)
                             loss_1, _ = self.loss_1(outputs_1, labels, phase=phase)
                             loss_2, _ = self.loss_2(outputs_2, labels, phase=phase)
-                            loss = loss_1 + loss_2
+                            loss_h = self.loss_h(outputs_h, labels[:, 0:1])
+                            loss = loss_1 + loss_2 + loss_h
                             loss.backward()
                             torch.nn.utils.clip_grad_norm_(self.model_1.parameters(), 3)
                             torch.nn.utils.clip_grad_norm_(self.model_2.parameters(), 3)
+                            torch.nn.utils.clip_grad_norm_(self.model_h.parameters(), 3)
                             self.optimizer.step()
                             self.scheduler.step()
 
@@ -243,7 +258,7 @@ class Trainer:
         self.model_2.load_state_dict(best_model_wts_2)
         return best_epoch
 
-    def evaluate(self, load=False, model=None, debug=True):
+    def evaluate(self, load=False, model=None, debug=False):
 
         # To load a model instead of using the trained one
         if load:

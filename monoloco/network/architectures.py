@@ -229,3 +229,37 @@ class MyLinear(nn.Module):
         out = x + y
 
         return out
+
+
+class TwoBlocks(nn.Module):
+    def __init__(self, input_size, output_size):
+        super().__init__()
+        self.input_size = input_size
+        self.output_size = output_size
+        self.l_size = 128
+
+        self.relu = nn.ReLU(inplace=True)
+        self.dropout = nn.Dropout(0.2)
+
+        self.w1 = nn.Linear(self.input_size, self.l_size)
+        self.batch_norm1 = nn.BatchNorm1d(self.l_size)
+
+        self.w2 = nn.Linear(self.l_size, self.l_size)
+        self.batch_norm2 = nn.BatchNorm1d(self.l_size)
+
+        self.w3 = nn.Linear(self.l_size, self.output_size)
+
+    def forward(self, x):
+
+        y = self.w1(x)
+        y = self.batch_norm1(y)
+        y = self.relu(y)
+        y = self.dropout(y)
+
+        y = self.w2(y)
+        y = self.batch_norm2(y)
+        y = self.relu(y)
+        y = self.dropout(y)
+
+        y = self.w3(y)
+        return y

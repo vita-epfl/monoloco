@@ -124,9 +124,10 @@ class PreprocessKitti:
                     label = dic_gt['labels'][ii][idx_gt][:-1]
                     H = dic_gt['labels'][ii][idx_gt][4]
                     d = dic_gt['labels'][ii][idx_gt][3]
-                    kp_y = kp[0, 1, :].tolist()
+                    inp = preprocess_monoloco(kp, kk).view(-1).tolist()
+                    inp_y = inp[1::2]
                     box = dic_boxes['gt'][ii][idx_gt]
-                    h_kp = max(kp_y) - min(kp_y)
+                    h_kp = max(inp_y) - min(inp_y)
                     h_gt = box[3] - box[1]
                     constant_kp.append(h_kp * d / H)
                     constant_gt.append(h_gt * d / H)
