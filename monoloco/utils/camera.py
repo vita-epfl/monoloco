@@ -207,8 +207,7 @@ def back_correct_angles(yaws, xyz):
     yaws[mask_up] -= 2 * math.pi
     mask_down = yaws < -math.pi
     yaws[mask_down] += 2 * math.pi
-    if not torch.all(yaws < math.pi + eps) & torch.all(yaws > - math.pi - eps):
-        print(yaws)
+    assert torch.all(yaws < math.pi) & torch.all(yaws > - math.pi)
     return yaws
 
 
