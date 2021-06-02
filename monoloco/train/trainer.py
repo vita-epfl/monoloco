@@ -29,7 +29,7 @@ from torch.optim import lr_scheduler
 
 from .. import __version__
 from .datasets import KeypointsDataset
-from .losses import CompositeLoss, MultiTaskLoss
+from .losses import CompositeLoss, MultiTaskLoss, ConsistencyLoss
 from ..network import extract_labels, extract_outputs
 from ..network.architectures import MonStereoModel, MonoLocoPPModel, TwoBlocks
 from ..utils import set_logger
@@ -42,9 +42,12 @@ class Trainer:
     lambdas = []
     tasks_1 = ('d', 'x', 'y')
     tasks_2 = ('h', 'w', 'l')
-    val_task = 'd'
+    tasks_h = ('h',)
+    val_task_1 = 'd'
+    val_task_h = 'h'
     lambdas_1 = (1, 1, 1)
     lambdas_2 = (1, 1, 1)
+    lambdas_h = (1, )
     # lambdas = (0, 0, 0, 0, 0, 0, 1, 0)
     clusters = ['10', '20', '30', '40']
     input_size = dict(mono=34, stereo=68)
@@ -78,6 +81,7 @@ class Trainer:
         self.sched_step = args.sched_step
         self.sched_gamma = args.sched_gamma
         self.hidden_size = args.hidden_size
+        self.dropout = args.dropout
         self.n_stage = args.n_stage
         self.r_seed = args.r_seed
         self.auto_tune_mtl = args.auto_tune_mtl
@@ -108,16 +112,6 @@ class Trainer:
             self.tasks.append('aux')
             self.lambdas.append(1)
 
-        losses_tr_1, losses_val_1 = CompositeLoss(self.tasks_1)()
-        losses_tr_2, losses_val_2 = CompositeLoss(self.tasks_2)()
-        losses_tr_h, losses_val_h = CompositeLoss(('consistency',))()
-        self.loss_1 = MultiTaskLoss(losses_tr_1, losses_val_1, self.lambdas_1, self.tasks_1)
-        self.loss_2 = MultiTaskLoss(losses_tr_2, losses_val_2, self.lambdas_2, self.tasks_2)
-        self.loss_h = losses_tr_h[0]
-        self.loss_1.to(self.device)
-        self.loss_2.to(self.device)
-        self.loss_h.to(self.device)
-
         # Dataloader
         self.dataloaders = {phase: DataLoader(KeypointsDataset(self.joints, phase=phase),
                                               batch_size=args.bs, shuffle=True) for phase in ['train', 'val']}
@@ -130,115 +124,165 @@ class Trainer:
 
         # Define the model
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
+        self.scheduler = None
+
+    def train(self):
+        # 1) PRE-TRAIN CONSISTENCY
+        since = time.time()
+
+        best_acc_h = 1e6
+        best_training_acc_h = 1e6
+        best_epoch_h = 0
+        epoch_losses_h = defaultdict(lambda: defaultdict(list))
+
+        self.model_h = TwoBlocks(input_size=3, output_size=1)
+        self.model_h.to(self.device)
+        best_model_wts_h = copy.deepcopy(self.model_h.state_dict())
+        losses_tr_h, losses_val_h = CompositeLoss(self.tasks_h)()
+        self.loss_h = ConsistencyLoss(losses_tr_h, losses_val_h, self.lambdas_h, self.tasks_h)
+        self.loss_h.to(self.device)
+        print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model_h.parameters()) / 1000000.0))
+
+        all_params = chain(
+            self.model_h.parameters(),
+            self.loss_h.parameters(),
+        )
+        self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr)
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
+
+        for epoch in range(self.num_epochs // 2):
+            running_loss_h = defaultdict(lambda: defaultdict(int))
+
+            # Each epoch has a training and validation phase
+            for phase in ['train', 'val']:
+                if phase == 'train':
+                    self.model_h.train()
+                else:
+                    self.model_h.eval()
+
+                for inputs, labels, _, _ in self.dataloaders[phase]:
+                    inputs = inputs.to(self.device)
+                    labels = labels.to(self.device)
+
+                    inputs_y = inputs[:, 1::2]
+                    h_max, _ = torch.max(inputs_y, dim=1)
+                    h_min, _ = torch.min(inputs_y, dim=1)
+                    h = h_max - h_min
+                    h = h.reshape(-1, 1)
+                    h_min = h_min.reshape(-1, 1)
+                    inputs_h = torch.cat((labels[:, 3:4], h, h_min), dim=1)
+                    labels_h = labels[:, 4:5]
+
+                    with torch.set_grad_enabled(phase == 'train'):
+                        if phase == 'train':
+                            self.optimizer.zero_grad()
+                            outputs_h = self.model_h(inputs_h)
+                            loss_h, _ = self.loss_h(outputs_h, labels_h)
+                            loss_h.backward()
+                            torch.nn.utils.clip_grad_norm_(self.model_h.parameters(), 3)
+                            self.optimizer.step()
+                            self.scheduler.step()
+
+                        else:
+                            outputs_h = self.model_h(inputs_h)
+                        with torch.no_grad():
+                            loss_eval_h, loss_values_eval_h = self.loss_h(outputs_h, labels_h, phase='val')
+                            epoch_logs(running_loss_h, self.tasks_h, phase, loss_eval_h, loss_values_eval_h, inputs_h)
+            cout_values(epoch, epoch_losses_h, running_loss_h, self.dataset_sizes[phase])
+
+            # deep copy the model
+            if epoch_losses_h['val'][self.val_task_h][-1] < best_acc_h:
+                best_acc_h = epoch_losses_h['val'][self.val_task_h][-1]
+                best_training_acc_h = epoch_losses_h['train']['all'][-1]
+                best_epoch_h = epoch
+                best_model_wts_h = copy.deepcopy(self.model_h.state_dict())
+
+        time_elapsed = time.time() - since
+        print('\n\n' + '-' * 120)
+        self.logger.info('Training:\nTraining complete in {:.0f}m {:.0f}s'
+                         .format(time_elapsed // 60, time_elapsed % 60))
+        self.logger.info('Best training Accuracy: {:.3f}'.format(best_training_acc_h))
+        self.logger.info('Best validation Accuracy for {}: {:.2f} cm'.format(self.val_task_h, 100*best_acc_h))
+        self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch_h))
+
+        if self.print_loss:
+            print_losses(epoch_losses_h, self.dir_figures)
+
+        # load best model weights
+        self.model_h.load_state_dict(best_model_wts_h)
+        path_model_h = './model_h.pkl'
+        torch.save(self.model_h.state_dict(), path_model_h)
+        # ------------------------------------------------------------------------------------------------------------
+
+        # 2) PRE-TRAIN MAIN NETWORK
+        since = time.time()
+        best_acc = 1e6
+        best_training_acc = 1e6
+        best_epoch = 0
+        epoch_losses_1 = defaultdict(lambda: defaultdict(list))
+
         print(">>> creating model")
         model = MonStereoModel if self.mode == 'stereo' else MonoLocoPPModel
 
         self.model_1 = model(
             input_size=self.input_size[self.mode],
             output_size=self.output_size_1[self.mode],
-            linear_size=args.hidden_size,
-            p_dropout=args.dropout,
+            linear_size=self.hidden_size,
+            p_dropout=self.dropout,
             num_stage=self.n_stage,
         )
-
-        self.model_2 = model(
-            input_size=self.input_size[self.mode],
-            output_size=self.output_size_2[self.mode],
-            linear_size=args.hidden_size,
-            p_dropout=args.dropout,
-            num_stage=self.n_stage,
-        )
-
-        self.model_h = TwoBlocks(
-            input_size=3,
-            output_size=1,
-        )
-
         self.model_1.to(self.device)
-        self.model_2.to(self.device)
-        self.model_h.to(self.device)
+        losses_tr_1, losses_val_1 = CompositeLoss(self.tasks_1)()
+        self.loss_1 = MultiTaskLoss(losses_tr_1, losses_val_1, self.lambdas_1, self.tasks_1)
+        self.loss_1.to(self.device)
 
-        print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model_2.parameters()) / 1000000.0))
-        print(">>> loss params: {}".format(sum(p.numel() for p in self.loss_2.parameters())))
+        print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model_1.parameters()) / 1000000.0))
+        print(">>> loss params: {}".format(sum(p.numel() for p in self.loss_1.parameters())))
+        best_model_wts_1 = copy.deepcopy(self.model_1.state_dict())
 
         # Optimizer and scheduler
         all_params = chain(
             self.model_1.parameters(),
             self.loss_1.parameters(),
-            self.model_2.parameters(),
-            self.loss_2.parameters(),
-            self.model_h.parameters(),
-            self.loss_h.parameters(),
         )
-        self.optimizer = torch.optim.Adam(params=all_params, lr=args.lr)
+        self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr)
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
 
-    def train(self):
-        since = time.time()
-        best_model_wts_1 = copy.deepcopy(self.model_1.state_dict())
-        best_acc = 1e6
-        best_training_acc = 1e6
-        best_epoch = 0
-        epoch_losses_1 = defaultdict(lambda: defaultdict(list))
-        epoch_losses_2 = defaultdict(lambda: defaultdict(list))
         for epoch in range(self.num_epochs):
             running_loss_1 = defaultdict(lambda: defaultdict(int))
-            running_loss_2 = defaultdict(lambda: defaultdict(int))
 
             # Each epoch has a training and validation phase
             for phase in ['train', 'val']:
                 if phase == 'train':
                     self.model_1.train()
-                    self.model_2.train()
-                    self.model_h.train()
-
                 else:
                     self.model_1.eval()
-                    self.model_2.eval()
-                    self.model_h.eval()
 
                 for inputs, labels, _, _ in self.dataloaders[phase]:
                     inputs = inputs.to(self.device)
                     labels = labels.to(self.device)
+
                     with torch.set_grad_enabled(phase == 'train'):
                         if phase == 'train':
                             self.optimizer.zero_grad()
 
                             outputs_1 = self.model_1(inputs)
-                            outputs_2 = self.model_2(inputs)
-                            inputs_y = inputs[:, 1::2]
-                            h_max, _ = torch.max(inputs_y, dim=1)
-                            h_min, _ = torch.min(inputs_y, dim=1)
-                            h = h_max - h_min
-                            inputs_h = torch.cat((outputs_1[:, 0:1], h.reshape(-1, 1), h_min.reshape(-1, 1)), dim=1)
-                            # outputs_h = self.model_h(inputs_h)
                             loss_1, _ = self.loss_1(outputs_1, labels, phase=phase)
-                            loss_2, _ = self.loss_2(outputs_2, labels, phase=phase)
-                            # loss_h = self.loss_h(outputs_h, outputs_2[:, 0:1])
-                            loss = loss_1 + loss_2
-                            loss.backward()
+                            loss_1.backward()
                             torch.nn.utils.clip_grad_norm_(self.model_1.parameters(), 3)
-                            torch.nn.utils.clip_grad_norm_(self.model_2.parameters(), 3)
-                            torch.nn.utils.clip_grad_norm_(self.model_h.parameters(), 3)
                             self.optimizer.step()
                             self.scheduler.step()
-
                         else:
                             outputs_1 = self.model_1(inputs)
-                            outputs_2 = self.model_2(inputs)
                         with torch.no_grad():
                             loss_eval_1, loss_values_eval_1 = self.loss_1(outputs_1, labels, phase='val')
-                            loss_eval_2, loss_values_eval_2 = self.loss_2(outputs_2, labels, phase='val')
                             epoch_logs(running_loss_1, self.tasks_1, phase, loss_eval_1, loss_values_eval_1, inputs)
-                            epoch_logs(running_loss_2, self.tasks_2, phase, loss_eval_2, loss_values_eval_2, inputs)
 
             cout_values(epoch, epoch_losses_1, running_loss_1, self.dataset_sizes[phase])
-            cout_values(epoch, epoch_losses_2, running_loss_2, self.dataset_sizes[phase])
 
             # deep copy the model
-
-            if epoch_losses_1['val'][self.val_task][-1] < best_acc:
-                best_acc = epoch_losses_1['val'][self.val_task][-1]
+            if epoch_losses_1['val'][self.val_task_1][-1] < best_acc:
+                best_acc = epoch_losses_1['val'][self.val_task_1][-1]
                 best_training_acc = epoch_losses_1['train']['all'][-1]
                 best_epoch = epoch
                 best_model_wts_1 = copy.deepcopy(self.model_1.state_dict())
@@ -248,7 +292,109 @@ class Trainer:
         self.logger.info('Training:\nTraining complete in {:.0f}m {:.0f}s'
                          .format(time_elapsed // 60, time_elapsed % 60))
         self.logger.info('Best training Accuracy: {:.3f}'.format(best_training_acc))
-        self.logger.info('Best validation Accuracy for {}: {:.3f}'.format(self.val_task, best_acc))
+        self.logger.info('Best validation Accuracy for {}: {:.3f}'.format(self.val_task_1, best_acc))
+        self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch))
+
+        if self.print_loss:
+            print_losses(epoch_losses_1, self.dir_figures)
+
+        # save best model weights
+        self.model_1.load_state_dict(best_model_wts_1)
+        path_model_1 = './model_1.pkl'
+        torch.save(self.model_1.state_dict(), path_model_1)
+        # ------------------------------------------------------------------------------------------------------------
+
+        # 3) TRAINING PERCEPTUAL LOSS
+        since = time.time()
+        print('-' * 100)
+        print('-' * 100)
+        print(f"Reloading model 1 from epoch {best_epoch} with accuracy {best_acc:.1f} m")
+        self.model_1 = model(
+            input_size=self.input_size[self.mode],
+            output_size=self.output_size_1[self.mode],
+            linear_size=self.hidden_size,
+            p_dropout=self.dropout,
+            num_stage=self.n_stage,
+        )
+        self.model_1.load_state_dict(torch.load(path_model_1, map_location=lambda storage, loc: storage))
+        print(f"Reloading model h from epoch {best_epoch_h} with accuracy {100*best_acc_h:.2f} cm")
+        print('-' * 100)
+        self.model_h.load_state_dict(torch.load(path_model_h, map_location=lambda storage, loc: storage))
+        self.model_h.eval()
+        losses_tr_1, losses_val_1 = CompositeLoss(self.tasks_1)()
+        self.loss_1 = MultiTaskLoss(losses_tr_1, losses_val_1, self.lambdas_1, self.tasks_1)
+        self.model_1.to(self.device)
+        self.model_h.to(self.device)
+        self.loss_1.to(self.device)
+
+        # Optimizer and scheduler
+        all_params = chain(
+            self.model_1.parameters(),
+            self.loss_1.parameters(),
+        )
+        self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr)
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
+
+        for epoch in range(self.num_epochs, 2 * self.num_epochs):
+            running_loss_1 = defaultdict(lambda: defaultdict(int))
+
+            # Each epoch has a training and validation phase
+            for phase in ['train', 'val']:
+                if phase == 'train':
+                    self.model_1.train()
+                else:
+                    self.model_1.eval()
+
+                for inputs, labels, _, _ in self.dataloaders[phase]:
+                    inputs = inputs.to(self.device)
+                    labels = labels.to(self.device)
+                    inputs_y = inputs[:, 1::2]
+                    h_max, _ = torch.max(inputs_y, dim=1)
+                    h_min, _ = torch.min(inputs_y, dim=1)
+                    h = h_max - h_min
+                    h = h.reshape(-1, 1)
+                    h_min = h_min.reshape(-1, 1)
+
+                    with torch.set_grad_enabled(phase == 'train'):
+                        if phase == 'train':
+                            self.optimizer.zero_grad()
+
+                            outputs_1 = self.model_1(inputs)
+                            loss_1, _ = self.loss_1(outputs_1, labels, phase=phase)
+
+                            inputs_h_f = torch.cat((outputs_1[:, 0:1], h, h_min), dim=1)
+                            inputs_h = torch.cat((labels[:, 3:4], h, h_min), dim=1)
+                            with torch.no_grad():
+                                outputs_h_f = self.model_h(inputs_h_f)
+                                outputs_h = self.model_h(inputs_h)
+                            loss_h, _ = self.loss_h(outputs_h_f, outputs_h)
+                            loss = loss_1 + loss_h
+                            loss.backward()
+                            torch.nn.utils.clip_grad_norm_(self.model_1.parameters(), 3)
+                            self.optimizer.step()
+                            self.scheduler.step()
+
+                        else:
+                            outputs_1 = self.model_1(inputs)
+                        with torch.no_grad():
+                            loss_eval_1, loss_values_eval_1 = self.loss_1(outputs_1, labels, phase='val')
+                            epoch_logs(running_loss_1, self.tasks_1, phase, loss_eval_1, loss_values_eval_1, inputs)
+
+            cout_values(epoch, epoch_losses_1, running_loss_1, self.dataset_sizes[phase])
+
+            # deep copy the model
+            if epoch_losses_1['val'][self.val_task_1][-1] < best_acc:
+                best_acc = epoch_losses_1['val'][self.val_task_1][-1]
+                best_training_acc = epoch_losses_1['train']['all'][-1]
+                best_epoch = epoch
+                best_model_wts_1 = copy.deepcopy(self.model_1.state_dict())
+
+        time_elapsed = time.time() - since
+        print('\n\n' + '-' * 120)
+        self.logger.info('Training:\nTraining complete in {:.0f}m {:.0f}s'
+                         .format(time_elapsed // 60, time_elapsed % 60))
+        self.logger.info('Best training Accuracy: {:.3f}'.format(best_training_acc))
+        self.logger.info('Best validation Accuracy for {}: {:.3f}'.format(self.val_task_1, best_acc))
         self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch))
 
         if self.print_loss:
@@ -267,7 +413,7 @@ class Trainer:
         # Average distance on training and test set after unnormalizing
         self.model_1.eval()
         dic_err = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0)))  # initialized to zero
-        dic_err['val']['sigmas'] = [0.] * len(self.tasks_2)
+        dic_err['val']['sigmas'] = [0.] * len(self.tasks_1)
         dataset = KeypointsDataset(self.joints, phase='val')
         with torch.no_grad():
 
@@ -277,7 +423,7 @@ class Trainer:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
 
                 # Forward pass on each cluster
-                outputs = self.model_2(inputs)
+                outputs = self.model_1(inputs)
                 compute_stats(self.tasks_1, self.loss_1, outputs, labels, dic_err['val'], size_eval, clst=clst)
                 cout_stats(self.logger, dic_err['val'], size_eval, clst=clst)
 

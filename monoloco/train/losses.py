@@ -68,6 +68,31 @@ class MultiTaskLoss(torch.nn.Module):
         return loss, loss_values
 
 
+class ConsistencyLoss(torch.nn.Module):
+    """
+    Same as MultiTaskLoss but without extracting the outputs
+    """
+    def __init__(self, losses_tr, losses_val, lambdas, tasks):
+        super().__init__()
+
+        assert len(lambdas) == len(tasks)
+        self.losses = torch.nn.ModuleList(losses_tr)
+        self.losses_val = losses_val
+        self.lambdas = lambdas
+        self.tasks = tasks
+
+    def forward(self, outputs, labels, phase='train'):
+
+        assert phase in ('train', 'val')
+        loss_values = [lam * l(o, g) for lam, l, o, g in zip(self.lambdas, self.losses, outputs, labels)]
+        loss = sum(loss_values)
+
+        if phase == 'val':
+            loss_values_val = [l(o, g) for l, o, g in zip(self.losses_val, outputs, labels)]
+            return loss, loss_values_val
+        return loss, loss_values
+
+
 class CompositeLoss(torch.nn.Module):
 
     def __init__(self, tasks):
