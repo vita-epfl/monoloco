@@ -147,10 +147,10 @@ class Trainer:
             self.model_h.parameters(),
             self.loss_h.parameters(),
         )
-        self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr)
+        self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr*2)
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
 
-        for epoch in range(self.num_epochs // 2):
+        for epoch in range(50):
             running_loss_h = defaultdict(lambda: defaultdict(int))
 
             # Each epoch has a training and validation phase
@@ -332,10 +332,10 @@ class Trainer:
             self.model_1.parameters(),
             self.loss_1.parameters(),
         )
-        self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr)
-        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
+        self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr/2)
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step/2, gamma=self.sched_gamma)
 
-        for epoch in range(self.num_epochs, 2 * self.num_epochs):
+        for epoch in range(self.num_epochs, int(1.5 * self.num_epochs)):
             running_loss_1 = defaultdict(lambda: defaultdict(int))
 
             # Each epoch has a training and validation phase
