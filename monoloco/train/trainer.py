@@ -40,11 +40,11 @@ class Trainer:
     VAL_BS = 100000
     tasks = []
     lambdas = []
-    tasks_1 = ('h', 'w', 'l')
-    tasks_2 = ('d', 'x', 'y')
+    tasks_1 = ('d', 'x', 'y')
+    tasks_2 = ('h', 'w', 'l')
     val_task = 'd'
     lambdas_1 = (1, 1, 1)
-    lambdas_2 = (10, 1, 1)
+    lambdas_2 = (1, 1, 1)
     # lambdas = (0, 0, 0, 0, 0, 0, 1, 0)
     clusters = ['10', '20', '30', '40']
     input_size = dict(mono=34, stereo=68)
@@ -175,7 +175,7 @@ class Trainer:
 
     def train(self):
         since = time.time()
-        best_model_wts_2 = copy.deepcopy(self.model_2.state_dict())
+        best_model_wts_1 = copy.deepcopy(self.model_1.state_dict())
         best_acc = 1e6
         best_training_acc = 1e6
         best_epoch = 0
@@ -211,11 +211,11 @@ class Trainer:
                             h_min, _ = torch.min(inputs_y, dim=1)
                             h = h_max - h_min
                             inputs_h = torch.cat((outputs_1[:, 0:1], h.reshape(-1, 1), h_min.reshape(-1, 1)), dim=1)
-                            outputs_h = self.model_h(inputs_h)
+                            # outputs_h = self.model_h(inputs_h)
                             loss_1, _ = self.loss_1(outputs_1, labels, phase=phase)
                             loss_2, _ = self.loss_2(outputs_2, labels, phase=phase)
-                            loss_h = self.loss_h(outputs_h, outputs_2[:, 0:1])
-                            loss = loss_1 + loss_2 + loss_h
+                            # loss_h = self.loss_h(outputs_h, outputs_2[:, 0:1])
+                            loss = loss_1 + loss_2
                             loss.backward()
                             torch.nn.utils.clip_grad_norm_(self.model_1.parameters(), 3)
                             torch.nn.utils.clip_grad_norm_(self.model_2.parameters(), 3)
@@ -237,11 +237,11 @@ class Trainer:
 
             # deep copy the model
 
-            if epoch_losses_2['val'][self.val_task][-1] < best_acc:
-                best_acc = epoch_losses_2['val'][self.val_task][-1]
-                best_training_acc = epoch_losses_2['train']['all'][-1]
+            if epoch_losses_1['val'][self.val_task][-1] < best_acc:
+                best_acc = epoch_losses_1['val'][self.val_task][-1]
+                best_training_acc = epoch_losses_1['train']['all'][-1]
                 best_epoch = epoch
-                best_model_wts_2 = copy.deepcopy(self.model_2.state_dict())
+                best_model_wts_1 = copy.deepcopy(self.model_1.state_dict())
 
         time_elapsed = time.time() - since
         print('\n\n' + '-' * 120)
@@ -252,20 +252,20 @@ class Trainer:
         self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch))
 
         if self.print_loss:
-            print_losses(epoch_losses_2, self.dir_figures)
+            print_losses(epoch_losses_1, self.dir_figures)
 
         # load best model weights
-        self.model_2.load_state_dict(best_model_wts_2)
+        self.model_1.load_state_dict(best_model_wts_1)
         return best_epoch
 
     def evaluate(self, load=False, model=None, debug=False):
 
         # To load a model instead of using the trained one
         if load:
-            self.model_2.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
+            self.model_1.load_state_dict(torch.load(model, map_location=lambda storage, loc: storage))
 
         # Average distance on training and test set after unnormalizing
-        self.model_2.eval()
+        self.model_1.eval()
         dic_err = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0)))  # initialized to zero
         dic_err['val']['sigmas'] = [0.] * len(self.tasks_2)
         dataset = KeypointsDataset(self.joints, phase='val')
@@ -278,7 +278,7 @@ class Trainer:
 
                 # Forward pass on each cluster
                 outputs = self.model_2(inputs)
-                compute_stats(self.tasks_2, self.loss_2, outputs, labels, dic_err['val'], size_eval, clst=clst)
+                compute_stats(self.tasks_1, self.loss_1, outputs, labels, dic_err['val'], size_eval, clst=clst)
                 cout_stats(self.logger, dic_err['val'], size_eval, clst=clst)
 
             # Evaluate on all the instances
@@ -294,8 +294,8 @@ class Trainer:
                 labels = labels.to(self.device)
 
                 # Forward pass
-                outputs = self.model_2(inputs)
-                compute_stats(self.tasks_2, self.loss_2, outputs, labels, dic_err['val'], size_eval, clst='all')
+                outputs = self.model_1(inputs)
+                compute_stats(self.tasks_1, self.loss_1, outputs, labels, dic_err['val'], size_eval, clst='all')
             cout_stats(self.logger, dic_err['val'], size_eval, clst='all')
             if debug:
                 debug_plots(self.model_1(inputs), labels)
@@ -303,13 +303,13 @@ class Trainer:
 
         # Save the model and the results
         if not (self.no_save or load):
-            torch.save(self.model_2.state_dict(), self.path_model)
+            torch.save(self.model_1.state_dict(), self.path_model)
             print('-' * 120)
             self.logger.info("\nmodel saved: {} \n".format(self.path_model))
         else:
             self.logger.info("\nmodel not saved\n")
 
-        return dic_err, self.model_2
+        return dic_err, self.model_1
 
     def _set_logger(self, args):
         if self.no_save:
