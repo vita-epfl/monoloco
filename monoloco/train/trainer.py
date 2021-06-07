@@ -205,8 +205,6 @@ class Trainer:
         self.logger.info('Best validation Accuracy for {}: {:.2f} cm'.format(self.val_task_h, 100*best_acc_h))
         self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch_h))
 
-        if self.print_loss:
-            print_losses(epoch_losses_h, self.dir_figures)
 
         # load best model weights
         self.model_h.load_state_dict(best_model_wts_h)
@@ -295,13 +293,11 @@ class Trainer:
         self.logger.info('Best validation Accuracy for {}: {:.3f}'.format(self.val_task_1, best_acc))
         self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch))
 
-        if self.print_loss:
-            print_losses(epoch_losses_1, self.dir_figures)
-
         # save best model weights
         self.model_1.load_state_dict(best_model_wts_1)
         path_model_1 = './model_1.pkl'
         torch.save(self.model_1.state_dict(), path_model_1)
+
         # ------------------------------------------------------------------------------------------------------------
         # 3) TRAINING PERCEPTUAL LOSS
         since = time.time()
@@ -318,6 +314,7 @@ class Trainer:
         self.model_1.load_state_dict(torch.load(path_model_1, map_location=lambda storage, loc: storage))
         print(f"Reloading model h from epoch {best_epoch_h} with accuracy {100*best_acc_h:.2f} cm")
         print('-' * 100)
+        best_acc = 1e6
         self.model_h.load_state_dict(torch.load(path_model_h, map_location=lambda storage, loc: storage))
         self.model_h.eval()
         losses_tr_1, losses_val_1 = CompositeLoss(self.tasks_1)()
@@ -331,10 +328,11 @@ class Trainer:
             self.model_1.parameters(),
             self.loss_1.parameters(),
         )
+
         self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr/2)
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step/2, gamma=self.sched_gamma)
 
-        for epoch in range(self.num_epochs, int(1.5 * self.num_epochs)):
+        for epoch in range(self.num_epochs, int(2 * self.num_epochs)):
             running_loss_1 = defaultdict(lambda: defaultdict(int))
 
             # Each epoch has a training and validation phase
