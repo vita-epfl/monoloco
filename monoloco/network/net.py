@@ -52,7 +52,7 @@ class Loco:
             linear_size = 256
         elif self.net == 'monoloco_pp':
             input_size = 34
-            output_size = 9
+            output_size = 4
         else:
             input_size = 34
             output_size = 2
@@ -67,16 +67,15 @@ class Loco:
         # if the path is provided load the model parameters
         if isinstance(model, str):
             model_path = model
-            if net in ('monoloco', 'monoloco_p'):
+            if self.net in ('monoloco', 'monoloco_p'):
                 self.model = MonolocoModel(p_dropout=p_dropout, input_size=input_size, linear_size=linear_size,
                                            output_size=output_size)
-            elif net == 'monoloco_pp':
+            elif self.net == 'monoloco_pp':
                 self.model = MonoLocoPPModel(p_dropout=p_dropout, input_size=input_size, output_size=output_size,
                                              linear_size=linear_size, device=self.device)
             else:
                 self.model = MonStereoModel(p_dropout=p_dropout, input_size=input_size, output_size=output_size,
                                             linear_size=linear_size, device=self.device)
-
             self.model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))
         else:
             self.model = model
@@ -110,7 +109,7 @@ class Loco:
             elif self.net == 'monoloco_pp':
                 inputs = preprocess_monoloco(keypoints, kk)
                 outputs = self.model(inputs)
-                dic_out = extract_outputs(outputs)
+                dic_out = extract_outputs(outputs, tasks=('d', 'x', 'y'))
 
             elif self.net == 'monstereo':
                 if keypoints_r:
@@ -122,7 +121,7 @@ class Loco:
 
                 outputs = cluster_outputs(outputs, keypoints_r.shape[0])
                 outputs_fin, _ = filter_outputs(outputs)
-                dic_out = extract_outputs(outputs_fin)
+                dic_out = extract_outputs(outputs_fin, tasks=('d', 'x', 'y'))
 
                 # For Median baseline
                 # dic_out = median_disparity(dic_out, keypoints, keypoints_r, mask)

@@ -303,7 +303,6 @@ class Trainer:
         path_model_1 = './model_1.pkl'
         torch.save(self.model_1.state_dict(), path_model_1)
         # ------------------------------------------------------------------------------------------------------------
-
         # 3) TRAINING PERCEPTUAL LOSS
         since = time.time()
         print('-' * 100)

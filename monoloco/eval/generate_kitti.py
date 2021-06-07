@@ -7,6 +7,7 @@ Run MonoLoco/MonStereo and converts annotations into KITTI format
 
 import os
 import math
+import copy
 from collections import defaultdict
 
 import torch
@@ -114,6 +115,10 @@ class GenerateKitti:
                     dic_out = self.model.forward(keypoints, kk, keypoints_r=keypoints_r)
                 elif self.net == 'monoloco_pp':
                     dic_out = self.model.forward(keypoints, kk)
+                    dic_out['h'] = copy.deepcopy(dic_out['epi'])  # TODO
+                    dic_out['w'] = copy.deepcopy(dic_out['epi'])
+                    dic_out['l'] = copy.deepcopy(dic_out['epi'])
+                    dic_out['yaw'] = torch.zeros(2, len(dic_out['epi']))
 
                 all_outputs = {self.net: [dic_out['xyzd'], dic_out['bi'], dic_out['epi'],
                                           dic_out['yaw'], dic_out['h'], dic_out['w'], dic_out['l']]}
