@@ -129,8 +129,8 @@ class PreprocessKitti:
                     box = dic_boxes['gt'][ii][idx_gt]
                     h_kp = max(inp_y) - min(inp_y)
                     h_gt = box[3] - box[1]
-                    constant_kp.append(h_kp * d / H)
-                    constant_gt.append(h_gt * d / H)
+                    constant_kp.append(H / (h_kp * d))
+                    constant_gt.append(H / (h_gt * d))
                     self.stats['match'] += 1
                     assert len(label) == 10, 'dimensions of monocular label is wrong'
 
@@ -150,8 +150,8 @@ class PreprocessKitti:
         std_kp = np.std(constant_kp)
         C_gt = np.mean(constant_gt)
         std_gt = np.std(constant_gt)
-        print(f'For KP constant. C: {C_kp:.1f} std %: {100 *  std_kp / C_kp:.1f}%')
-        print(f'For GT constant. C: {C_gt:.1f} std: {100 *  std_gt / C_gt:.1f}%')
+        print(f'For KP constant. C: {C_kp:.5f} std %: {100 *  std_kp / C_kp:.1f}%')
+        print(f'For GT constant. C: {C_gt:.5f} std: {100 *  std_gt / C_gt:.1f}%')
 
     def parse_annotations(self, boxes_gt, labels, basename, flip=True):
 

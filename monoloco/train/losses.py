@@ -68,31 +68,6 @@ class MultiTaskLoss(torch.nn.Module):
         return loss, loss_values
 
 
-class ConsistencyLoss(torch.nn.Module):
-    """
-    Same as MultiTaskLoss but without extracting the outputs
-    """
-    def __init__(self, losses_tr, losses_val, lambdas, tasks):
-        super().__init__()
-
-        assert len(lambdas) == len(tasks)
-        self.losses = torch.nn.ModuleList(losses_tr)
-        self.losses_val = losses_val
-        self.lambdas = lambdas
-        self.tasks = tasks
-
-    def forward(self, outputs, labels, phase='train'):
-
-        assert phase in ('train', 'val')
-        loss_values = [lam * l(o, g) for lam, l, o, g in zip(self.lambdas, self.losses, outputs, labels)]
-        loss = sum(loss_values)
-
-        if phase == 'val':
-            loss_values_val = [l(o, g) for l, o, g in zip(self.losses_val, outputs, labels)]
-            return loss, loss_values_val
-        return loss, loss_values
-
-
 class CompositeLoss(torch.nn.Module):
 
     def __init__(self, tasks):
@@ -101,7 +76,8 @@ class CompositeLoss(torch.nn.Module):
         self.tasks = tasks
         self.multi_loss_tr = {task: (LaplacianLoss() if task == 'd'
                                      else (nn.BCEWithLogitsLoss() if task in ('aux', )
-                                           else nn.L1Loss())) for task in tasks}
+                                           else nn.L1Loss()))
+                              for task in tasks}
 
         self.multi_loss_val = {}
         for task in tasks:
@@ -140,7 +116,7 @@ class LaplacianLoss(torch.nn.Module):
         eps = 0.01  # To avoid 0/0 when no uncertainty
         mu, si = mu_si[:, 0:1], mu_si[:, 1:2]
         norm = 1 - mu / xx  # Relative
-        const = 2
+        const = 2.5
 
         term_a = torch.abs(norm) * torch.exp(-si) + eps
         term_b = si

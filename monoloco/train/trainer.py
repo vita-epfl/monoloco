@@ -26,10 +26,11 @@ except ImportError:
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
+import numpy as np
 
 from .. import __version__
 from .datasets import KeypointsDataset
-from .losses import CompositeLoss, MultiTaskLoss, ConsistencyLoss
+from .losses import CompositeLoss, MultiTaskLoss
 from ..network import extract_labels, extract_outputs
 from ..network.architectures import MonStereoModel, MonoLocoPPModel, TwoBlocks
 from ..utils import set_logger
@@ -135,11 +136,11 @@ class Trainer:
         best_epoch_h = 0
         epoch_losses_h = defaultdict(lambda: defaultdict(list))
 
-        self.model_h = TwoBlocks(input_size=3, output_size=1)
+        self.model_h = TwoBlocks(input_size=4, output_size=1)
         self.model_h.to(self.device)
         best_model_wts_h = copy.deepcopy(self.model_h.state_dict())
-        losses_tr_h, losses_val_h = CompositeLoss(self.tasks_h)()
-        self.loss_h = ConsistencyLoss(losses_tr_h, losses_val_h, self.lambdas_h, self.tasks_h)
+        # self.loss_h = torch.nn.L1Loss(reduction='sum')  # for analytical
+        self.loss_h = torch.nn.L1Loss()  #reduction = mean
         self.loss_h.to(self.device)
         print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model_h.parameters()) / 1000000.0))
 
@@ -150,7 +151,7 @@ class Trainer:
         self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr*2)
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
 
-        for epoch in range(50):
+        for epoch in range(100):
             running_loss_h = defaultdict(lambda: defaultdict(int))
 
             # Each epoch has a training and validation phase
@@ -169,26 +170,35 @@ class Trainer:
                     h_min, _ = torch.min(inputs_y, dim=1)
                     h = h_max - h_min
                     h = h.reshape(-1, 1)
-                    h_min = h_min.reshape(-1, 1)
-                    inputs_h = torch.cat((labels[:, 3:4], h, h_min), dim=1)
+                    ankles = inputs_y[:, 15:17]
+                    inputs_h = torch.cat((labels[:, 3:4], h, ankles), dim=1)
+                    # inputs_h = torch.cat((labels[:, 3:4], h), dim=1)
                     labels_h = labels[:, 4:5]
 
                     with torch.set_grad_enabled(phase == 'train'):
                         if phase == 'train':
+                            # C = 0.11597
+                            # outputs_h = C * h * labels[:, 3:4]
                             self.optimizer.zero_grad()
                             outputs_h = self.model_h(inputs_h)
-                            loss_h, _ = self.loss_h(outputs_h, labels_h)
+                            loss_h = self.loss_h(outputs_h, labels_h)
                             loss_h.backward()
                             torch.nn.utils.clip_grad_norm_(self.model_h.parameters(), 3)
                             self.optimizer.step()
                             self.scheduler.step()
 
                         else:
+                            # C = 0.11597
+                            # outputs_h = C * h * labels[:, 3:4]
                             outputs_h = self.model_h(inputs_h)
+
                         with torch.no_grad():
-                            loss_eval_h, loss_values_eval_h = self.loss_h(outputs_h, labels_h, phase='val')
-                            epoch_logs(running_loss_h, self.tasks_h, phase, loss_eval_h, loss_values_eval_h, inputs_h)
-            cout_values(epoch, epoch_losses_h, running_loss_h, self.dataset_sizes[phase])
+                            loss_eval_h = self.loss_h(outputs_h, labels_h)
+                            rel_frac = outputs_h.size(0) / self.dataset_sizes[phase]
+                            running_loss_h[phase]['all'] += loss_eval_h.item() * rel_frac
+                            running_loss_h[phase]['h'] += loss_eval_h.item() * rel_frac
+
+            cout_values(epoch, epoch_losses_h, running_loss_h)
 
             # deep copy the model
             if epoch_losses_h['val'][self.val_task_h][-1] < best_acc_h:
@@ -273,10 +283,11 @@ class Trainer:
                         else:
                             outputs_1 = self.model_1(inputs)
                         with torch.no_grad():
+                            rel_frac = outputs_1.size(0) / self.dataset_sizes[phase]
                             loss_eval_1, loss_values_eval_1 = self.loss_1(outputs_1, labels, phase='val')
-                            epoch_logs(running_loss_1, self.tasks_1, phase, loss_eval_1, loss_values_eval_1, inputs)
+                            epoch_logs(running_loss_1, self.tasks_1, phase, loss_eval_1, loss_values_eval_1, rel_frac)
 
-            cout_values(epoch, epoch_losses_1, running_loss_1, self.dataset_sizes[phase])
+            cout_values(epoch, epoch_losses_1, running_loss_1)
 
             # deep copy the model
             if epoch_losses_1['val'][self.val_task_1][-1] < best_acc:
@@ -332,8 +343,11 @@ class Trainer:
         self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr/2)
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step/2, gamma=self.sched_gamma)
 
+        epoch_losses_h = defaultdict(lambda: defaultdict(list))
+
         for epoch in range(self.num_epochs, int(2 * self.num_epochs)):
             running_loss_1 = defaultdict(lambda: defaultdict(int))
+            running_loss_h = defaultdict(lambda: defaultdict(int))
 
             # Each epoch has a training and validation phase
             for phase in ['train', 'val']:
@@ -350,7 +364,7 @@ class Trainer:
                     h_min, _ = torch.min(inputs_y, dim=1)
                     h = h_max - h_min
                     h = h.reshape(-1, 1)
-                    h_min = h_min.reshape(-1, 1)
+                    ankles = inputs_y[:, 15:17]
 
                     with torch.set_grad_enabled(phase == 'train'):
                         if phase == 'train':
@@ -359,12 +373,12 @@ class Trainer:
                             outputs_1 = self.model_1(inputs)
                             loss_1, _ = self.loss_1(outputs_1, labels, phase=phase)
 
-                            inputs_h_f = torch.cat((outputs_1[:, 0:1], h, h_min), dim=1)
-                            inputs_h = torch.cat((labels[:, 3:4], h, h_min), dim=1)
+                            inputs_h_f = torch.cat((outputs_1[:, 0:1], h, ankles), dim=1)
+                            inputs_h = torch.cat((labels[:, 3:4], h, ankles), dim=1)
                             with torch.no_grad():
                                 outputs_h_f = self.model_h(inputs_h_f)
                                 outputs_h = self.model_h(inputs_h)
-                            loss_h, _ = self.loss_h(outputs_h_f, outputs_h)
+                            loss_h = self.loss_h(outputs_h_f, outputs_h) / outputs_1.shape[0]
                             loss = loss_1 + loss_h
                             loss.backward()
                             torch.nn.utils.clip_grad_norm_(self.model_1.parameters(), 3)
@@ -373,11 +387,21 @@ class Trainer:
 
                         else:
                             outputs_1 = self.model_1(inputs)
+                            inputs_h_f = torch.cat((outputs_1[:, 0:1], h, ankles), dim=1)
+                            inputs_h = torch.cat((labels[:, 3:4], h, ankles), dim=1)
+                            outputs_h_f = self.model_h(inputs_h_f)
+                            outputs_h = self.model_h(inputs_h)
+
                         with torch.no_grad():
                             loss_eval_1, loss_values_eval_1 = self.loss_1(outputs_1, labels, phase='val')
-                            epoch_logs(running_loss_1, self.tasks_1, phase, loss_eval_1, loss_values_eval_1, inputs)
+                            rel_frac = outputs_1.size(0) / self.dataset_sizes[phase]
+                            epoch_logs(running_loss_1, self.tasks_1, phase, loss_eval_1, loss_values_eval_1, rel_frac)
+                            loss_eval_h = self.loss_h(outputs_h_f, outputs_h)
+                            running_loss_h[phase]['all'] += loss_eval_h.item() * rel_frac
+                            running_loss_h[phase]['h'] += loss_eval_h.item() * rel_frac
 
-            cout_values(epoch, epoch_losses_1, running_loss_1, self.dataset_sizes[phase])
+            cout_values(epoch, epoch_losses_1, running_loss_1)
+            cout_values(epoch, epoch_losses_h, running_loss_h)
 
             # deep copy the model
             if epoch_losses_1['val'][self.val_task_1][-1] < best_acc:
@@ -396,6 +420,7 @@ class Trainer:
 
         if self.print_loss:
             print_losses(epoch_losses_1, self.dir_figures)
+            print_losses_combined(epoch_losses_1, epoch_losses_h, self.dir_figures, self.num_epochs)
 
         # load best model weights
         self.model_1.load_state_dict(best_model_wts_1)
@@ -409,7 +434,7 @@ class Trainer:
 
         # Average distance on training and test set after unnormalizing
         self.model_1.eval()
-        dic_err = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0)))  # initialized to zero
+        dic_err = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: int)))  # initialized to zero
         dic_err['val']['sigmas'] = [0.] * len(self.tasks_1)
         dataset = KeypointsDataset(self.joints, phase='val')
         with torch.no_grad():
@@ -477,37 +502,32 @@ class Trainer:
             )
 
 
-def epoch_logs(running_loss, tasks, phase, loss, loss_values, inputs):
+def epoch_logs(running_loss, tasks, phase, loss, loss_values, rel_frac):
 
-    running_loss[phase]['all'] += loss.item() * inputs.size(0)
+    running_loss[phase]['all'] += loss.item() * rel_frac
     for i, task in enumerate(tasks):
-        running_loss[phase][task] += loss_values[i].item() * inputs.size(0)
+        running_loss[phase][task] += loss_values[i].item() * rel_frac
 
 
 def compute_stats(tasks, loss, outputs, labels, dic_err, size_eval, clst):
     """Compute mean, bi and max of torch tensors"""
 
     _, loss_values = loss(outputs, labels, phase='val')
-    rel_frac = outputs.size(0) / size_eval
-
     for idx, task in enumerate(tasks):
-        dic_err[clst][task] += float(loss_values[idx].item()) * (outputs.size(0) / size_eval)
+        dic_err[clst][task] = float(loss_values[idx].item())
 
     # Distance + Uncertainty
     if 'd' in tasks:
         errs = torch.abs(extract_outputs(outputs, tasks)['d'] - extract_labels(labels)['d'])
-        assert rel_frac > 0.99, "Variance of errors not supported with partial evaluation"
         bis = extract_outputs(outputs, tasks)['bi'].cpu()
-        bi = float(torch.mean(bis).item())
-        bi_perc = float(torch.sum(errs <= bis)) / errs.shape[0]
-        dic_err[clst]['bi'] += bi * rel_frac
-        dic_err[clst]['bi%'] += bi_perc * rel_frac
+        dic_err[clst]['bi'] = float(torch.mean(bis).item())
+        dic_err[clst]['bi%'] = float(torch.sum(errs <= bis)) / errs.shape[0]
         dic_err[clst]['std'] = errs.std()
 
     # Auxiliary task for stereo
     if 'aux' in task:
         acc_aux = get_accuracy(extract_outputs(outputs, tasks)['aux'], extract_labels(labels)['aux'])
-        dic_err[clst]['aux'] += acc_aux * rel_frac
+        dic_err[clst]['aux'] = acc_aux
 
 
 def cout_stats(logger, dic_err, size_eval, clst):
@@ -526,13 +546,13 @@ def cout_stats(logger, dic_err, size_eval, clst):
     logger.info('-' * 100 + '\n')
 
 
-def cout_values(epoch, epoch_losses, running_loss, data_size):
+def cout_values(epoch, epoch_losses, running_loss):
     string = '\r' + '{:.0f} '
     format_list = [epoch]
     for phase in running_loss:
         string = string + phase[0:1].upper() + ':'
-        for el in running_loss['train']:
-            loss = running_loss[phase][el] / data_size
+        for el in running_loss[phase]:
+            loss = running_loss[phase][el]
             epoch_losses[phase][el].append(loss)
             if el == 'all':
                 string = string + ':{:.1f}  '
@@ -562,6 +582,27 @@ def print_losses(epoch_losses, dir_figures):
             plt.plot(epoch_losses[phase][el][10:], label='{} Loss: {}'.format(phase, el))
             plt.savefig(os.path.join(dir_figures, '{}_loss_{}.png'.format(phase, el)))
             plt.close()
+
+
+def print_losses_combined(epoch_losses_1, epoch_losses_h, dir_figures, epochs):
+    os.makedirs(dir_figures, exist_ok=True)
+
+    if plt is None:
+        raise Exception('please install matplotlib')
+
+    for idx, phase in enumerate(epoch_losses_1):
+        el_h = epoch_losses_h[phase]['h']
+        num = len(el_h)
+        el_1 = epoch_losses_1[phase]['all'][-num:]
+        xx = np.linspace(epochs, epochs + num, num)
+        plt.figure(0)
+        plt.title('Consistency training')
+        plt.xlabel('epochs')
+        plt.plot(xx, el_1, label=f'{phase.upper()}: Loss for distance')
+        plt.plot(xx, el_h, label=f'{phase.upper()}: Consistency Loss')
+        plt.legend()
+        plt.savefig(os.path.join(dir_figures, '{}_combined.png'.format(phase)))
+        plt.close()
 
 
 def debug_plots(outputs, labels):
