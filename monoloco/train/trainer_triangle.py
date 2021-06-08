@@ -42,12 +42,13 @@ class Trainer:
     tasks = []
     lambdas = []
     tasks_1 = ('d', 'x', 'y')
-    tasks_2 = ('h', 'w', 'l')
-    tasks_h = ('h',)
+    tasks_2 = ('h',)
+    tasks_h = ('d',)
     val_task_1 = 'd'
-    val_task_h = 'h'
+    val_task_2 = 'h'
+    val_task_h = 'd'
     lambdas_1 = (1, 1, 1)
-    lambdas_2 = (1, 1, 1)
+    lambdas_2 = (1,)
     lambdas_h = (1, )
     # lambdas = (0, 0, 0, 0, 0, 0, 1, 0)
     clusters = ['10', '20', '30', '40']
@@ -171,9 +172,10 @@ class Trainer:
                     h = h_max - h_min
                     h = h.reshape(-1, 1)
                     ankles = inputs_y[:, 15:17]
-                    inputs_h = torch.cat((labels[:, 3:4], h, ankles), dim=1)
-                    # inputs_h = torch.cat((labels[:, 3:4], h), dim=1)
-                    labels_h = labels[:, 4:5]
+                    # inputs_h = torch.cat((labels[:, 3:4], h, ankles), dim=1)
+                    inputs_h = torch.cat((labels[:, 4:5], h, ankles), dim=1)
+                    # labels_h = labels[:, 4:5]
+                    labels_h = labels[:, 3:4]
 
                     with torch.set_grad_enabled(phase == 'train'):
                         if phase == 'train':
@@ -196,7 +198,7 @@ class Trainer:
                             loss_eval_h = self.loss_h(outputs_h, labels_h)
                             rel_frac = outputs_h.size(0) / self.dataset_sizes[phase]
                             running_loss_h[phase]['all'] += loss_eval_h.item() * rel_frac
-                            running_loss_h[phase]['h'] += loss_eval_h.item() * rel_frac
+                            running_loss_h[phase]['d'] += loss_eval_h.item() * rel_frac
 
             cout_values(epoch, epoch_losses_h, running_loss_h)
 
@@ -309,8 +311,95 @@ class Trainer:
         path_model_1 = './model_1.pkl'
         torch.save(self.model_1.state_dict(), path_model_1)
 
+        # 3) PRE-TRAIN SECOND NETWORK
+        since = time.time()
+        best_acc = 1e6
+        best_training_acc = 1e6
+        best_epoch = 0
+        epoch_losses_2 = defaultdict(lambda: defaultdict(list))
+
+        print(">>> creating model")
+        model = MonStereoModel if self.mode == 'stereo' else MonoLocoPPModel
+
+        self.model_2 = model(
+            input_size=self.input_size[self.mode],
+            output_size=self.output_size_2[self.mode],
+            linear_size=self.hidden_size,
+            p_dropout=self.dropout,
+            num_stage=self.n_stage,
+        )
+        self.model_2.to(self.device)
+        losses_tr_2, losses_val_2 = CompositeLoss(self.tasks_2)()
+        self.loss_2 = MultiTaskLoss(losses_tr_2, losses_val_2, self.lambdas_2, self.tasks_2)
+        self.loss_2.to(self.device)
+
+        print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model_2.parameters()) / 1000000.0))
+        print(">>> loss params: {}".format(sum(p.numel() for p in self.loss_2.parameters())))
+        best_model_wts_2 = copy.deepcopy(self.model_2.state_dict())
+
+        # Optimizer and scheduler
+        all_params = chain(
+            self.model_2.parameters(),
+            self.loss_2.parameters(),
+        )
+        self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr)
+        self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step, gamma=self.sched_gamma)
+
+        for epoch in range(self.num_epochs):
+            running_loss_2 = defaultdict(lambda: defaultdict(int))
+
+            # Each epoch has a training and validation phase
+            for phase in ['train', 'val']:
+                if phase == 'train':
+                    self.model_2.train()
+                else:
+                    self.model_2.eval()
+
+                for inputs, labels, _, _ in self.dataloaders[phase]:
+                    inputs = inputs.to(self.device)
+                    labels = labels.to(self.device)
+
+                    with torch.set_grad_enabled(phase == 'train'):
+                        if phase == 'train':
+                            self.optimizer.zero_grad()
+
+                            outputs_2 = self.model_1(inputs)
+                            loss_2, _ = self.loss_2(outputs_2, labels, phase=phase)
+                            loss_2.backward()
+                            torch.nn.utils.clip_grad_norm_(self.model_2.parameters(), 3)
+                            self.optimizer.step()
+                            self.scheduler.step()
+                        else:
+                            outputs_2 = self.model_2(inputs)
+                        with torch.no_grad():
+                            rel_frac = outputs_2.size(0) / self.dataset_sizes[phase]
+                            loss_eval_2, loss_values_eval_2 = self.loss_2(outputs_2, labels, phase='val')
+                            epoch_logs(running_loss_2, self.tasks_2, phase, loss_eval_2, loss_values_eval_2, rel_frac)
+
+            cout_values(epoch, epoch_losses_2, running_loss_2)
+
+            # deep copy the model
+            if epoch_losses_1['val'][self.val_task_2][-1] < best_acc:
+                best_acc = epoch_losses_1['val'][self.val_task_2][-1]
+                best_training_acc = epoch_losses_2['train']['all'][-1]
+                best_epoch = epoch
+                best_model_wts_2 = copy.deepcopy(self.model_2.state_dict())
+
+        time_elapsed = time.time() - since
+        print('\n\n' + '-' * 120)
+        self.logger.info('Training:\nTraining complete in {:.0f}m {:.0f}s'
+                         .format(time_elapsed // 60, time_elapsed % 60))
+        self.logger.info('Best training Accuracy: {:.3f}'.format(best_training_acc))
+        self.logger.info('Best validation Accuracy for {}: {:.3f}'.format(self.val_task_2, best_acc))
+        self.logger.info('Saved weights of the model at epoch: {}'.format(best_epoch))
+
+        # save best model weights
+        self.model_2.load_state_dict(best_model_wts_2)
+        path_model_2 = './model_2.pkl'
+        torch.save(self.model_2.state_dict(), path_model_2)
+
         # ------------------------------------------------------------------------------------------------------------
-        # 3) TRAINING PERCEPTUAL LOSS
+        # 3) TRAINING TRIANGLE LOSS
         since = time.time()
         print('-' * 100)
         print('-' * 100)
@@ -323,24 +412,45 @@ class Trainer:
             num_stage=self.n_stage,
         )
         self.model_1.load_state_dict(torch.load(path_model_1, map_location=lambda storage, loc: storage))
+        print('-' * 100)
+        print(f"Reloading model 2 from epoch {best_epoch} with accuracy {best_acc:.1f} m")
+        self.model_2 = model(
+            input_size=self.input_size[self.mode],
+            output_size=self.output_size_2[self.mode],
+            linear_size=self.hidden_size,
+            p_dropout=self.dropout,
+            num_stage=self.n_stage,
+        )
+        self.model_2.load_state_dict(torch.load(path_model_2, map_location=lambda storage, loc: storage))
+        print('-' * 100)
         print(f"Reloading model h from epoch {best_epoch_h} with accuracy {100*best_acc_h:.2f} cm")
+        self.model_h.load_state_dict(torch.load(path_model_h, map_location=lambda storage, loc: storage))
         print('-' * 100)
         best_acc = 1e6
-        self.model_h.load_state_dict(torch.load(path_model_h, map_location=lambda storage, loc: storage))
+
+        # Set to eval if any
+        self.model_h.eval()
+        self.model_2.eval()
+
+        # Re-instantiate losses
         losses_tr_1, losses_val_1 = CompositeLoss(self.tasks_1)()
         self.loss_1 = MultiTaskLoss(losses_tr_1, losses_val_1, self.lambdas_1, self.tasks_1)
         self.model_1.to(self.device)
-        self.model_h.to(self.device)
-        self.loss_1.to(self.device)
 
-        # -----------------------------------------------------------------------------------
-        self.model_h.eval()
+        losses_tr_2, losses_val_2 = CompositeLoss(self.tasks_1)()
+        self.loss_2 = MultiTaskLoss(losses_tr_2, losses_val_2, self.lambdas_2, self.tasks_2)
+        self.model_2.to(self.device)
+
+        self.loss_h = torch.nn.L1Loss()  # reduction = mean
+        self.loss_h.to(self.device)
+        self.model_h.to(self.device)
+
         # Optimizer and scheduler
         all_params = chain(
             self.model_1.parameters(),
+            # self.model_2.parameters(),
             # self.model_h.parameters(),
         )
-        # -----------------------------------------------------------------------------------
 
         self.optimizer = torch.optim.Adam(params=all_params, lr=self.lr/2)
         self.scheduler = lr_scheduler.StepLR(self.optimizer, step_size=self.sched_step/2, gamma=self.sched_gamma)
@@ -349,15 +459,18 @@ class Trainer:
 
         for epoch in range(self.num_epochs, int(1.5 * self.num_epochs)):
             running_loss_1 = defaultdict(lambda: defaultdict(int))
+            running_loss_2 = defaultdict(lambda: defaultdict(int))
             running_loss_h = defaultdict(lambda: defaultdict(int))
 
             # Each epoch has a training and validation phase
             for phase in ['train', 'val']:
                 if phase == 'train':
                     self.model_1.train()
+                    # self.model_2.train()
                     # self.model_h.train()
                 else:
                     self.model_1.eval()
+                    # self.model_2.eval()
                     # self.model_h.eval()
 
                 for inputs, labels, _, _ in self.dataloaders[phase]:
@@ -375,16 +488,14 @@ class Trainer:
                             self.optimizer.zero_grad()
 
                             outputs_1 = self.model_1(inputs)
+                            outputs_2 = self.model_2(inputs)
                             loss_1, _ = self.loss_1(outputs_1, labels, phase=phase)
+                            loss_2, _ = self.loss_2(outputs_2, labels, phase=phase)
 
-                            inputs_h_f = torch.cat((outputs_1[:, 0:1], h, ankles), dim=1)
-                            inputs_h = torch.cat((labels[:, 3:4], h, ankles), dim=1)
-                            with torch.no_grad():
-                                outputs_h_f = self.model_h(inputs_h_f)
-                                outputs_h = self.model_h(inputs_h)
-                            loss_h = self.loss_h(outputs_h_f, outputs_h) * 100
-                            # loss_h = self.loss_h(outputs_h_f, labels[:, 4:5]) * 15
-                            loss = loss_1 + loss_h
+                            inputs_h_f = torch.cat((outputs_2[:, 0:1], h, ankles), dim=1)
+                            outputs_h_f = self.model_h(inputs_h_f)
+                            loss_h = self.loss_h(outputs_h_f, outputs_1[:, 0:1])
+                            loss = loss_1 + loss_2 + loss_h
                             loss.backward()
                             torch.nn.utils.clip_grad_norm_(self.model_1.parameters(), 3)
                             self.optimizer.step()
@@ -392,21 +503,22 @@ class Trainer:
 
                         else:
                             outputs_1 = self.model_1(inputs)
-                            inputs_h_f = torch.cat((outputs_1[:, 0:1], h, ankles), dim=1)
-                            inputs_h = torch.cat((labels[:, 3:4], h, ankles), dim=1)
+                            outputs_2 = self.model_2(inputs)
+                            inputs_h_f = torch.cat((outputs_2[:, 0:1], h, ankles), dim=1)
                             outputs_h_f = self.model_h(inputs_h_f)
-                            outputs_h = self.model_h(inputs_h)
 
                         with torch.no_grad():
                             loss_eval_1, loss_values_eval_1 = self.loss_1(outputs_1, labels, phase='val')
+                            loss_eval_2, loss_values_eval_2 = self.loss_2(outputs_2, labels, phase='val')
                             rel_frac = outputs_1.size(0) / self.dataset_sizes[phase]
                             epoch_logs(running_loss_1, self.tasks_1, phase, loss_eval_1, loss_values_eval_1, rel_frac)
-                            loss_eval_h = self.loss_h(outputs_h_f, outputs_h) * 100
-                            # loss_eval_h = self.loss_h(outputs_h_f, labels[:, 4:5]) * 15
+                            epoch_logs(running_loss_2, self.tasks_2, phase, loss_eval_2, loss_values_eval_2, rel_frac)
+                            loss_eval_h = self.loss_h(outputs_h_f, outputs_1[:, 0:1])
                             running_loss_h[phase]['all'] += loss_eval_h.item() * rel_frac
-                            running_loss_h[phase]['h'] += loss_eval_h.item() * rel_frac
+                            running_loss_h[phase]['d'] += loss_eval_h.item() * rel_frac
 
             cout_values(epoch, epoch_losses_1, running_loss_1)
+            cout_values(epoch, epoch_losses_2, running_loss_2)
             cout_values(epoch, epoch_losses_h, running_loss_h)
 
             # deep copy the model
@@ -426,7 +538,7 @@ class Trainer:
 
         if self.print_loss:
             print_losses(epoch_losses_1, self.dir_figures)
-            print_losses_combined(epoch_losses_1, epoch_losses_h, self.dir_figures, self.num_epochs)
+            print_losses_combined(epoch_losses_1, epoch_losses_2, epoch_losses_h, self.dir_figures, self.num_epochs)
 
         # load best model weights
         self.model_1.load_state_dict(best_model_wts_1)
@@ -590,26 +702,28 @@ def print_losses(epoch_losses, dir_figures):
             plt.close()
 
 
-def print_losses_combined(epoch_losses_1, epoch_losses_h, dir_figures, epochs):
+def print_losses_combined(epoch_losses_1, epoch_losses_2, epoch_losses_h, dir_figures, epochs):
     os.makedirs(dir_figures, exist_ok=True)
 
     if plt is None:
         raise Exception('please install matplotlib')
 
     for idx, phase in enumerate(epoch_losses_1):
-        el_h = epoch_losses_h[phase]['h']
+        el_h = epoch_losses_h[phase]['d']
         num = len(el_h)
         el_1 = epoch_losses_1[phase]['all'][-num:]
+        el_2 = epoch_losses_1[phase]['all'][-num:]
         xx = np.linspace(epochs, epochs + num, num)
         plt.figure(0)
         plt.title('Consistency training')
         plt.xlabel('Epochs')
         if phase == 'val':
             plt.ylabel('Meters')
-        plt.plot(xx, el_1, label=f'{phase.upper()}: Loss for distance')
+        plt.plot(xx, el_1, label=f'{phase.upper()}: L_distance')
+        plt.plot(xx, el_2, label=f'{phase.upper()}: L_height')
         plt.plot(xx, el_h, label=f'{phase.upper()}: Consistency Loss')
         plt.legend()
-        plt.savefig(os.path.join(dir_figures, '{}_combined.png'.format(phase)))
+        plt.savefig(os.path.join(dir_figures, '{}_combined_3.png'.format(phase)))
         plt.close()
 
 
