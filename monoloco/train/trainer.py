@@ -345,7 +345,7 @@ class Trainer:
 
         epoch_losses_h = defaultdict(lambda: defaultdict(list))
 
-        for epoch in range(self.num_epochs, int(2 * self.num_epochs)):
+        for epoch in range(self.num_epochs, int(1.5 * self.num_epochs)):
             running_loss_1 = defaultdict(lambda: defaultdict(int))
             running_loss_h = defaultdict(lambda: defaultdict(int))
 
@@ -378,7 +378,7 @@ class Trainer:
                             with torch.no_grad():
                                 outputs_h_f = self.model_h(inputs_h_f)
                                 outputs_h = self.model_h(inputs_h)
-                            loss_h = self.loss_h(outputs_h_f, outputs_h) / outputs_1.shape[0]
+                            loss_h = self.loss_h(outputs_h_f, outputs_h)
                             loss = loss_1 + loss_h
                             loss.backward()
                             torch.nn.utils.clip_grad_norm_(self.model_1.parameters(), 3)
