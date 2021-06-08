@@ -425,12 +425,13 @@ class Printer:
             ax.get_yaxis().set_visible(False)
 
         else:
+            line_style = 'w--' if self.webcam else 'b--'
             uv_max = [0., float(self.height)]
             xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
             x_max = abs(xyz_max[0]) # shortcut to avoid oval circles in case of different kk
             corr = round(float(x_max / 3))
-            ax.plot([0, x_max], [0, self.z_max], 'w--')
-            ax.plot([0, -x_max], [0, self.z_max], 'w--')
+            ax.plot([0, x_max], [0, self.z_max], line_style)
+            ax.plot([0, -x_max], [0, self.z_max], line_style)
             ax.set_xlim(-x_max + corr, x_max - corr)
             ax.set_ylim(0, self.z_max + 1)
             ax.set_xlabel("X [m]")
