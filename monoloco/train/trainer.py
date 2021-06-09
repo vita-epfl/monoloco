@@ -603,7 +603,7 @@ def print_losses_combined(epoch_losses_1, epoch_losses_h, dir_figures, epochs):
         el_1 = epoch_losses_1[phase]['all'][-num:]
         xx = np.linspace(epochs, epochs + num, num)
         plt.figure(0)
-        plt.title('Consistency training')
+        plt.title('X-TC loss')
         plt.xlabel('Epochs')
         if phase == 'val':
             plt.ylabel('Meters')
