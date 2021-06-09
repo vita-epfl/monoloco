@@ -125,7 +125,7 @@ If you provide a ground-truth json file to compare the predictions of the networ
 For an example image, run the following command:
 
 ```sh
-python3 -m monoloco.run predict docs/test_002282.png \
+python3 -m monoloco.run predict docs/002282.png \
 --path_gt names-kitti-200615-1022.json \
 -o <output directory> \
 --long-edge <rescale the image by providing dimension of long side>
@@ -156,7 +156,7 @@ You can load one or more image pairs using glob expressions. For example:
 
 ```sh
 python3 -m monoloco.run predict --mode stereo \
---glob docs/test_000840*.png
+--glob docs/000840*.png
  --path_gt <to match results with ground-truths> \
  -o data/output  -long_edge 2500
  ```
@@ -183,7 +183,7 @@ For more info, run:
 **Examples** <br>
 An example from the Collective Activity Dataset is provided below.
 
-<img src="docs/test_frame0032.jpg" width="500"/>
+<img src="docs/frame0032.jpg" width="500"/>
 
 To visualize social distancing run the below, command:
 
@@ -192,7 +192,7 @@ pip3 install scipy
 ```
 
 ```sh
-python3 -m monoloco.run predict docs/test_frame0032.jpg \
+python3 -m monoloco.run predict docs/frame0032.jpg \
 --activities social_distance --output_types front bird 
 ```
 
