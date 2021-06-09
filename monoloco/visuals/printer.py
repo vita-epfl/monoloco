@@ -114,7 +114,8 @@ class Printer:
     def factory_axes(self, dic_out):
         """Create axes for figures: front bird multi"""
 
-        # plt.style.use('dark_background')
+        if self.webcam:
+            plt.style.use('dark_background')
 
         axes = []
         figures = []
@@ -217,7 +218,8 @@ class Printer:
     def _bird_loop(self, iterator, axes, colors, number):
         for idx in iterator:
             if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
-                draw_orientation(axes[1], self.xz_centers, [], self.angles, colors, mode='bird')
+                draw_orientation(axes[1], self.xz_centers[:len(iterator)], [],
+                                self.angles[:len(iterator)], colors, mode='bird')
                 # Draw ground truth and uncertainty
                 self._draw_uncertainty(axes, idx)
 
@@ -424,12 +426,13 @@ class Printer:
             ax.get_yaxis().set_visible(False)
 
         else:
+            line_style = 'w--' if self.webcam else 'k--'
             uv_max = [0., float(self.height)]
             xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
             x_max = abs(xyz_max[0]) # shortcut to avoid oval circles in case of different kk
             corr = round(float(x_max / 3))
-            ax.plot([0, x_max], [0, self.z_max], 'k--')
-            ax.plot([0, -x_max], [0, self.z_max], 'k--')
+            ax.plot([0, x_max], [0, self.z_max], line_style)
+            ax.plot([0, -x_max], [0, self.z_max], line_style)
             ax.set_xlim(-x_max + corr, x_max - corr)
             ax.set_ylim(0, self.z_max + 1)
             ax.set_xlabel("X [m]")
