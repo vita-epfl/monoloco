@@ -379,10 +379,11 @@ class Trainer:
 
                             inputs_h_f = torch.cat((outputs_1[:, 0:1], h, ankles), dim=1)
                             inputs_h = torch.cat((labels[:, 3:4], h, ankles), dim=1)
+                            outputs_h_f = self.model_h(inputs_h_f)
                             with torch.no_grad():
                                 outputs_h_f = self.model_h(inputs_h_f)
                                 outputs_h = self.model_h(inputs_h)
-                            loss_h = self.loss_h(outputs_h_f, outputs_h) * 100
+                                loss_h = self.loss_h(outputs_h_f, outputs_h) * 15
                             # loss_h = self.loss_h(outputs_h_f, labels[:, 4:5]) * 15
                             loss = loss_1 + loss_h
                             loss.backward()
@@ -401,7 +402,7 @@ class Trainer:
                             loss_eval_1, loss_values_eval_1 = self.loss_1(outputs_1, labels, phase='val')
                             rel_frac = outputs_1.size(0) / self.dataset_sizes[phase]
                             epoch_logs(running_loss_1, self.tasks_1, phase, loss_eval_1, loss_values_eval_1, rel_frac)
-                            loss_eval_h = self.loss_h(outputs_h_f, outputs_h) * 100
+                            loss_eval_h = self.loss_h(outputs_h_f, outputs_h) * 15
                             # loss_eval_h = self.loss_h(outputs_h_f, labels[:, 4:5]) * 15
                             running_loss_h[phase]['all'] += loss_eval_h.item() * rel_frac
                             running_loss_h[phase]['h'] += loss_eval_h.item() * rel_frac
