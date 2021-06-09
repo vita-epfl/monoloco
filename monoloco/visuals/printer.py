@@ -218,7 +218,7 @@ class Printer:
     def _bird_loop(self, iterator, axes, colors, number):
         for idx in iterator:
             if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
-                draw_orientation(axes[1], self.xz_centers[:len(iterator)], [], 
+                draw_orientation(axes[1], self.xz_centers[:len(iterator)], [],
                                 self.angles[:len(iterator)], colors, mode='bird')
                 # Draw ground truth and uncertainty
                 self._draw_uncertainty(axes, idx)
