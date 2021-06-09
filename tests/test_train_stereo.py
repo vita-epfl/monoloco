@@ -26,7 +26,7 @@ PREDICT_COMMAND = [
     'python3', '-m', 'monoloco.run',
     'predict',
     '--mode=stereo',
-    '--glob', 'docs/test_000840*.png',
+    '--glob', 'docs/000840*.png',
     '--output_types', 'multi', 'json',
     '--decoder-workers=0',  # for windows'
 ]
@@ -56,4 +56,4 @@ def test_train_stereo(tmp_path):
     print(' '.join(predict_cmd))
     subprocess.run(predict_cmd, check=True, capture_output=True)
     print(os.listdir(tmp_path))
-    assert 'out_test_000840.png.multi.png' in os.listdir(tmp_path)
+    assert 'out_000840.png.multi.png' in os.listdir(tmp_path)
