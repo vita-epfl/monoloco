@@ -21,8 +21,10 @@ def cli():
     predict_parser.add_argument('--checkpoint', help='pifpaf model')
     predict_parser.add_argument('-o', '--output-directory', help='Output directory')
     predict_parser.add_argument('--output_types', nargs='+', default=['multi'],
-                                help='what to output: json keypoints skeleton for Pifpaf'
-                                     'json bird front or multi for MonStereo')
+                                help='MonoLoco - what to output: json bird front or multi')
+    predict_parser.add_argument('--json-output', default=None, nargs='?', const=True,
+                                help='OpenpifPaf - whether to output a json file,'
+                                     'with the option to specify the output path or directory')
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
     predict_parser.add_argument('--hide_distance', help='to not show the absolute distance of people from the camera',
                                 default=False, action='store_true')
