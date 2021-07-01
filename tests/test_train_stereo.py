@@ -40,7 +40,7 @@ def test_train_stereo(tmp_path):
     print(os.listdir(tmp_path))
 
     # find the trained model checkpoint
-    final_model = next(iter(f for f in os.listdir(tmp_path) if f.endswith('.pkl')))
+    # final_model = next(iter(f for f in os.listdir(tmp_path) if f.endswith('.pkl')))
     pifpaf_model = os.path.join(tmp_path, 'pifpaf_model.pkl')
     print('Downloading OpenPifPaf model in temporary folder')
     gdown.download(OPENPIFPAF_MODEL, pifpaf_model)
