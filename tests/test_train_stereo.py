@@ -46,7 +46,7 @@ def test_train_stereo(tmp_path):
     gdown.download(OPENPIFPAF_MODEL, pifpaf_model)
 
     # run predictions with that model  # TODO
-    model = os.path.join(tmp_path, final_model)
+    # model = os.path.join(tmp_path, final_model)
 
     # predict_cmd = PREDICT_COMMAND + [
     #     '--model={}'.format(model),
