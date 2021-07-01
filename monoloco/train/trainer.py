@@ -158,7 +158,7 @@ class Trainer:
                             loss.backward()
                             torch.nn.utils.clip_grad_norm_(self.model.parameters(), 3)
                             self.optimizer.step()
-                            self.scheduler.step()
+                            self.scheduler.step()  # pylint: disable=no-value-for-parameter
 
                         else:
                             outputs = self.model(inputs)

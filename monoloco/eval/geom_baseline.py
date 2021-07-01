@@ -64,9 +64,9 @@ def geometric_baseline(joints):
 
     # Show results
     print("Computed distance of {} annotations".format(cnt_tot))
-    for key in dic_h_means:
+    for key, h_mean in dic_h_means.items():
         print("Average height of segment {} is {:.2f} with a std of {:.2f}".
-              format(key, dic_h_means[key], dic_h_stds[key]))
+              format(key, h_mean, dic_h_stds[key]))
     for clst in CLUSTERS:
         print("Average error over the val set for clst {}: {:.2f}".format(clst, errors[clst]))
     print("Joints used: {}".format(joints))

@@ -15,7 +15,7 @@ from PIL import Image
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, FancyArrow
-import scipy.ndimage as ndimage
+from scipy import ndimage
 
 
 COCO_PERSON_SKELETON = [
