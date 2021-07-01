@@ -17,7 +17,7 @@ from collections import defaultdict
 import torch
 import PIL
 import openpifpaf
-import openpifpaf.datasets as datasets
+from openpifpaf import datasets
 from openpifpaf import decoder, network, visualizer, show, logger
 try:
     import gdown
