@@ -19,6 +19,8 @@ import PIL
 import openpifpaf
 import openpifpaf.datasets as datasets
 from openpifpaf import decoder, network, visualizer, show, logger
+from openpifpaf.predict import out_name
+
 try:
     import gdown
     DOWNLOAD = copy.copy(gdown.download)
@@ -72,7 +74,7 @@ def download_checkpoints(args):
         dic_models[args.mode] = args.model
         return dic_models
     if args.mode == 'stereo':
-        assert not args.social_distance, "Social distance not supported in stereo modality"
+        assert 'social_distance' not in args.activities, "Social distance not supported in stereo modality"
         path = MONSTEREO_MODEL
         name = 'monstereo-201202-1212.pkl'
     elif ('social_distance' in args.activities) or args.webcam:
@@ -137,6 +139,10 @@ def factory_from_args(args):
     args.force_complete_pose = True
     LOG.info("Force complete pose is active")
 
+    if args.mode != 'keypoints':
+        assert args.output_types is not None and any((xx in args.output_types for xx in ['front', 'bird', 'multi'])), \
+        "No output type specified, please select one among front, bird, multi, json, or choose mode=keypoints"
+
     # Configure
     decoder.configure(args)
     network.Factory.configure(args)
@@ -167,90 +173,79 @@ def predict(args):
     # data
     data = datasets.ImageList(args.images, preprocess=predictor.preprocess)
     if args.mode == 'stereo':
-        assert len(
-            data.image_paths) % 2 == 0, "Odd number of images in a stereo setting"
+        assert len(data.image_paths) % 2 == 0, "Odd number of images in a stereo setting"
 
-    data_loader = torch.utils.data.DataLoader(
-        data, batch_size=args.batch_size, shuffle=False,
-        pin_memory=False, collate_fn=datasets.collate_images_anns_meta)
+    pifpaf_outs = {}
+    for idx, (pred, _, meta) in enumerate(predictor.images(args.images, batch_size=args.batch_size)):
 
-    for batch_i, (_, _, meta_batch) in enumerate(data_loader):
-
-        # unbatch (only for MonStereo)
-        for idx, (preds, _, meta) in enumerate(predictor.dataset(data)):
-            LOG.info('batch %d: %s', batch_i, meta['file_name'])
-
-            # Load image and collect pifpaf results
-            if idx == 0:
-                with open(meta_batch[0]['file_name'], 'rb') as f:
-                    cpu_image = PIL.Image.open(f).convert('RGB')
-                pifpaf_outs = {
-                    'pred': preds,
-                    'left': [ann.json_data() for ann in preds],
-                    'image': cpu_image}
-
-                # Set output image name
-                if args.output_directory is None:
-                    splits = os.path.split(meta['file_name'])
-                    output_path = os.path.join(splits[0], 'out_' + splits[1])
-                else:
-                    file_name = os.path.basename(meta['file_name'])
-                    output_path = os.path.join(
-                        args.output_directory, 'out_' + file_name)
-
-                im_name = os.path.basename(meta['file_name'])
-                print(f'{batch_i} image {im_name} saved as {output_path}')
-
-            # Only for MonStereo
-            else:
-                pifpaf_outs['right'] = [ann.json_data() for ann in preds]
-
-        # 3D Predictions
-        if args.mode != 'keypoints':
-            im_size = (cpu_image.size[0], cpu_image.size[1])  # Original
-            kk, dic_gt = factory_for_gt(
-                im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
-
-            # Preprocess pifpaf outputs and run monoloco
-            boxes, keypoints = preprocess_pifpaf(
-                pifpaf_outs['left'], im_size, enlarge_boxes=False)
-
-            if args.mode == 'mono':
-                LOG.info("Prediction with MonoLoco++")
-                dic_out = net.forward(keypoints, kk)
-                dic_out = net.post_process(
-                    dic_out, boxes, keypoints, kk, dic_gt)
-                if 'social_distance' in args.activities:
-                    dic_out = net.social_distance(dic_out, args)
-                if 'raise_hand' in args.activities:
-                    dic_out = net.raising_hand(dic_out, keypoints)
-
-            else:
-                LOG.info("Prediction with MonStereo")
-                _, keypoints_r = preprocess_pifpaf(pifpaf_outs['right'], im_size)
-                dic_out = net.forward(keypoints, kk, keypoints_r=keypoints_r)
-                dic_out = net.post_process(
-                    dic_out, boxes, keypoints, kk, dic_gt)
-
+        if idx % args.batch_size != 0: # Only for MonStereo
+            pifpaf_outs['right'] = [ann.json_data() for ann in pred]
         else:
-            dic_out = defaultdict(list)
-            kk = None
+            if args.json_output is not None:
+                json_out_name = out_name(args.json_output, meta['file_name'], '.predictions.json')
+                LOG.debug('json output = %s', json_out_name)
+                with open(json_out_name, 'w') as f:
+                    json.dump([ann.json_data() for ann in pred], f)
 
-        # Outputs
-        factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=kk)
-        print(f'Image {cnt}\n' + '-' * 120)
-        cnt += 1
+            with open(meta['file_name'], 'rb') as f:
+                cpu_image = PIL.Image.open(f).convert('RGB')
+            pifpaf_outs['pred'] = pred
+            pifpaf_outs['left'] = [ann.json_data() for ann in pred]
+            pifpaf_outs['image'] = cpu_image
+
+            # Set output image name
+            if args.output_directory is None:
+                splits = os.path.split(meta['file_name'])
+                output_path = os.path.join(splits[0], 'out_' + splits[1])
+            else:
+                file_name = os.path.basename(meta['file_name'])
+                output_path = os.path.join(
+                    args.output_directory, 'out_' + file_name)
+
+            im_name = os.path.basename(meta['file_name'])
+            print(f'{idx} image {im_name} saved as {output_path}')
+
+        if (args.mode == 'mono') or (args.mode == 'stereo' and idx % args.batch_size != 0):
+            # 3D Predictions
+            if args.mode != 'keypoints':
+                im_size = (cpu_image.size[0], cpu_image.size[1])  # Original
+                kk, dic_gt = factory_for_gt(
+                    im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
+
+                # Preprocess pifpaf outputs and run monoloco
+                boxes, keypoints = preprocess_pifpaf(
+                    pifpaf_outs['left'], im_size, enlarge_boxes=False)
+
+                if args.mode == 'mono':
+                    LOG.info("Prediction with MonoLoco++")
+                    dic_out = net.forward(keypoints, kk)
+                    dic_out = net.post_process(
+                        dic_out, boxes, keypoints, kk, dic_gt)
+                    if 'social_distance' in args.activities:
+                        dic_out = net.social_distance(dic_out, args)
+                    if 'raise_hand' in args.activities:
+                        dic_out = net.raising_hand(dic_out, keypoints)
+
+                else:
+                    LOG.info("Prediction with MonStereo")
+                    _, keypoints_r = preprocess_pifpaf(pifpaf_outs['right'], im_size)
+                    dic_out = net.forward(keypoints, kk, keypoints_r=keypoints_r)
+                    dic_out = net.post_process(
+                        dic_out, boxes, keypoints, kk, dic_gt)
+
+            else:
+                dic_out = defaultdict(list)
+                kk = None
+
+            # Outputs
+            factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=kk)
+            print(f'Image {cnt}\n' + '-' * 120)
+            cnt += 1
 
 
 def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
     """Output json files or images according to the choice"""
 
-    # Verify conflicting options
-    if any((xx in args.output_types for xx in ['front', 'bird', 'multi'])):
-        assert args.mode != 'keypoints', "for keypoints please use pifpaf original arguments"
-    else:
-        assert 'json' in args.output_types or args.mode == 'keypoints', \
-            "No output saved, please select one among front, bird, multi, json, or pifpaf arguments"
     if 'social_distance' in args.activities:
         assert args.mode == 'mono', "Social distancing only works with monocular network"
 
