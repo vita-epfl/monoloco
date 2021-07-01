@@ -47,7 +47,7 @@ def factory_from_args(args):
     LOG.debug('neural network device: %s', args.device)
 
     # Add visualization defaults
-    if args.output_types is None:
+    if not args.output_types:
         args.output_types = ['multi']
 
     args.figure_width = 10

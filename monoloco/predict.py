@@ -140,7 +140,7 @@ def factory_from_args(args):
     LOG.info("Force complete pose is active")
 
     if args.mode != 'keypoints':
-        assert args.output_types is not None and any((xx in args.output_types for xx in ['front', 'bird', 'multi'])), \
+        assert any((xx in args.output_types for xx in ['front', 'bird', 'multi'])), \
         "No output type specified, please select one among front, bird, multi, json, or choose mode=keypoints"
 
     # Configure
