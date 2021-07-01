@@ -25,7 +25,7 @@ PREDICT_COMMAND = [
     'python3', '-m', 'monoloco.run',
     'predict',
     'docs/002282.png',
-    '--output_types', 'multi', 'json',
+    '--output_types', 'multi',
     '--decoder-workers=0'  # for windows
 ]
 
