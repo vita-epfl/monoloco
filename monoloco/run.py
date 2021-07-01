@@ -20,7 +20,7 @@ def cli():
     predict_parser.add_argument('--glob', help='glob expression for input images (for many images)')
     predict_parser.add_argument('--checkpoint', help='pifpaf model')
     predict_parser.add_argument('-o', '--output-directory', help='Output directory')
-    predict_parser.add_argument('--output_types', nargs='+', default=['multi'],
+    predict_parser.add_argument('--output_types', nargs='+', default= [],
                                 help='MonoLoco - what to output: json bird front or multi')
     predict_parser.add_argument('--json-output', default=None, nargs='?', const=True,
                                 help='OpenpifPaf - whether to output a json file,'

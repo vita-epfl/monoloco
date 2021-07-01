@@ -19,7 +19,7 @@ except ImportError:
 
 import openpifpaf
 from openpifpaf import decoder, network, visualizer, show, logger
-import openpifpaf.datasets as datasets
+from openpifpaf import datasets
 
 from ..visuals import Printer
 from ..network import Loco
@@ -47,6 +47,9 @@ def factory_from_args(args):
     LOG.debug('neural network device: %s', args.device)
 
     # Add visualization defaults
+    if not args.output_types:
+        args.output_types = ['multi']
+
     args.figure_width = 10
     args.dpi_factor = 1.0
 

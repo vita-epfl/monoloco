@@ -7,7 +7,7 @@ and licensed under GNU AGPLv3
 
 import math
 import torch
-import torch.nn as nn
+from torch import nn
 import numpy as np
 import matplotlib.pyplot as plt
 

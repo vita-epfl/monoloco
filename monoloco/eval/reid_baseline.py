@@ -1,6 +1,6 @@
 
 import torch
-import torch.backends.cudnn as cudnn
+from torch.backends import cudnn
 from torch import nn
 import torch.nn.functional as F
 import torchvision
@@ -54,7 +54,7 @@ class ReID:
         # load pretrained weights but ignore layers that don't match in size
         checkpoint = torch.load(weights_path)
         model_dict = self.model.state_dict()
-        pretrain_dict = {k: v for k, v in checkpoint.items() if k in model_dict and model_dict[k].size() == v.size()}
+        pretrain_dict = {k: v for k, v in checkpoint.items() if k in model_dict and model_dict[k].size() == v.size()}  # pylint: disable=unsupported-membership-test
         model_dict.update(pretrain_dict)
         self.model.load_state_dict(model_dict)
         print("Loaded pretrained weights from '{}'".format(weights_path))
