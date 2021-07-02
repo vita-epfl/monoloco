@@ -44,7 +44,7 @@ class Printer:
     """
     Print results on images: birds eye view and computed distance
     """
-    FIG_WIDTH = 15 
+    FIG_WIDTH = 15
     extensions = []
     y_scale = 1
     nones = lambda n: [None for _ in range(n)]
@@ -84,7 +84,8 @@ class Printer:
         # Set maximum distance
         self.dd_pred = dic_ann['dds_pred']
         self.dd_real = dic_ann['dds_real']
-        self.z_max = int(min(self.z_max, 4 + max(max(self.dd_pred), max(self.dd_real, default=0))))
+        if self.z_max > 99: # Dynamic
+            self.z_max = int(min(self.z_max, 4 + max(max(self.dd_pred), max(self.dd_real, default=0))))
 
         # Do not print instances outside z_max
         self.zz_gt = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
