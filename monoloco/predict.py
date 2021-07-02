@@ -213,10 +213,10 @@ def predict(args):
             if args.mode != 'keypoints':
                 im_size = (float(pifpaf_outs['width_height'][0]), float(pifpaf_outs['width_height'][1]))
                 kk, dic_gt = factory_for_gt(im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
-
+                scale = 7/10
                 kk = [
-                    [1070.9498/2, 0., 987.4846/2],
-                    [0., 1070.726/2, 605.5297/2],
+                    [1070.9498*scale, 0., 987.4846*scale],
+                    [0., 1070.726*scale, 605.5297*scale],
                     [0., 0., 1.]
                 ]
 

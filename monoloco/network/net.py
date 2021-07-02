@@ -123,7 +123,6 @@ class Loco:
 
                 # For Median baseline
                 # dic_out = median_disparity(dic_out, keypoints, keypoints_r, mask)
-
             if self.n_dropout > 0 and self.net != 'monstereo':
                 varss = self.epistemic_uncertainty(inputs)
                 dic_out['epi'] = varss

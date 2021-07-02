@@ -337,11 +337,12 @@ class Printer:
 
         # MonoLoco
         if not self.auxs:
-            axes[1].plot(dic_x['epi'],
-                         dic_y['epi'],
-                         color='coral',
-                         linewidth=round(self.attr['linewidth']/2),
-                         label="Epistemic Uncertainty")
+            if self.stds_epi[0] > 0:
+                axes[1].plot(dic_x['epi'],
+                             dic_y['epi'],
+                             color='coral',
+                             linewidth=round(self.attr['linewidth']/2),
+                             label="Epistemic Uncertainty")
 
             axes[1].plot(dic_x['ale'],
                          dic_y['ale'],
