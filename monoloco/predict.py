@@ -11,9 +11,10 @@ import glob
 import json
 import copy
 import logging
+import time
 from collections import defaultdict
 
-
+import numpy as np
 import torch
 import PIL
 import openpifpaf
@@ -153,7 +154,7 @@ def factory_from_args(args):
 
 
 def predict(args):
-
+    start = time.time()
     cnt = 0
     assert args.mode in ('keypoints', 'mono', 'stereo')
     args, dic_models = factory_from_args(args)
@@ -176,10 +177,13 @@ def predict(args):
         assert len(data.image_paths) % 2 == 0, "Odd number of images in a stereo setting"
 
     pifpaf_outs = {}
-    for idx, (pred, _, meta) in enumerate(predictor.images(args.images, batch_size=args.batch_size)):
-
+    start = time.time()
+    timing = []
+    for idx, (pred, gt, meta) in enumerate(predictor.images(args.images, batch_size=args.batch_size)):
+        # import ipdb; ipdb.set_trace()
         if idx % args.batch_size != 0: # Only for MonStereo
             pifpaf_outs['right'] = [ann.json_data() for ann in pred]
+            im_name, output_path = None, None
         else:
             if args.json_output is not None:
                 json_out_name = out_name(args.json_output, meta['file_name'], '.predictions.json')
@@ -187,11 +191,10 @@ def predict(args):
                 with open(json_out_name, 'w') as f:
                     json.dump([ann.json_data() for ann in pred], f)
 
-            with open(meta['file_name'], 'rb') as f:
-                cpu_image = PIL.Image.open(f).convert('RGB')
             pifpaf_outs['pred'] = pred
             pifpaf_outs['left'] = [ann.json_data() for ann in pred]
-            pifpaf_outs['image'] = cpu_image
+            pifpaf_outs['file_name'] = meta['file_name']
+            pifpaf_outs['width_height']= meta['width_height']
 
             # Set output image name
             if args.output_directory is None:
@@ -208,9 +211,8 @@ def predict(args):
         if (args.mode == 'mono') or (args.mode == 'stereo' and idx % args.batch_size != 0):
             # 3D Predictions
             if args.mode != 'keypoints':
-                im_size = (cpu_image.size[0], cpu_image.size[1])  # Original
-                kk, dic_gt = factory_for_gt(
-                    im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
+                im_size = (float(pifpaf_outs['width_height'][0]), float(pifpaf_outs['width_height'][1]))
+                kk, dic_gt = factory_for_gt(im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
 
                 # Preprocess pifpaf outputs and run monoloco
                 boxes, keypoints = preprocess_pifpaf(
@@ -219,6 +221,10 @@ def predict(args):
                 if args.mode == 'mono':
                     LOG.info("Prediction with MonoLoco++")
                     dic_out = net.forward(keypoints, kk)
+                    end = time.time()
+                    fwd_time = (end-start)*1000
+                    timing.append(fwd_time)  # Skip Reordering and saving images
+                    print(f"Forward time: {fwd_time:.0f} ms")
                     dic_out = net.post_process(
                         dic_out, boxes, keypoints, kk, dic_gt)
                     if 'social_distance' in args.activities:
@@ -237,21 +243,31 @@ def predict(args):
                 dic_out = defaultdict(list)
                 kk = None
 
-            # Outputs
+            # Output
             factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=kk)
             print(f'Image {cnt}\n' + '-' * 120)
             cnt += 1
-
+            start = time.time()
+    timing = np.array(timing)
+    avg_time = int(np.mean(timing))
+    std_time = int(np.std(timing))
+    print(f'Processed {idx} Images with an average time of {avg_time} ms and a std of {std_time} ms')
 
 def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
-    """Output json files or images according to the choice"""
+    """
+    Output json files or images according to the choice
+    """
+    if 'json' in args.output_types:
+        with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:
+            json.dump(dic_out, ff)
+        if len(args.output_types) == 1:
+            return
 
-    if 'social_distance' in args.activities:
-        assert args.mode == 'mono', "Social distancing only works with monocular network"
-
+    with open(pifpaf_outs['file_name'], 'rb') as f:
+        cpu_image = PIL.Image.open(f).convert('RGB')
     if args.mode == 'keypoints':
         annotation_painter = openpifpaf.show.AnnotationPainter()
-        with openpifpaf.show.image_canvas(pifpaf_outs['image'], output_path) as ax:
+        with openpifpaf.show.image_canvas(cpu_image, output_path) as ax:
             annotation_painter.annotations(ax, pifpaf_outs['pred'])
         return
 
@@ -259,12 +275,8 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
         LOG.info(output_path)
         if args.activities:
             show_activities(
-                args, pifpaf_outs['image'], output_path, pifpaf_outs['left'], dic_out)
+                args, cpu_image, output_path, pifpaf_outs['left'], dic_out)
         else:
-            printer = Printer(pifpaf_outs['image'], output_path, kk, args)
+            printer = Printer(cpu_image, output_path, kk, args)
             figures, axes = printer.factory_axes(dic_out)
-            printer.draw(figures, axes, pifpaf_outs['image'])
-
-    if 'json' in args.output_types:
-        with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:
-            json.dump(dic_out, ff)
+            printer.draw(figures, axes, cpu_image)

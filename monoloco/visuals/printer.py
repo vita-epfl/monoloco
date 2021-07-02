@@ -44,7 +44,7 @@ class Printer:
     """
     Print results on images: birds eye view and computed distance
     """
-    FIG_WIDTH = 15
+    FIG_WIDTH = 15 
     extensions = []
     y_scale = 1
     nones = lambda n: [None for _ in range(n)]
@@ -71,6 +71,7 @@ class Printer:
         self.attr = image_attributes(args.dpi, args.output_types)
 
     def _process_results(self, dic_ann):
+
         # Include the vectors inside the interval given by z_max
         self.angles = dic_ann['angles']
         self.stds_ale = dic_ann['stds_ale']
@@ -231,31 +232,30 @@ class Printer:
 
     def draw(self, figures, axes, image, dic_out=None, annotations=None):
 
-        colors = ['deepskyblue' for _ in self.uv_heads]
-        if 'social_distance' in self.activities:
-            colors = social_distance_colors(colors, dic_out)
-
         # whether to include instances that don't match the ground-truth
-        iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))
-        if not iterator:
-            print("-" * 110 + '\n' + '! No instances detected' '\n' + '-' * 110)
+        if self.zz_pred is not None:
+            iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))
 
-        # Draw the front figure
-        number = dict(flag=False, num=97)
-        if any(xx in self.output_types for xx in ['front', 'multi']):
-            number['flag'] = True  # add numbers
-            # Remove image if social distance is activated
-            if 'social_distance' not in self.activities:
+            colors = ['deepskyblue' for _ in self.uv_heads]
+            if 'social_distance' in self.activities:
+                colors = social_distance_colors(colors, dic_out)
+            else:
                 self.mpl_im0.set_data(image)
 
-        self._front_loop(iterator, axes, number, colors, annotations, dic_out)
+            # Draw the front figure
+            number = dict(flag=False, num=97)
+            if any(xx in self.output_types for xx in ['front', 'multi']):
+                number['flag'] = True  # add numbers
 
-        # Draw the bird figure
-        number['num'] = 97
-        self._bird_loop(iterator, axes, colors, number)
+            self._front_loop(iterator, axes, number, colors, annotations, dic_out)
 
-        self._draw_legend(axes)
+            # Draw the bird figure
+            number['num'] = 97
+            self._bird_loop(iterator, axes, colors, number)
 
+            self._draw_legend(axes)
+        else:
+            print("-" * 110 + '\n' + '! No instances detected' '\n' + '-' * 110)
         # Draw, save or/and show the figures
         for idx, fig in enumerate(figures):
             fig.canvas.draw()
@@ -411,7 +411,7 @@ class Printer:
         if any(xx in self.output_types for xx in ['bird', 'multi']):
             handles, labels = axes[1].get_legend_handles_labels()
             by_label = OrderedDict(zip(labels, handles))
-            axes[1].legend(by_label.values(), by_label.keys(), loc='best', prop={'size': 15})
+            axes[1].legend(by_label.values(), by_label.keys(), loc='best', prop={'size': self.FIG_WIDTH})
 
     def _set_axes(self, ax, axis):
         assert axis in (0, 1)
