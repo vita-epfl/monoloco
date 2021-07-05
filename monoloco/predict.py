@@ -28,8 +28,8 @@ try:
 except ImportError:
     DOWNLOAD = None
 from .visuals.printer import Printer
-from .network import Loco
-from .network.process import factory_for_gt, preprocess_pifpaf
+from .network import Loco, factory_for_gt, load_calibration, preprocess_pifpaf
+from .network.process import
 from .activity import show_activities
 
 LOG = logging.getLogger(__name__)
@@ -154,8 +154,11 @@ def factory_from_args(args):
 
 
 def predict(args):
-    start = time.time()
+
+    from monoloco.network.process import load_calibration
     cnt = 0
+    load_calibration(cnt)
+
     assert args.mode in ('keypoints', 'mono', 'stereo')
     args, dic_models = factory_from_args(args)
 
@@ -212,14 +215,12 @@ def predict(args):
             # 3D Predictions
             if args.mode != 'keypoints':
                 im_size = (float(pifpaf_outs['width_height'][0]), float(pifpaf_outs['width_height'][1]))
-                kk, dic_gt = factory_for_gt(im_size, focal_length=args.focal, name=im_name, path_gt=args.path_gt)
-                scale = 7/10
-                kk = [
-                    [1070.9498*scale, 0., 987.4846*scale],
-                    [0., 1070.726*scale, 605.5297*scale],
-                    [0., 0., 1.]
-                ]
 
+                if args.path_gt is not None:
+                    dic_gt, kk = factory_for_gt(args.path_gt, im_name)
+                else:
+                    kk = load_calibration(args.calibration, focal_length=args.focal_length, im_size=im_size)
+                    dic_gt = None
                 # Preprocess pifpaf outputs and run monoloco
                 boxes, keypoints = preprocess_pifpaf(
                     pifpaf_outs['left'], im_size, enlarge_boxes=False)

@@ -3,6 +3,7 @@ import json
 import os
 import logging
 
+import yaml
 import numpy as np
 import torch
 import torchvision
@@ -66,30 +67,34 @@ def preprocess_monoloco(keypoints, kk, zero_center=False):
     return kps_out
 
 
-def factory_for_gt(im_size, focal_length=5.7, name=None, path_gt=None):
-    """Look for ground-truth annotations file and define calibration matrix based on image size """
-
-    if path_gt is not None:
-        assert os.path.exists(path_gt), "Ground-truth file not found"
-        with open(path_gt, 'r') as f:
-            dic_names = json.load(f)
-            kk = dic_names[name]['K']
-            dic_gt = dic_names[name]
-
-    # Without ground-truth-file
-    elif im_size[0] / im_size[1] > 2.5:  # KITTI default
-        kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
-        dic_gt = None
-        logger.info("Using KITTI calibration matrix...")
-    else:  # nuScenes camera parameters
+def load_calibration(calibration, scale=1, focal_length=5.7, im_size=None):
+    if calibration == 'custom':
+        assert im_size is not None
         kk = [
             [im_size[0]*focal_length/Sx, 0., im_size[0]/2],
             [0., im_size[1]*focal_length/Sy, im_size[1]/2],
-            [0., 0., 1.]]
-        dic_gt = None
-        logger.info("Using a standard calibration matrix...")
+            [0., 0., 1.]
+        ]
+    else:
+        with open(os.path.join('..', 'configs', 'intrinsics.yaml')) as a:
+            intrinsics = yaml.load(a)
+        kk = intrinsics[calibration]
+        kk[0] *= scale
+        kk[1] *= scale
+    logger.info(f"Using {calibration} calibration matrix")
+    return kk
 
-    return kk, dic_gt
+
+def factory_for_gt(path_gt, name=None):
+    """Look for ground-truth annotations file and define calibration matrix based on image size """
+
+    assert os.path.exists(path_gt), "Ground-truth file not found"
+    with open(path_gt, 'r') as f:
+        dic_names = json.load(f)
+        kk = dic_names[name]['K']
+        dic_gt = dic_names[name]
+
+    return dic_gt, kk
 
 
 def laplace_sampling(outputs, n_samples):

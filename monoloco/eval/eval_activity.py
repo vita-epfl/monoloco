@@ -15,8 +15,7 @@ except ImportError:
     ACCURACY_SCORE = None
 
 from ..prep import factory_file
-from ..network import Loco
-from ..network.process import factory_for_gt, preprocess_pifpaf
+from ..network import Loco, preprocess_pifpaf, load_calibration
 from ..activity import social_interactions
 from ..utils import open_annotations, get_iou_matches, get_difficulty
 
@@ -92,7 +91,7 @@ class ActivityEvaluator:
                 extension = '.predictions.json'
                 path_pif = os.path.join(self.dir_ann, basename + extension)
                 annotations = open_annotations(path_pif)
-                kk, _ = factory_for_gt(im_size)
+                kk = load_calibration(calibration='kitti', im_size=im_size)
 
                 # Collect corresponding gt files (ys_gt: 1 or 0)
                 boxes_gt, ys_gt = parse_gt_collective(self.dir_data, seq, path_pif)

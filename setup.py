@@ -32,8 +32,11 @@ setup(
     zip_safe=False,
 
     install_requires=[
+        'torch<=1.8.0',
+        'torchvision<=0.9.0',
         'openpifpaf>=v0.12.10',
-        'matplotlib',
+        'matplotlib'
+        'pyyaml',
     ],
     extras_require={
         'test': [
