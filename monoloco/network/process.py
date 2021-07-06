@@ -67,9 +67,8 @@ def preprocess_monoloco(keypoints, kk, zero_center=False):
     return kps_out
 
 
-def load_calibration(calibration, scale=1, focal_length=5.7, im_size=None):
+def load_calibration(calibration, im_size, focal_length=5.7):
     if calibration == 'custom':
-        assert im_size is not None
         kk = [
             [im_size[0]*focal_length/Sx, 0., im_size[0]/2],
             [0., im_size[1]*focal_length/Sy, im_size[1]/2],
@@ -77,10 +76,12 @@ def load_calibration(calibration, scale=1, focal_length=5.7, im_size=None):
         ]
     else:
         with open(os.path.join('..', 'configs', 'intrinsics.yaml')) as a:
-            intrinsics = yaml.load(a)
-        kk = intrinsics[calibration]
-        kk[0] *= scale
-        kk[1] *= scale
+            configs = yaml.safe_load(a)
+        kk = configs[calibration]['intrinsics']
+        orig_size = configs[calibration]['im_size']
+        scale = [size / orig for size, orig in zip(im_size, orig_size)]
+        kk[0] = [el * scale[0] for el in kk[0]]
+        kk[1] = [el * scale[1] for el in kk[1]]
     logger.info(f"Using {calibration} calibration matrix")
     return kk
 

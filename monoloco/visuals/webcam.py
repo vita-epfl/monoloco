@@ -125,7 +125,7 @@ def webcam(args):
             LOG.info("Escape hit, closing...")
             break
 
-        kk = load_calibration(args.calibration, focal_length=args.focal_length, im_size=pil_image.size)
+        kk = load_calibration(args.calibration, pil_image.size, focal_length=args.focal_length)
         boxes, keypoints = preprocess_pifpaf(
             pifpaf_outs['left'], (width, height))
 

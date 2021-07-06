@@ -19,7 +19,7 @@ import torch
 import PIL
 import openpifpaf
 from openpifpaf import datasets
-from openpifpaf import decoder, network, visualizer, show, logger
+from openpifpaf import decoder, network, visualizer, show, logger, Predictor
 from openpifpaf.predict import out_name
 
 try:
@@ -29,7 +29,6 @@ except ImportError:
     DOWNLOAD = None
 from .visuals.printer import Printer
 from .network import Loco, factory_for_gt, load_calibration, preprocess_pifpaf
-from .network.process import
 from .activity import show_activities
 
 LOG = logging.getLogger(__name__)
@@ -147,6 +146,7 @@ def factory_from_args(args):
     # Configure
     decoder.configure(args)
     network.Factory.configure(args)
+    Predictor.configure(args)
     show.configure(args)
     visualizer.configure(args)
 
@@ -155,13 +155,9 @@ def factory_from_args(args):
 
 def predict(args):
 
-    from monoloco.network.process import load_calibration
     cnt = 0
-    load_calibration(cnt)
-
     assert args.mode in ('keypoints', 'mono', 'stereo')
     args, dic_models = factory_from_args(args)
-
     # Load Models
     if args.mode in ('mono', 'stereo'):
         net = Loco(
@@ -171,8 +167,8 @@ def predict(args):
             n_dropout=args.n_dropout,
             p_dropout=args.dropout)
 
-    # for openpifpaf predicitons
-    predictor = openpifpaf.Predictor(checkpoint=args.checkpoint)
+    # for openpifpaf predictions
+    predictor = Predictor(checkpoint=args.checkpoint)
 
     # data
     data = datasets.ImageList(args.images, preprocess=predictor.preprocess)
@@ -183,8 +179,8 @@ def predict(args):
     start = time.time()
     timing = []
     for idx, (pred, gt, meta) in enumerate(predictor.images(args.images, batch_size=args.batch_size)):
-        # import ipdb; ipdb.set_trace()
-        if idx % args.batch_size != 0: # Only for MonStereo
+
+        if idx % args.batch_size != 0:  # Only for MonStereo
             pifpaf_outs['right'] = [ann.json_data() for ann in pred]
             im_name, output_path = None, None
         else:
@@ -219,7 +215,7 @@ def predict(args):
                 if args.path_gt is not None:
                     dic_gt, kk = factory_for_gt(args.path_gt, im_name)
                 else:
-                    kk = load_calibration(args.calibration, focal_length=args.focal_length, im_size=im_size)
+                    kk = load_calibration(args.calibration, im_size, focal_length=args.focal_length)
                     dic_gt = None
                 # Preprocess pifpaf outputs and run monoloco
                 boxes, keypoints = preprocess_pifpaf(
