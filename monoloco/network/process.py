@@ -82,7 +82,7 @@ def load_calibration(calibration, im_size, focal_length=5.7):
         scale = [size / orig for size, orig in zip(im_size, orig_size)]
         kk[0] = [el * scale[0] for el in kk[0]]
         kk[1] = [el * scale[1] for el in kk[1]]
-    logger.info(f"Using {calibration} calibration matrix")
+    logger.info("Using {} calibration matrix".format(calibration))
     return kk
 
 

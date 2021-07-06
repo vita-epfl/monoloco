@@ -83,7 +83,6 @@ def download_checkpoints(args):
     else:
         path = MONOLOCO_MODEL_KI
         name = 'monoloco_pp-201203-1424.pkl'
-
     model = os.path.join(torch_dir, name)
     dic_models[args.mode] = model
     if not os.path.exists(model):
@@ -92,6 +91,7 @@ def download_checkpoints(args):
             "pip install gdown to download a monoloco model, or pass the model path as --model"
         LOG.info('Downloading model in %s', torch_dir)
         DOWNLOAD(path, model, quiet=False)
+    print(f"Using model: {name}")
     return dic_models
 
 
@@ -121,6 +121,8 @@ def factory_from_args(args):
     LOG.debug('neural network device: %s', args.device)
 
     # Add visualization defaults
+    if not args.output_types and args.mode != 'keypoints':
+        args.output_types = ['multi']
     args.figure_width = 10
     args.dpi_factor = 1.0
 
@@ -141,7 +143,7 @@ def factory_from_args(args):
 
     if args.mode != 'keypoints':
         assert any((xx in args.output_types for xx in ['front', 'bird', 'multi', 'json'])), \
-        "No output type specified, please select one among front, bird, multi, json, or choose mode=keypoints"
+            "No output type specified, please select one among front, bird, multi, json, or choose mode=keypoints"
 
     # Configure
     decoder.configure(args)
@@ -178,11 +180,10 @@ def predict(args):
     pifpaf_outs = {}
     start = time.time()
     timing = []
-    for idx, (pred, gt, meta) in enumerate(predictor.images(args.images, batch_size=args.batch_size)):
+    for idx, (pred, _, meta) in enumerate(predictor.images(args.images, batch_size=args.batch_size)):
 
         if idx % args.batch_size != 0:  # Only for MonStereo
             pifpaf_outs['right'] = [ann.json_data() for ann in pred]
-            im_name, output_path = None, None
         else:
             if args.json_output is not None:
                 json_out_name = out_name(args.json_output, meta['file_name'], '.predictions.json')
@@ -193,7 +194,7 @@ def predict(args):
             pifpaf_outs['pred'] = pred
             pifpaf_outs['left'] = [ann.json_data() for ann in pred]
             pifpaf_outs['file_name'] = meta['file_name']
-            pifpaf_outs['width_height']= meta['width_height']
+            pifpaf_outs['width_height'] = meta['width_height']
 
             # Set output image name
             if args.output_directory is None:
@@ -209,7 +210,10 @@ def predict(args):
 
         if (args.mode == 'mono') or (args.mode == 'stereo' and idx % args.batch_size != 0):
             # 3D Predictions
-            if args.mode != 'keypoints':
+            if args.mode == 'keypoints':
+                dic_out = defaultdict(list)
+                kk = None
+            else:
                 im_size = (float(pifpaf_outs['width_height'][0]), float(pifpaf_outs['width_height'][1]))
 
                 if args.path_gt is not None:
@@ -224,8 +228,7 @@ def predict(args):
                 if args.mode == 'mono':
                     LOG.info("Prediction with MonoLoco++")
                     dic_out = net.forward(keypoints, kk)
-                    end = time.time()
-                    fwd_time = (end-start)*1000
+                    fwd_time = (time.time()-start)*1000
                     timing.append(fwd_time)  # Skip Reordering and saving images
                     print(f"Forward time: {fwd_time:.0f} ms")
                     dic_out = net.post_process(
@@ -239,12 +242,10 @@ def predict(args):
                     LOG.info("Prediction with MonStereo")
                     _, keypoints_r = preprocess_pifpaf(pifpaf_outs['right'], im_size)
                     dic_out = net.forward(keypoints, kk, keypoints_r=keypoints_r)
+                    fwd_time = (time.time()-start)*1000
+                    timing.append(fwd_time)
                     dic_out = net.post_process(
                         dic_out, boxes, keypoints, kk, dic_gt)
-
-            else:
-                dic_out = defaultdict(list)
-                kk = None
 
             # Output
             factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=kk)
@@ -254,7 +255,8 @@ def predict(args):
     timing = np.array(timing)
     avg_time = int(np.mean(timing))
     std_time = int(np.std(timing))
-    print(f'Processed {idx} Images with an average time of {avg_time} ms and a std of {std_time} ms')
+    print(f'Processed {idx * args.batch_size} images with an average time of {avg_time} ms and a std of {std_time} ms')
+
 
 def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
     """
@@ -282,4 +284,4 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
         else:
             printer = Printer(cpu_image, output_path, kk, args)
             figures, axes = printer.factory_axes(dic_out)
-            printer.draw(figures, axes, cpu_image)
+            printer.draw(figures, axes, cpu_image, dic_out)

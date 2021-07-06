@@ -10,9 +10,8 @@ import torch
 import matplotlib.pyplot as plt
 
 from .network.process import laplace_sampling
-from .visuals.pifpaf_show import (
-    KeypointPainter, image_canvas, get_pifpaf_outputs, draw_orientation, social_distance_colors
-)
+from .visuals.pifpaf_show import KeypointPainter, image_canvas, get_pifpaf_outputs
+from .visuals.printer import draw_orientation, social_distance_colors
 
 
 def social_interactions(idx, centers, angles, dds, stds=None, social_distance=False,
