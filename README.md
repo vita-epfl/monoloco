@@ -128,7 +128,7 @@ For an example image, run the following command:
 python3 -m monoloco.run predict docs/002282.png \
 --path_gt names-kitti-200615-1022.json \
 -o <output directory> \
---long-edge <rescale the image by providing dimension of long side>
+--long-edge <rescale the image by providing dimension of long side> \
 --n_dropout <50 to include epistemic uncertainty, 0 otherwise>
 ```
 
@@ -156,18 +156,18 @@ You can load one or more image pairs using glob expressions. For example:
 
 ```sh
 python3 -m monoloco.run predict --mode stereo \
---glob docs/000840*.png
+--glob docs/000840*.png \
  --path_gt <to match results with ground-truths> \
- -o data/output  -long_edge 2500
+ -o data/output  --long-edge 2500
  ```
  
 ![Crowded scene](docs/out_000840_multi.jpg)
 
 ```sh
-python3 -m monoloco.run predict --glob docs/005523*.png \ --output_types multi \
+python3 -m monoloco.run predict --glob docs/005523*.png \
 --mode stereo \
 --path_gt <to match results with ground-truths> \
--o data/output  --long_edge 2500 \
+-o data/output  --long-edge 2500 \
 --instance-threshold 0.05 --seed-threshold 0.05
  ```
 

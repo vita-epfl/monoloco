@@ -3,6 +3,7 @@ import json
 import os
 import logging
 
+import yaml
 import numpy as np
 import torch
 import torchvision
@@ -66,30 +67,35 @@ def preprocess_monoloco(keypoints, kk, zero_center=False):
     return kps_out
 
 
-def factory_for_gt(im_size, focal_length=5.7, name=None, path_gt=None):
-    """Look for ground-truth annotations file and define calibration matrix based on image size """
-
-    if path_gt is not None:
-        assert os.path.exists(path_gt), "Ground-truth file not found"
-        with open(path_gt, 'r') as f:
-            dic_names = json.load(f)
-            kk = dic_names[name]['K']
-            dic_gt = dic_names[name]
-
-    # Without ground-truth-file
-    elif im_size[0] / im_size[1] > 2.5:  # KITTI default
-        kk = [[718.3351, 0., 600.3891], [0., 718.3351, 181.5122], [0., 0., 1.]]  # Kitti calibration
-        dic_gt = None
-        logger.info("Using KITTI calibration matrix...")
-    else:  # nuScenes camera parameters
+def load_calibration(calibration, im_size, focal_length=5.7):
+    if calibration == 'custom':
         kk = [
             [im_size[0]*focal_length/Sx, 0., im_size[0]/2],
             [0., im_size[1]*focal_length/Sy, im_size[1]/2],
-            [0., 0., 1.]]
-        dic_gt = None
-        logger.info("Using a standard calibration matrix...")
+            [0., 0., 1.]
+        ]
+    else:
+        with open(os.path.join('configs', 'intrinsics.yaml')) as a:
+            configs = yaml.safe_load(a)
+        kk = configs[calibration]['intrinsics']
+        orig_size = configs[calibration]['im_size']
+        scale = [size / orig for size, orig in zip(im_size, orig_size)]
+        kk[0] = [el * scale[0] for el in kk[0]]
+        kk[1] = [el * scale[1] for el in kk[1]]
+    logger.info("Using {} calibration matrix".format(calibration))
+    return kk
 
-    return kk, dic_gt
+
+def factory_for_gt(path_gt, name=None):
+    """Look for ground-truth annotations file and define calibration matrix based on image size """
+
+    assert os.path.exists(path_gt), "Ground-truth file not found"
+    with open(path_gt, 'r') as f:
+        dic_names = json.load(f)
+        kk = dic_names[name]['K']
+        dic_gt = dic_names[name]
+
+    return dic_gt, kk
 
 
 def laplace_sampling(outputs, n_samples):

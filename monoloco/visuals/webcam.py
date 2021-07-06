@@ -22,8 +22,7 @@ from openpifpaf import decoder, network, visualizer, show, logger
 from openpifpaf import datasets
 
 from ..visuals import Printer
-from ..network import Loco
-from ..network.process import preprocess_pifpaf, factory_for_gt
+from ..network import Loco, preprocess_pifpaf, load_calibration
 from ..predict import download_checkpoints
 
 LOG = logging.getLogger(__name__)
@@ -126,12 +125,12 @@ def webcam(args):
             LOG.info("Escape hit, closing...")
             break
 
-        kk, dic_gt = factory_for_gt(pil_image.size, focal_length=args.focal)
+        kk = load_calibration(args.calibration, pil_image.size, focal_length=args.focal_length)
         boxes, keypoints = preprocess_pifpaf(
             pifpaf_outs['left'], (width, height))
 
         dic_out = net.forward(keypoints, kk)
-        dic_out = net.post_process(dic_out, boxes, keypoints, kk, dic_gt)
+        dic_out = net.post_process(dic_out, boxes, keypoints, kk)
 
         if 'social_distance' in args.activities:
             dic_out = net.social_distance(dic_out, args)

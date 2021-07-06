@@ -6,7 +6,6 @@ and licensed under GNU AGPLv3
 """
 
 from contextlib import contextmanager
-import math
 
 import numpy as np
 from PIL import Image
@@ -14,7 +13,7 @@ from PIL import Image
 
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, FancyArrow
+from matplotlib.patches import Circle
 from scipy import ndimage
 
 
@@ -313,7 +312,7 @@ def quiver(ax, vector_field, intensity_field=None, step=1, threshold=0.5,
     for xx, yy, uu, vv, _, rr in zip(x, y, u, v, c, r):
         if not rr:
             continue
-        circle = matplotlib.patches.Circle(
+        circle = Circle(
             (xx + uu, yy + vv), rr / 2.0, zorder=11, linewidth=1, alpha=1.0,
             fill=False, color='orange')
         ax.add_artist(circle)
@@ -397,62 +396,3 @@ def get_pifpaf_outputs(annotations):
     ordered_kps_scores = np.sort(kps_scores, axis=1)[:, ::-1]
     scores = np.sum(score_weights * ordered_kps_scores, axis=1)
     return keypoints_sets, scores
-
-
-def draw_orientation(ax, centers, sizes, angles, colors, mode):
-
-    if mode == 'front':
-        length = 5
-        fill = False
-        alpha = 0.6
-        zorder_circle = 0.5
-        zorder_arrow = 5
-        linewidth = 1.5
-        edgecolor = 'k'
-        radiuses = [s / 1.2 for s in sizes]
-    else:
-        length = 1.3
-        head_width = 0.3
-        linewidth = 2
-        radiuses = [0.2] * len(centers)
-        # length = 1.6
-        # head_width = 0.4
-        # linewidth = 2.7
-        radiuses = [0.2] * len(centers)
-        fill = True
-        alpha = 1
-        zorder_circle = 2
-        zorder_arrow = 1
-
-    for idx, theta in enumerate(angles):
-        color = colors[idx]
-        radius = radiuses[idx]
-
-        if mode == 'front':
-            x_arr = centers[idx][0] + (length + radius) * math.cos(theta)
-            z_arr = length + centers[idx][1] + \
-                (length + radius) * math.sin(theta)
-            delta_x = math.cos(theta)
-            delta_z = math.sin(theta)
-            head_width = max(10, radiuses[idx] / 1.5)
-
-        else:
-            edgecolor = color
-            x_arr = centers[idx][0]
-            z_arr = centers[idx][1]
-            delta_x = length * math.cos(theta)
-            # keep into account kitti convention
-            delta_z = - length * math.sin(theta)
-
-        circle = Circle(centers[idx], radius=radius, color=color,
-                        fill=fill, alpha=alpha, zorder=zorder_circle)
-        arrow = FancyArrow(x_arr, z_arr, delta_x, delta_z, head_width=head_width, edgecolor=edgecolor,
-                           facecolor=color, linewidth=linewidth, zorder=zorder_arrow)
-        ax.add_patch(circle)
-        ax.add_patch(arrow)
-
-
-def social_distance_colors(colors, dic_out):
-    # Prepare color for social distancing
-    colors = ['r' if flag else colors[idx] for idx,flag in enumerate(dic_out['social_distance'])]
-    return colors
