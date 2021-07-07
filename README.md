@@ -59,7 +59,6 @@ For quick installation, do not clone this repository, make sure there is no fold
 
 ```
 pip3 install monoloco
-pip3 install matplotlib
 ```
 
 For development of the source code itself, you need to clone this repository and then:
