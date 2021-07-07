@@ -14,7 +14,10 @@ from PIL import Image
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
-from scipy import ndimage
+try:
+    from scipy import ndimage
+except ImportError:
+    ndimage = None
 
 
 COCO_PERSON_SKELETON = [
@@ -45,8 +48,6 @@ def image_canvas(image, fig_file=None, show=True, dpi_factor=1.0, fig_width=10.0
     if 'figsize' not in kwargs:
         kwargs['figsize'] = (fig_width, fig_width * image.size[1] / image.size[0])
 
-    if plt is None:
-        raise Exception('please install matplotlib')
     if ndimage is None:
         raise Exception('please install scipy')
     fig = plt.figure(**kwargs)
