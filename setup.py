@@ -22,6 +22,7 @@ setup(
         'monoloco.visuals',
         'monoloco.utils'
     ],
+    package_data={'monoloco.network': ['*.yaml']},
     license='GNU AGPLv3',
     description=' A 3D vision library from 2D keypoints',
     long_description=open('README.md').read(),
