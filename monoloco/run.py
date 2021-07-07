@@ -28,7 +28,7 @@ def cli():
     predict_parser.add_argument('--no_save', help='to show images', action='store_true')
     predict_parser.add_argument('--hide_distance', help='to not show the absolute distance of people from the camera',
                                 default=False, action='store_true')
-    predict_parser.add_argument('--dpi', help='image resolution', type=int, default=150)
+    predict_parser.add_argument('--dpi', help='image resolution', type=int, default=100)
     predict_parser.add_argument('--long-edge', default=None, type=int,
                                 help='rescale the long side of the image (aspect ratio maintained)')
     predict_parser.add_argument('--white-overlay',

@@ -75,7 +75,8 @@ def load_calibration(calibration, im_size, focal_length=5.7):
             [0., 0., 1.]
         ]
     else:
-        with open(os.path.join('configs', 'intrinsics.yaml')) as a:
+        folders = os.path.dirname(os.path.realpath(__file__)).split(sep=os.sep)
+        with open(os.path.join(os.sep, *folders[:-2], 'configs', 'intrinsics.yaml')) as a:
             configs = yaml.safe_load(a)
         kk = configs[calibration]['intrinsics']
         orig_size = configs[calibration]['im_size']
