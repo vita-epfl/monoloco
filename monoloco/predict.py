@@ -77,14 +77,15 @@ def download_checkpoints(args):
         assert 'social_distance' not in args.activities, "Social distance not supported in stereo modality"
         path = MONSTEREO_MODEL
         name = 'monstereo-201202-1212.pkl'
-    elif ('social_distance' in args.activities) or args.webcam:
-        path = MONOLOCO_MODEL_NU
-        name = 'monoloco_pp-201207-1350.pkl'
-    else:
+    elif args.calibration == 'kitti' or args.path_gt is not None:
         path = MONOLOCO_MODEL_KI
         name = 'monoloco_pp-201203-1424.pkl'
+    else:
+        path = MONOLOCO_MODEL_NU
+        name = 'monoloco_pp-201207-1350.pkl'
     model = os.path.join(torch_dir, name)
     dic_models[args.mode] = model
+
     if not os.path.exists(model):
         os.makedirs(torch_dir, exist_ok=True)
         assert DOWNLOAD is not None, \
