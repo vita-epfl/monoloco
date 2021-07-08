@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, Circle, FancyArrow
 
 from .pifpaf_show import KeypointPainter, get_pifpaf_outputs
-from ..utils import pixel_to_camera
+from ..utils import pixel_to_camera, project_3d_corners, cuboid_edges
 
 
 def get_angle(xx, zz):
@@ -73,7 +73,6 @@ class Printer:
     def _process_results(self, dic_ann):
 
         # Include the vectors inside the interval given by z_max
-        self.angles = dic_ann['angles']
         self.stds_ale = dic_ann['stds_ale']
         self.stds_epi = dic_ann['stds_epi']
         self.gt = dic_ann['gt']  # regulate ground-truth matching
@@ -83,7 +82,9 @@ class Printer:
 
         # 3D Cuboids
         self.xyz_centers = dic_ann['xyz_pred']
-        self.wlh = dic_ann['wlh']
+        self.lwh = dic_ann['lwh']
+        self.angles = dic_ann['angles']
+        self.yaw = dic_ann['angles_egocentric']
 
         # Set maximum distance
         self.dd_pred = dic_ann['dds_pred']
@@ -107,6 +108,7 @@ class Printer:
         self.boxes_gt = dic_ann['boxes_gt']
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
         self.auxs = dic_ann['aux']
+        self.edges = cuboid_edges()
         if len(self.auxs) == 0:
             self.modes = ['mono'] * len(self.dd_pred)
         else:
@@ -269,19 +271,23 @@ class Printer:
     def _draw_front(self, ax, z, idx, number):
 
         # Bbox
-        _3d_corners(self.xyz_centers, self.wlg)
+        corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.lwh[idx], self.kk)
+        for (i, j) in self.edges:
+            a = [int(corners[0, i]), int(corners[1, i])]
+            b = [int(corners[0, j]), int(corners[1, j])]
+            ax.plot(a, b, color='r', linewidth=2)
         w = min(self.width-2, self.boxes[idx][2] - self.boxes[idx][0])
         h = min(self.height-2, (self.boxes[idx][3] - self.boxes[idx][1]) * self.y_scale)
         x0 = self.boxes[idx][0]
         y0 = self.boxes[idx][1] * self.y_scale
         y1 = y0 + h
-        rectangle = Rectangle((x0, y0),
-                              width=w,
-                              height=h,
-                              fill=False,
-                              color=self.attr[self.modes[idx]]['color'],
-                              linewidth=self.attr[self.modes[idx]]['linewidth'])
-        ax.add_patch(rectangle)
+        # rectangle = Rectangle((x0, y0),
+        #                       width=w,
+        #                       height=h,
+        #                       fill=False,
+        #                       color=self.attr[self.modes[idx]]['color'],
+        #                       linewidth=self.attr[self.modes[idx]]['linewidth'])
+        # ax.add_patch(rectangle)
         z_str = str(z).split(sep='.')
         text = z_str[0] + '.' + z_str[1][0]
         bbox_config = {'facecolor': self.attr[self.modes[idx]]['color'], 'alpha': 0.4, 'linewidth': 0}

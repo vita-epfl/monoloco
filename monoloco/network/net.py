@@ -204,7 +204,6 @@ class Loco:
             dd_pred = float(dic_in['d'][idx])
             bi = float(dic_in['bi'][idx])
             var_y = float(dic_in['epi'][idx])
-            angle = dic_in['ori'][idx]
             lwh = [float(dic_in['l'][idx]), float(dic_in['w'][idx]), float(dic_in['h'][idx])]
 
             uu_s, vv_s = uv_shoulders.tolist()[idx][0:2]
@@ -224,8 +223,6 @@ class Loco:
             dic_out['stds_epi'].append(var_y)
 
             dic_out['xyz_pred'].append(xyz_pred.squeeze().tolist())
-            dic_out['angle'].append(angle.squeeze().tolist())
-            dic_out['lwh'].append(lwh)
 
             dic_out['uv_kps'].append(kps)
             dic_out['uv_centers'].append(uv_center)
@@ -236,6 +233,7 @@ class Loco:
             try:
                 dic_out['angles'].append(float(dic_in['yaw'][0][idx]))  # Predicted angle
                 dic_out['angles_egocentric'].append(float(dic_in['yaw'][1][idx]))  # Egocentric angle
+                dic_out['lwh'].append(lwh)
             except KeyError:
                 continue
 
