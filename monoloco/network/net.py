@@ -204,6 +204,9 @@ class Loco:
             dd_pred = float(dic_in['d'][idx])
             bi = float(dic_in['bi'][idx])
             var_y = float(dic_in['epi'][idx])
+            angle = dic_in['ori'][idx]
+            lwh = [float(dic_in['l'][idx]), float(dic_in['w'][idx]), float(dic_in['h'][idx])]
+
             uu_s, vv_s = uv_shoulders.tolist()[idx][0:2]
             uu_c, vv_c = uv_centers.tolist()[idx][0:2]
             uu_h, vv_h = uv_heads.tolist()[idx][0:2]
@@ -221,6 +224,9 @@ class Loco:
             dic_out['stds_epi'].append(var_y)
 
             dic_out['xyz_pred'].append(xyz_pred.squeeze().tolist())
+            dic_out['angle'].append(angle.squeeze().tolist())
+            dic_out['lwh'].append(lwh)
+
             dic_out['uv_kps'].append(kps)
             dic_out['uv_centers'].append(uv_center)
             dic_out['uv_shoulders'].append(uv_shoulder)
@@ -250,7 +256,6 @@ class Loco:
     @staticmethod
     def social_distance(dic_out, args):
 
-        angles = dic_out['angles']
         dds = dic_out['dds_pred']
         stds = dic_out['stds_ale']
         xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]

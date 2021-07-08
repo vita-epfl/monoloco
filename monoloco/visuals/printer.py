@@ -79,8 +79,12 @@ class Printer:
         self.gt = dic_ann['gt']  # regulate ground-truth matching
         self.xx_gt = [xx[0] for xx in dic_ann['xyz_real']]
         self.xx_pred = [xx[0] for xx in dic_ann['xyz_pred']]
-
         self.xz_centers = [[xx[0], xx[2]] for xx in dic_ann['xyz_pred']]
+
+        # 3D Cuboids
+        self.xyz_centers = dic_ann['xyz_pred']
+        self.wlh = dic_ann['wlh']
+
         # Set maximum distance
         self.dd_pred = dic_ann['dds_pred']
         self.dd_real = dic_ann['dds_real']
@@ -265,6 +269,7 @@ class Printer:
     def _draw_front(self, ax, z, idx, number):
 
         # Bbox
+        _3d_corners(self.xyz_centers, self.wlg)
         w = min(self.width-2, self.boxes[idx][2] - self.boxes[idx][0])
         h = min(self.height-2, (self.boxes[idx][3] - self.boxes[idx][1]) * self.y_scale)
         x0 = self.boxes[idx][0]
