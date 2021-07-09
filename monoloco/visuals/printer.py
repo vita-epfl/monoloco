@@ -132,7 +132,7 @@ class Printer:
         # Process the annotation dictionary of monoloco
         if dic_out:
             self._process_results(dic_out)
-            self.colors = self.get_colors()
+        self.colors = get_colors(dic_out)
 
         #  Initialize multi figure, resizing it for aesthetic proportion
         if 'multi' in self.output_types:
@@ -197,7 +197,6 @@ class Printer:
         keypoint_painter = KeypointPainter(show_box=False, y_scale=self.y_scale)
 
         scores = self.dd_pred if not self.hide_distance else None
-
         keypoint_painter.keypoints(
             axis, keypoint_sets, size=self.im.size,
             scores=scores, colors=self.colors['front'], activities=self.activities, dic_out=dic_out)
@@ -436,17 +435,20 @@ class Printer:
             plt.yticks(fontsize=self.attr['fontsize_ax'])
         return ax
 
-    def get_colors(self):
-        """
-        Define the colors for poses and arrows (front and bird)
-        """
 
-        colors_front = ['gold' for _ in self.uv_heads]
-        colors_bird = ['gold' for _ in self.uv_heads]
-        return dict(front=colors_front, bird=colors_bird)
+def get_colors(dic_out):
+    """
+    Define the colors for poses and arrows (front and bird)
+    """
+    if dic_out:
+        colors_front = ['gold' for _ in dic_out['uv_heads']]
+        colors_bird = ['gold' for _ in dic_out['uv_heads']]
+    else:
+        colors_front, colors_bird = [], []
+    return dict(front=colors_front, bird=colors_bird)
 
 
 def social_distance_colors(colors, dic_out):
     # Prepare color for social distancing
-    colors = ['r' if flag else colors[idx] for idx,flag in enumerate(dic_out['social_distance'])]
+    colors = ['r' if flag else colors[idx] for idx, flag in enumerate(dic_out['social_distance'])]
     return colors
