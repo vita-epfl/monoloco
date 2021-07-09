@@ -204,7 +204,7 @@ class Loco:
             dd_pred = float(dic_in['d'][idx])
             bi = float(dic_in['bi'][idx])
             var_y = float(dic_in['epi'][idx])
-            lwh = [float(dic_in['l'][idx]), float(dic_in['w'][idx]), float(dic_in['h'][idx])]
+            whl = [float(dic_in['w'][idx]), float(dic_in['h'][idx]), float(dic_in['l'][idx])]
 
             uu_s, vv_s = uv_shoulders.tolist()[idx][0:2]
             uu_c, vv_c = uv_centers.tolist()[idx][0:2]
@@ -233,7 +233,7 @@ class Loco:
             try:
                 dic_out['angles'].append(float(dic_in['yaw'][0][idx]))  # Predicted angle
                 dic_out['angles_egocentric'].append(float(dic_in['yaw'][1][idx]))  # Egocentric angle
-                dic_out['lwh'].append(lwh)
+                dic_out['lwh'].append(whl)
             except KeyError:
                 continue
 
@@ -256,6 +256,7 @@ class Loco:
 
         dds = dic_out['dds_pred']
         stds = dic_out['stds_ale']
+        angles = dic_out['angles']
         xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
 
         # Prepare color for social distancing

@@ -271,11 +271,11 @@ class Printer:
     def _draw_front(self, ax, z, idx, number):
 
         # Bbox
-        corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.lwh[idx], self.kk)
+        corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.lwh[idx], self.kk, scale=self.y_scale)
         for (i, j) in self.edges:
-            a = [int(corners[0, i]), int(corners[1, i])]
-            b = [int(corners[0, j]), int(corners[1, j])]
-            ax.plot(a, b, color='r', linewidth=2)
+            x = (corners[0, i], corners[0, j])
+            y = (corners[1, i], corners[1, j])
+            ax.plot(x, y, color='r', linewidth=2)
         w = min(self.width-2, self.boxes[idx][2] - self.boxes[idx][0])
         h = min(self.height-2, (self.boxes[idx][3] - self.boxes[idx][1]) * self.y_scale)
         x0 = self.boxes[idx][0]
