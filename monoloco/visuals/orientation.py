@@ -52,10 +52,10 @@ class DrawOrientation:
 
         if mode == 'front':
             center[1] *= self.y_scale
-            radius = (center[1] - self.uv_shoulders[idx][1] * self.y_scale) / 1.1
+            radius = (center[1] - self.uv_shoulders[idx][1] * self.y_scale) / 1.5
             head_width = max(10, radius / 1.5)
             x_arr = center[0] + (length + radius) * math.cos(theta)
-            z_arr = length + center[1] + (length + radius) * math.sin(-theta)
+            z_arr = length + center[1] + (length + radius) * math.sin(theta)
             delta_x = math.cos(theta)
             delta_z = math.sin(theta)
         else:
