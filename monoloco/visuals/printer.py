@@ -99,10 +99,8 @@ class Printer:
                         for idx, xx in enumerate(dic_ann['xyz_pred'])]
 
         self.uv_heads = dic_ann['uv_heads']
-        self.centers = self.uv_heads
-        if 'multi' in self.output_types:
-            for center in self.centers:
-                center[1] = center[1] * self.y_scale
+
+        # Scale the intrinsic matrix
         self.uv_shoulders = dic_ann['uv_shoulders']
         self.boxes = dic_ann['boxes']
         self.boxes_gt = dic_ann['boxes_gt']
@@ -134,7 +132,7 @@ class Printer:
         # Process the annotation dictionary of monoloco
         if dic_out:
             self._process_results(dic_out)
-        self.colors = self._colors(dic_out)
+            self.colors = self.get_colors()
 
         #  Initialize multi figure, resizing it for aesthetic proportion
         if 'multi' in self.output_types:
@@ -164,7 +162,7 @@ class Printer:
             figures.append(fig)
             assert 'front' not in self.output_types and 'bird' not in self.output_types, \
                 "--multi arguments is not supported with other visualizations"
-
+            self.kk[1] = [el * self.y_scale for el in self.kk[1]]
         # Initialize front figure
         elif 'front' in self.output_types:
             width = self.FIG_WIDTH
@@ -204,8 +202,6 @@ class Printer:
             axis, keypoint_sets, size=self.im.size,
             scores=scores, colors=self.colors['front'], activities=self.activities, dic_out=dic_out)
 
-        # self.draw_orientation(axis, colors, mode='front')  # TODO
-
     def _front_loop(self, iterator, axes, number, annotations, dic_out):
         for idx in iterator:
             if any(xx in self.output_types for xx in ['front', 'multi']) and self.zz_pred[idx] > 0:
@@ -213,7 +209,7 @@ class Printer:
                     self._webcam_front(axes[0], annotations, dic_out)
                 else:
                     self._draw_front(axes[0], idx, number)
-                    self.draw_orientation.draw(axes[0], idx, self.uv_heads[idx], mode='front')
+                self.draw_orientation.draw(axes[0], idx, self.uv_heads[idx], mode='front')
                 number['num'] += 1
 
     def _bird_loop(self, iterator, axes, number):
@@ -262,7 +258,7 @@ class Printer:
     def _draw_front(self, ax, idx, number):
 
         # Bbox
-        corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.lwh[idx], self.kk, scale=self.y_scale)
+        corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.lwh[idx], self.kk)
         for (i, j) in self.edges:
             x = (corners[0, i], corners[0, j])
             y = (corners[1, i], corners[1, j])
@@ -426,7 +422,7 @@ class Printer:
             line_style = 'w--' if self.webcam else 'k--'
             uv_max = [0., float(self.height)]
             xyz_max = pixel_to_camera(uv_max, self.kk, self.z_max)
-            x_max = abs(xyz_max[0]) # shortcut to avoid oval circles in case of different kk
+            x_max = abs(xyz_max[0])  # shortcut to avoid oval circles in case of different kk
             corr = round(float(x_max / 3))
             ax.plot([0, x_max], [0, self.z_max], line_style)
             ax.plot([0, -x_max], [0, self.z_max], line_style)
@@ -440,17 +436,14 @@ class Printer:
             plt.yticks(fontsize=self.attr['fontsize_ax'])
         return ax
 
-    def _colors(self, dic_out):
+    def get_colors(self):
         """
         Define the colors for poses and arrows (front and bird)
         """
 
-        colors = ['deepskyblue' for _ in self.uv_heads]
-        if 'social_distance' in self.activities:
-            colors = social_distance_colors(colors, dic_out)
-            return colors, colors
+        colors_front = ['gold' for _ in self.uv_heads]
         colors_bird = ['gold' for _ in self.uv_heads]
-        return dict(front=colors, bird=colors_bird)
+        return dict(front=colors_front, bird=colors_bird)
 
 
 def social_distance_colors(colors, dic_out):
