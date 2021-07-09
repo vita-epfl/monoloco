@@ -6,9 +6,9 @@ import math
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle, Circle, FancyArrow
 
 from .pifpaf_show import KeypointPainter, get_pifpaf_outputs
+from .orientation import DrawOrientation
 from ..utils import pixel_to_camera, project_3d_corners, cuboid_edges
 
 
@@ -49,7 +49,7 @@ class Printer:
     y_scale = 1
     nones = lambda n: [None for _ in range(n)]
     mpl_im0, stds_ale, stds_epi, xx_gt, zz_gt, xx_pred, zz_pred, dd_real, uv_centers, uv_shoulders, uv_kps, boxes, \
-        boxes_gt, uv_camera, radius, auxs = nones(16)
+        boxes_gt, uv_camera, radius, auxs, colors, draw_orientation = nones(18)
 
     def __init__(self, image, output_path, kk, args):
         self.im = image
@@ -109,6 +109,7 @@ class Printer:
         self.uv_camera = (int(self.im.size[0] / 2), self.im.size[1])
         self.auxs = dic_ann['aux']
         self.edges = cuboid_edges()
+
         if len(self.auxs) == 0:
             self.modes = ['mono'] * len(self.dd_pred)
         else:
@@ -133,6 +134,7 @@ class Printer:
         # Process the annotation dictionary of monoloco
         if dic_out:
             self._process_results(dic_out)
+        self.colors = self._colors(dic_out)
 
         #  Initialize multi figure, resizing it for aesthetic proportion
         if 'multi' in self.output_types:
@@ -191,42 +193,33 @@ class Printer:
             axes.append(ax1)
         return figures, axes
 
-    def _webcam_front(self, axis, colors, activities, annotations, dic_out):
-        sizes = [abs(self.centers[idx][1] - uv_s[1]*self.y_scale) / 1.5 for idx, uv_s in
-                 enumerate(self.uv_shoulders)]
+    def _webcam_front(self, axis, annotations, dic_out):
 
         keypoint_sets, _ = get_pifpaf_outputs(annotations)
         keypoint_painter = KeypointPainter(show_box=False, y_scale=self.y_scale)
 
-        if not self.hide_distance:
-            scores = self.dd_pred
-        else:
-            scores=None
+        scores = self.dd_pred if not self.hide_distance else None
 
         keypoint_painter.keypoints(
             axis, keypoint_sets, size=self.im.size,
-            scores=scores, colors=colors, activities=activities, dic_out=dic_out)
+            scores=scores, colors=self.colors['front'], activities=self.activities, dic_out=dic_out)
 
-        draw_orientation(axis, self.centers, sizes, self.angles, colors, mode='front')
+        # self.draw_orientation(axis, colors, mode='front')  # TODO
 
-    def _front_loop(self, iterator, axes, number, colors, annotations, dic_out):
+    def _front_loop(self, iterator, axes, number, annotations, dic_out):
         for idx in iterator:
             if any(xx in self.output_types for xx in ['front', 'multi']) and self.zz_pred[idx] > 0:
                 if self.webcam:
-                    self._webcam_front(axes[0], colors, self.activities, annotations, dic_out)
+                    self._webcam_front(axes[0], annotations, dic_out)
                 else:
-                    self._draw_front(axes[0],
-                                     self.dd_pred[idx],
-                                     idx,
-                                     number)
+                    self._draw_front(axes[0], idx, number)
+                    self.draw_orientation.draw(axes[0], idx, self.uv_heads[idx], mode='front')
                 number['num'] += 1
 
-    def _bird_loop(self, iterator, axes, colors, number):
+    def _bird_loop(self, iterator, axes, number):
         for idx in iterator:
             if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
-                draw_orientation(axes[1], self.xz_centers[:len(iterator)], [],
-                                self.angles[:len(iterator)], colors, mode='bird')
-                # Draw ground truth and uncertainty
+                self.draw_orientation.draw(axes[1], idx, self.xz_centers[idx], mode='bird')
                 self._draw_uncertainty(axes, idx)
 
                 # Draw bird eye view text
@@ -237,24 +230,22 @@ class Printer:
     def draw(self, figures, axes, image, dic_out, annotations=None):
 
         # whether to include instances that don't match the ground-truth
+        self.draw_orientation = DrawOrientation(self.angles, self.colors, self.uv_shoulders, self.y_scale)
+        if 'social_distance' not in self.activities:
+            self.mpl_im0.set_data(image)
         if self.zz_pred is not None:
             iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))
-
-            colors_front, colors_bird = self._colors(dic_out)
-            if 'social_distance' not in self.activities:
-                self.mpl_im0.set_data(image)
 
             # Draw the front figure
             number = dict(flag=False, num=97)
             if any(xx in self.output_types for xx in ['front', 'multi']):
                 number['flag'] = True  # add numbers
 
-            self._front_loop(iterator, axes, number, colors_front, annotations, dic_out)
+            self._front_loop(iterator, axes, number, annotations, dic_out)
 
             # Draw the bird figure
             number['num'] = 97
-            self._bird_loop(iterator, axes, colors_bird, number)
-
+            self._bird_loop(iterator, axes, number)
             self._draw_legend(axes)
         else:
             print("-" * 110 + '\n' + '! No instances detected' '\n' + '-' * 110)
@@ -268,7 +259,7 @@ class Printer:
             if self.plt_close:
                 plt.close(fig)
 
-    def _draw_front(self, ax, z, idx, number):
+    def _draw_front(self, ax, idx, number):
 
         # Bbox
         corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.lwh[idx], self.kk, scale=self.y_scale)
@@ -288,8 +279,8 @@ class Printer:
         #                       color=self.attr[self.modes[idx]]['color'],
         #                       linewidth=self.attr[self.modes[idx]]['linewidth'])
         # ax.add_patch(rectangle)
-        z_str = str(z).split(sep='.')
-        text = z_str[0] + '.' + z_str[1][0]
+        d_str = str(self.dd_pred[idx]).split(sep='.')
+        text = d_str[0] + '.' + d_str[1][0]
         bbox_config = {'facecolor': self.attr[self.modes[idx]]['color'], 'alpha': 0.4, 'linewidth': 0}
 
         x_t = x0 - 1.5
@@ -459,61 +450,7 @@ class Printer:
             colors = social_distance_colors(colors, dic_out)
             return colors, colors
         colors_bird = ['gold' for _ in self.uv_heads]
-        return colors, colors_bird
-
-
-def draw_orientation(ax, centers, sizes, angles, colors, mode):
-    """
-    Draw orientation for both the frontal and bird eye view figures
-    """
-
-    if mode == 'front':
-        length = 5
-        fill = False
-        alpha = 0.6
-        zorder_circle = 0.5
-        zorder_arrow = 5
-        linewidth = 1.5
-        edgecolor = 'k'
-        radiuses = [s / 1.2 for s in sizes]
-    else:
-        length = 1.3
-        linewidth = 2.3
-        head_width = 0.3
-        radiuses = [0.2] * len(centers)
-        fill = True
-        alpha = 1
-        zorder_circle = 2
-        zorder_arrow = 1
-
-    for idx, theta in enumerate(angles):
-        radius = radiuses[idx]
-        color = colors[idx]
-
-        if mode == 'front':
-            x_arr = centers[idx][0] + (length + radius) * math.cos(theta)
-            z_arr = length + centers[idx][1] + (length + radius) * math.sin(theta)
-            delta_x = math.cos(theta)
-            delta_z = math.sin(theta)
-            head_width = max(10, radiuses[idx] / 1.5)
-
-        else:
-            edgecolor = colors[idx]
-            x_arr = centers[idx][0]
-            z_arr = centers[idx][1]
-            length += 0.007 * centers[idx][1]  # increase arrow length
-            delta_x = length * math.cos(theta)
-            # keep into account kitti convention
-            delta_z = - length * math.sin(theta)
-
-        circle = Circle(centers[idx], radius=radius, color=color,
-                        fill=fill, alpha=alpha, zorder=zorder_circle)
-        arrow = FancyArrow(x_arr, z_arr, delta_x, delta_z, head_width=head_width, edgecolor=edgecolor,
-                           facecolor=color, linewidth=linewidth, zorder=zorder_arrow, label='Orientation')
-        ax.add_patch(circle)
-        ax.add_patch(arrow)
-        if mode == 'bird':
-            ax.legend(handles=[arrow])
+        return dict(front=colors, bird=colors_bird)
 
 
 def social_distance_colors(colors, dic_out):
