@@ -253,10 +253,11 @@ def predict(args):
             print(f'Image {cnt}\n' + '-' * 120)
             cnt += 1
             start = time.time()
-    timing = np.array(timing)
-    avg_time = int(np.mean(timing))
-    std_time = int(np.std(timing))
-    print(f'Processed {idx * args.batch_size} images with an average time of {avg_time} ms and a std of {std_time} ms')
+    if args.mode != 'keypoints':
+        timing = np.array(timing)
+        avg_time = int(np.mean(timing))
+        std_time = int(np.std(timing))
+        print(f'Processed {idx * args.batch_size} images with an avg time of {avg_time} ms and a std of {std_time} ms')
 
 
 def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
