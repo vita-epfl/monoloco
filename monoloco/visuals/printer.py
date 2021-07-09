@@ -48,8 +48,8 @@ class Printer:
     extensions = []
     y_scale = 1
     nones = lambda n: [None for _ in range(n)]
-    mpl_im0, stds_ale, stds_epi, xx_gt, zz_gt, xx_pred, zz_pred, dd_real, uv_centers, uv_shoulders, uv_kps, boxes, \
-        boxes_gt, uv_camera, radius, auxs, colors, draw_orientation = nones(18)
+    mpl_im0, stds_ale, stds_epi, xx_gt, zz_gt, xx_pred, zz_pred, dd_real, uv_shoulders, uv_kps, boxes, \
+        boxes_gt, uv_camera, radius, auxs, colors, draw_orientation = nones(17)
 
     def __init__(self, image, output_path, kk, args):
         self.im = image
@@ -84,7 +84,7 @@ class Printer:
         self.xyz_centers = dic_ann['xyz_pred']
         self.lwh = dic_ann['lwh']
         self.angles = dic_ann['angles']
-        self.yaw = dic_ann['angles_egocentric']
+        self.yaw = dic_ann['angles']
 
         # Set maximum distance
         self.dd_pred = dic_ann['dds_pred']
@@ -132,7 +132,6 @@ class Printer:
         # Process the annotation dictionary of monoloco
         if dic_out:
             self._process_results(dic_out)
-        self.colors = get_colors(dic_out)
 
         #  Initialize multi figure, resizing it for aesthetic proportion
         if 'multi' in self.output_types:
@@ -225,6 +224,7 @@ class Printer:
     def draw(self, figures, axes, image, dic_out, annotations=None):
 
         # whether to include instances that don't match the ground-truth
+        self.colors = self._colors(dic_out)
         self.draw_orientation = DrawOrientation(self.angles, self.colors, self.uv_shoulders, self.y_scale)
         if 'social_distance' not in self.activities:
             self.mpl_im0.set_data(image)
@@ -435,17 +435,18 @@ class Printer:
             plt.yticks(fontsize=self.attr['fontsize_ax'])
         return ax
 
-
-def get_colors(dic_out):
-    """
-    Define the colors for poses and arrows (front and bird)
-    """
-    if dic_out:
-        colors_front = ['gold' for _ in dic_out['uv_heads']]
-        colors_bird = ['gold' for _ in dic_out['uv_heads']]
-    else:
-        colors_front, colors_bird = [], []
-    return dict(front=colors_front, bird=colors_bird)
+    def _colors(self, dic_out):
+        """
+        Define the colors for poses and arrows (front and bird)
+        """
+        if 'social_distance' in self.activities:
+            colors_front = ['deepskyblue' for _ in self.uv_heads]
+            colors_front = social_distance_colors(colors_front, dic_out)
+            colors_bird = colors_front
+        else:
+            colors_front = ['gold' for _ in self.uv_heads]
+            colors_bird = ['gold' for _ in self.uv_heads]
+        return dict(front=colors_front, bird=colors_bird)
 
 
 def social_distance_colors(colors, dic_out):
