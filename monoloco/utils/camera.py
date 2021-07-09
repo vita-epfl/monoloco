@@ -259,8 +259,11 @@ def project_3d_corners(xyz, yaw, whl, kk, scale=1):
     corners_init = list(itertools.product([-.5, .5], repeat=3))
     corners_init = np.array(corners_init).reshape((8, 3)).T
     t_matrix = np.array(xyz).reshape(3, 1)
-    # t_matrix[1] = (t_matrix[1] + whl[1])
-    whl[1] *= scale
+    print(t_matrix[1])
+
+    # Rescale for multi
+    kk[1] = [el * scale for el in kk[1]]
+
     scaling_matrix = np.diag(whl)
     r = R.from_rotvec([0, yaw, 0])
     r_matrix = r.as_matrix()
