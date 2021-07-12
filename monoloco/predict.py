@@ -130,8 +130,8 @@ def factory_from_args(args):
     if args.mode == 'stereo':
         args.batch_size = 2
         args.images = sorted(args.images)
-    else:
-        args.batch_size = 1
+    # else:
+    #     args.batch_size = 1
 
     # Patch for stereo images with batch_size = 2
     if args.batch_size == 2 and not args.long_edge:
@@ -182,8 +182,8 @@ def predict(args):
     start = time.time()
     timing = []
     for idx, (pred, _, meta) in enumerate(predictor.images(args.images, batch_size=args.batch_size)):
-
-        if idx % args.batch_size != 0:  # Only for MonStereo
+        len(pred)
+        if idx % args.batch_size != 0 and args.mode == 'stereo':  # Only for MonStereo
             pifpaf_outs['right'] = [ann.json_data() for ann in pred]
         else:
             if args.json_output is not None:
