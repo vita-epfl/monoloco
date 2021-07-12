@@ -48,8 +48,8 @@ class Printer:
     extensions = []
     y_scale = 1
     nones = lambda n: [None for _ in range(n)]
-    mpl_im0, stds_ale, stds_epi, xx_gt, zz_gt, xx_pred, zz_pred, dd_real, uv_shoulders, uv_kps, boxes, \
-        boxes_gt, uv_camera, radius, auxs, colors, draw_orientation = nones(17)
+    mpl_im0, stds_ale, stds_epi, xx_gt, zz_gt, xx_pred, zz_pred, dd_gt, uv_shoulders, uv_kps, boxes, \
+        boxes_gt, uv_camera, radius, auxs, colors, draw_orientation, draw_orientation_gt = nones(18)
 
     def __init__(self, image, output_path, kk, args):
         self.im = image
@@ -76,7 +76,7 @@ class Printer:
         self.stds_ale = dic_ann['stds_ale']
         self.stds_epi = dic_ann['stds_epi']
         self.gt = dic_ann['gt']  # regulate ground-truth matching
-        self.xx_gt = [xx[0] for xx in dic_ann['xyz_real']]
+        self.xx_gt = [xx[0] for xx in dic_ann['xyz_gt']]
         self.xx_pred = [xx[0] for xx in dic_ann['xyz_pred']]
         self.xz_centers = [[xx[0], xx[2]] for xx in dic_ann['xyz_pred']]
 
@@ -84,17 +84,18 @@ class Printer:
         self.xyz_centers = dic_ann['xyz_pred']
         self.lwh = dic_ann['lwh']
         self.angles = dic_ann['angles']
+        self.angles_gt = dic_ann['angles_gt']
         self.yaw = dic_ann['angles']
 
         # Set maximum distance
         self.dd_pred = dic_ann['dds_pred']
-        self.dd_real = dic_ann['dds_real']
+        self.dd_gt = dic_ann['dds_gt']
         if self.z_max > 99:  # Dynamic
-            self.z_max = int(min(self.z_max, 4 + max(max(self.dd_pred), max(self.dd_real, default=0))))
+            self.z_max = int(min(self.z_max, 4 + max(max(self.dd_pred), max(self.dd_gt, default=0))))
 
         # Do not print instances outside z_max
         self.zz_gt = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
-                      for idx, xx in enumerate(dic_ann['xyz_real'])]
+                      for idx, xx in enumerate(dic_ann['xyz_gt'])]
         self.zz_pred = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
                         for idx, xx in enumerate(dic_ann['xyz_pred'])]
 
@@ -214,6 +215,8 @@ class Printer:
         for idx in iterator:
             if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
                 self.draw_orientation.draw(axes[1], idx, self.xz_centers[idx], mode='bird')
+                if self.gt[idx]:
+                    self.draw_orientation_gt.draw(axes[1], idx, self.xz_centers[idx], mode='bird')
                 self._draw_uncertainty(axes, idx)
 
                 # Draw bird eye view text
@@ -226,6 +229,11 @@ class Printer:
         # whether to include instances that don't match the ground-truth
         self.colors = self._colors(dic_out)
         self.draw_orientation = DrawOrientation(self.angles, self.colors, self.uv_shoulders, self.y_scale)
+        if any(self.gt):
+            colors_gt = dict(front=['k']*len(self.angles_gt), bird=['k']*len(self.angles_gt))
+            self.draw_orientation_gt = DrawOrientation(
+                self.angles_gt, colors_gt, self.uv_shoulders, self.y_scale
+            )
         if 'social_distance' not in self.activities:
             self.mpl_im0.set_data(image)
         if self.zz_pred is not None:

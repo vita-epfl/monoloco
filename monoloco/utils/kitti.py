@@ -78,15 +78,17 @@ def check_conditions(line, category, method, thresh=0.3):
     assert category in ['pedestrian', 'cyclist', 'all']
 
     if category == 'all':
-        category = ['pedestrian', 'person_sitting', 'cyclist']
-
+        categories = ['pedestrian', 'person_sitting', 'cyclist']
+    elif category == 'pedestrian':
+        categories = ['pedestrian', 'person']
+    else:
+        categories = [category]
     if method == 'gt':
-        if line.split()[0].lower() in category:
+        if line.split()[0].lower() in categories:
             check = True
-
     else:
         conf = float(line[15])
-        if line[0].lower() in category and conf >= thresh:
+        if line[0].lower() in categories and conf >= thresh:
             check = True
     return check
 

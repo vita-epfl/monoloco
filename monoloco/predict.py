@@ -217,11 +217,14 @@ def predict(args):
             else:
                 im_size = (float(pifpaf_outs['width_height'][0]), float(pifpaf_outs['width_height'][1]))
 
-                if args.path_gt is not None:
+                if args.path_gt is not None and args.calibration == 'kitti':
                     dic_gt, kk = factory_for_gt(args.path_gt, im_name)
-                else:
+                elif args.path_gt is not None:
+                    dic_gt = read_from_txt(args.path_gt)
                     kk = load_calibration(args.calibration, im_size, focal_length=args.focal_length)
+                else:
                     dic_gt = None
+                    kk = load_calibration(args.calibration, im_size, focal_length=args.focal_length)
                 # Preprocess pifpaf outputs and run monoloco
                 boxes, keypoints = preprocess_pifpaf(
                     pifpaf_outs['left'], im_size, enlarge_boxes=False)
@@ -287,3 +290,18 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
             printer = Printer(cpu_image, output_path, kk, args)
             figures, axes = printer.factory_axes(dic_out)
             printer.draw(figures, axes, cpu_image, dic_out)
+
+
+def read_from_txt(path_gt):
+    from .prep.preprocess_kitti import parse_ground_truth
+    boxes_gt, labels, _, _, _ = parse_ground_truth(path_gt, 'pedestrian')
+    dic_gt = convert_to_gt_dictionary(boxes_gt, labels)
+    return dic_gt
+
+
+def convert_to_gt_dictionary(boxes, labels):
+    """
+    Convert txt labels into the gt dictionary used to print visualization
+    """
+    dic_gt = dict(boxes=boxes, ys=labels)
+    return dic_gt
