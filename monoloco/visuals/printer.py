@@ -79,10 +79,11 @@ class Printer:
         self.xx_gt = [xx[0] for xx in dic_ann['xyz_gt']]
         self.xx_pred = [xx[0] for xx in dic_ann['xyz_pred']]
         self.xz_centers = [[xx[0], xx[2]] for xx in dic_ann['xyz_pred']]
+        self.xz_centers_gt = [[xx[0], xx[2]] for xx in dic_ann['xyz_gt']]
 
         # 3D Cuboids
         self.xyz_centers = dic_ann['xyz_pred']
-        self.lwh = dic_ann['lwh']
+        self.whl = dic_ann['whl']
         self.angles = dic_ann['angles']
         self.angles_gt = dic_ann['angles_gt']
         self.yaw = dic_ann['angles']
@@ -216,7 +217,7 @@ class Printer:
             if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
                 self.draw_orientation.draw(axes[1], idx, self.xz_centers[idx], mode='bird')
                 if self.gt[idx]:
-                    self.draw_orientation_gt.draw(axes[1], idx, self.xz_centers[idx], mode='bird')
+                    self.draw_orientation_gt.draw(axes[1], idx, self.xz_centers_gt[idx], mode='bird')
                 self._draw_uncertainty(axes, idx)
 
                 # Draw bird eye view text
@@ -265,7 +266,7 @@ class Printer:
     def _draw_front(self, ax, idx, number):
 
         # Bbox
-        corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.lwh[idx], self.kk)
+        corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.whl[idx], self.kk)
         for (i, j) in self.edges:
             x = (corners[0, i], corners[0, j])
             y = (corners[1, i], corners[1, j])

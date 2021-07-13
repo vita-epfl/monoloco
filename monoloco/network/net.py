@@ -234,7 +234,7 @@ class Loco:
             try:
                 dic_out['angles'].append(float(dic_in['yaw'][0][idx]))  # Predicted angle
                 dic_out['angles_egocentric'].append(float(dic_in['yaw'][1][idx]))  # Egocentric angle
-                dic_out['lwh'].append(whl)
+                dic_out['whl'].append(whl)
             except KeyError:
                 continue
 
