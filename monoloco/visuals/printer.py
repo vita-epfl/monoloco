@@ -228,18 +228,18 @@ class Printer:
     def draw(self, figures, axes, image, dic_out, annotations=None):
 
         # whether to include instances that don't match the ground-truth
-        self.colors = self._colors(dic_out)
-        self.draw_orientation = DrawOrientation(self.angles, self.colors, self.uv_shoulders, self.y_scale)
-        if any(self.gt):
-            colors_gt = dict(front=['k']*len(self.angles_gt), bird=['k']*len(self.angles_gt))
-            self.draw_orientation_gt = DrawOrientation(
-                self.angles_gt, colors_gt, self.uv_shoulders, self.y_scale
-            )
-        if 'social_distance' not in self.activities:
-            self.mpl_im0.set_data(image)
         if self.zz_pred is not None:
-            iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))
+            self.colors = self._colors(dic_out)
+            self.draw_orientation = DrawOrientation(self.angles, self.colors, self.uv_shoulders, self.y_scale)
+            if any(self.gt):
+                colors_gt = dict(front=['k']*len(self.angles_gt), bird=['k']*len(self.angles_gt))
+                self.draw_orientation_gt = DrawOrientation(
+                    self.angles_gt, colors_gt, self.uv_shoulders, self.y_scale
+                )
+            if 'social_distance' not in self.activities:
+                self.mpl_im0.set_data(image)
 
+            iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))
             # Draw the front figure
             number = dict(flag=False, num=97)
             if any(xx in self.output_types for xx in ['front', 'multi']):
@@ -448,6 +448,8 @@ class Printer:
         """
         Define the colors for poses and arrows (front and bird)
         """
+        if not dic_out:
+            return [], []
         if 'social_distance' in self.activities:
             colors_front = ['deepskyblue' for _ in self.uv_heads]
             colors_front = social_distance_colors(colors_front, dic_out)

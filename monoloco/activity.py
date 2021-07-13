@@ -196,8 +196,8 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
     if 'bird' in args.output_types:
         z_max = min(args.z_max, 4 + max([el[1] for el in xz_centers]))
         with bird_canvas(output_path, z_max) as ax1:
-            for idx, center in enumerate(dic_out['xz_centers']):
-                draw_orientation.draw(ax, idx, center,  mode='bird')
+            for idx, center in enumerate(xz_centers):
+                draw_orientation.draw(ax1, idx, center,  mode='bird')
             draw_uncertainty(ax1, xz_centers, stds)
 
 
