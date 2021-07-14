@@ -172,6 +172,7 @@ class Loco:
             boxes_gt = dic_gt['boxes']
             dds_gt = [el[3] for el in dic_gt['ys']]
             angles_gt = [el[8] for el in dic_gt['ys']]
+            angles_gt_ego = [el[9] for el in dic_gt['ys']]
             matches = get_iou_matches(boxes, boxes_gt, iou_min=iou_min)
             dic_out['gt'] = [True]
             if verbose:
@@ -233,7 +234,7 @@ class Loco:
             # For MonStereo / MonoLoco++
             try:
                 dic_out['angles'].append(float(dic_in['yaw'][0][idx]))  # Predicted angle
-                dic_out['angles_egocentric'].append(float(dic_in['yaw'][1][idx]))  # Egocentric angle
+                dic_out['angles_ego'].append(float(dic_in['yaw'][1][idx]))  # Egocentric angle
                 dic_out['whl'].append(whl)
             except KeyError:
                 continue
@@ -247,11 +248,13 @@ class Loco:
         for idx, idx_gt in matches:
             dd_gt = dds_gt[idx_gt]
             angle = angles_gt[idx_gt]
+            angle_ego = angles_gt_ego[idx_gt]
             xyz_real = xyz_from_distance(dd_gt, xy_centers[idx])
             dic_out['dds_gt'].append(dd_gt)
             dic_out['boxes_gt'].append(boxes_gt[idx_gt])
             dic_out['xyz_gt'].append(xyz_real.squeeze().tolist())
             dic_out['angles_gt'].append(angle)
+            dic_out['angles_gt_ego'].append(angle_ego)
         return dic_out
 
     @staticmethod

@@ -49,7 +49,8 @@ class Printer:
     y_scale = 1
     nones = lambda n: [None for _ in range(n)]
     mpl_im0, stds_ale, stds_epi, xx_gt, zz_gt, xx_pred, zz_pred, dd_gt, uv_shoulders, uv_kps, boxes, \
-        boxes_gt, uv_camera, radius, auxs, colors, draw_orientation, draw_orientation_gt = nones(18)
+        boxes_gt, uv_camera, radius, auxs, colors, orientation_front, \
+        orientation_bird, orientation_gt_bird = nones(19)
 
     def __init__(self, image, output_path, kk, args):
         self.im = image
@@ -85,7 +86,8 @@ class Printer:
         self.xyz_centers = dic_ann['xyz_pred']
         self.whl = dic_ann['whl']
         self.angles = dic_ann['angles']
-        self.angles_gt = dic_ann['angles_gt']
+        self.angles_ego = dic_ann['angles_ego']
+        self.angles_gt_ego = dic_ann['angles_gt_ego']
         self.yaw = dic_ann['angles']
 
         # Set maximum distance
@@ -204,20 +206,20 @@ class Printer:
 
     def _front_loop(self, iterator, axes, number, annotations, dic_out):
         for idx in iterator:
-            if any(xx in self.output_types for xx in ['front', 'multi']) and self.zz_pred[idx] > 0:
+            if self.zz_pred[idx] > 0:
                 if self.webcam:
                     self._webcam_front(axes[0], annotations, dic_out)
                 else:
                     self._draw_front(axes[0], idx, number)
-                self.draw_orientation.draw(axes[0], idx, self.uv_heads[idx], mode='front')
+                self.orientation_front.draw(axes[0], idx, self.uv_heads[idx])
                 number['num'] += 1
 
     def _bird_loop(self, iterator, axes, number):
         for idx in iterator:
-            if any(xx in self.output_types for xx in ['bird', 'multi']) and self.zz_pred[idx] > 0:
-                self.draw_orientation.draw(axes[1], idx, self.xz_centers[idx], mode='bird')
+            if self.zz_pred[idx] > 0:
+                self.orientation_bird.draw(axes[1], idx, self.xz_centers[idx])
                 if self.gt[idx]:
-                    self.draw_orientation_gt.draw(axes[1], idx, self.xz_centers_gt[idx], mode='bird')
+                    self.orientation_gt_bird.draw(axes[1], idx, self.xz_centers_gt[idx])
                 self._draw_uncertainty(axes, idx)
 
                 # Draw bird eye view text
@@ -229,13 +231,7 @@ class Printer:
 
         # whether to include instances that don't match the ground-truth
         if self.zz_pred is not None:
-            self.colors = self._colors(dic_out)
-            self.draw_orientation = DrawOrientation(self.angles, self.colors, self.uv_shoulders, self.y_scale)
-            if any(self.gt):
-                colors_gt = dict(front=['k']*len(self.angles_gt), bird=['k']*len(self.angles_gt))
-                self.draw_orientation_gt = DrawOrientation(
-                    self.angles_gt, colors_gt, self.uv_shoulders, self.y_scale
-                )
+            colors_front, colors_bird = self._colors(dic_out)
             if 'social_distance' not in self.activities:
                 self.mpl_im0.set_data(image)
 
@@ -243,14 +239,23 @@ class Printer:
             # Draw the front figure
             number = dict(flag=False, num=97)
             if any(xx in self.output_types for xx in ['front', 'multi']):
+                self.orientation_front = DrawOrientation(
+                    self.angles, colors_front, mode='front', shoulders=self.uv_shoulders, y_scale=self.y_scale)
                 number['flag'] = True  # add numbers
-
-            self._front_loop(iterator, axes, number, annotations, dic_out)
+                self._front_loop(iterator, axes, number, annotations, dic_out)
 
             # Draw the bird figure
             number['num'] = 97
-            self._bird_loop(iterator, axes, number)
-            self._draw_legend(axes)
+            if any(xx in self.output_types for xx in ['bird', 'multi']):
+                self.orientation_bird = DrawOrientation(
+                    self.angles_ego, colors_bird, mode='bird', y_scale=self.y_scale)
+                if any(self.gt):
+                    colors_gt = ['k'] * len(self.angles_gt_ego)
+                    self.orientation_gt_bird = DrawOrientation(
+                        self.angles_gt_ego, colors_gt, mode='bird', y_scale=self.y_scale
+                    )
+                self._bird_loop(iterator, axes, number)
+                self._draw_legend(axes)
         else:
             print("-" * 110 + '\n' + '! No instances detected' '\n' + '-' * 110)
         # Draw, save or/and show the figures
@@ -457,7 +462,7 @@ class Printer:
         else:
             colors_front = ['gold' for _ in self.uv_heads]
             colors_bird = ['gold' for _ in self.uv_heads]
-        return dict(front=colors_front, bird=colors_bird)
+        return colors_front, colors_bird
 
 
 def social_distance_colors(colors, dic_out):

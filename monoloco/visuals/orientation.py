@@ -27,50 +27,53 @@ class DrawOrientation:
             'radius': 0.2,
         })
 
-    def __init__(self, angles, colors, uv_shoulders, y_scale=1):
+    def __init__(self, angles, colors, mode, shoulders=None, y_scale=1):
 
+        assert mode in ('front', 'bird')
+        self.mode = mode
         self.angles = angles
         self.y_scale = y_scale
-        self.uv_shoulders = uv_shoulders
+        self.uv_shoulders = shoulders
         self.colors = colors
+        self.length = self.att[mode]['length']
+        self.fill = self.att[mode]['fill']
+        self.alpha = self.att[mode]['alpha']
+        self.zorder_circle = self.att[mode]['zorder_circle']
+        self.zorder_arrow = self.att[mode]['zorder_arrow']
+        self.linewidth = self.att[mode]['linewidth']
 
-    def draw(self, ax, idx, center, mode):
+    def draw(self, ax, idx, center):
         """
         Draw orientation for both the frontal and bird eye view figures
         Depending whether the image is front or bird mode, the center is in uv coordinates or xz ones
         """
-        assert mode in ('front', 'bird')
-        length = self.att[mode]['length']
-        fill = self.att[mode]['fill']
-        alpha = self.att[mode]['alpha']
-        zorder_circle = self.att[mode]['zorder_circle']
-        zorder_arrow = self.att[mode]['zorder_arrow']
-        linewidth = self.att[mode]['linewidth']
-        color = self.colors[mode][idx]
-        edgecolor = self.att[mode]['edgecolor'] if mode == 'front' else color
-        theta = self.angles[idx]
 
-        if mode == 'front':
+        theta = self.angles[idx]
+        color = self.colors[idx]
+        if self.mode == 'front':
+            assert self.uv_shoulders is not None, "required uv shoulders for front figure"
             center[1] *= self.y_scale
             radius = (abs(center[1] - self.uv_shoulders[idx][1] * self.y_scale)) / 1.4
             head_width = max(10, radius / 1.5)
-            x_arr = center[0] + (length + radius) * math.cos(theta)
-            z_arr = length + center[1] + (length + radius) * math.sin(theta)
+            x_arr = center[0] + (self.length + radius) * math.cos(theta)
+            z_arr = self.length + center[1] + (self.length + radius) * math.sin(theta)
             delta_x = math.cos(theta)
             delta_z = math.sin(theta)
+            edgecolor = self.att['front']['edgecolor']
         else:
-            radius = self.att[mode]['radius']
-            head_width = self.att[mode]['head_width']
+            radius = self.att['bird']['radius']
+            head_width = self.att['bird']['head_width']
             x_arr = center[0]
             z_arr = center[1]
-            delta_x = length * math.cos(theta)
-            delta_z = length * math.sin(-theta)
-            length += 0.007 * center[1]  # increase arrow length
+            delta_x = self.length * math.cos(theta)
+            delta_z = self.length * math.sin(-theta)
+            self.length += 0.007 * center[1]  # increase arrow length
+            edgecolor = color
 
-        circle = Circle(center, radius=radius, color=color, fill=fill, alpha=alpha, zorder=zorder_circle)
+        circle = Circle(center, radius=radius, color=color, fill=self.fill, alpha=self.alpha, zorder=self.zorder_circle)
         arrow = FancyArrow(x_arr, z_arr, delta_x, delta_z, head_width=head_width, edgecolor=edgecolor,
-                           facecolor=color, linewidth=linewidth, zorder=zorder_arrow, label='Orientation')
+                           facecolor=color, linewidth=self.linewidth, zorder=self.zorder_arrow, label='Orientation')
         ax.add_patch(circle)
         ax.add_patch(arrow)
-        if mode == 'bird':
+        if self.mode == 'bird':
             ax.legend(handles=[arrow])
