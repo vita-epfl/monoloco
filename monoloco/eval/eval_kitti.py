@@ -9,6 +9,8 @@ import math
 import logging
 import copy
 import datetime
+import glob
+import json
 from collections import defaultdict
 
 import numpy as np
@@ -28,20 +30,24 @@ class EvalKitti:
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-    CLUSTERS = ('easy', 'moderate', 'hard', 'all', '5', '7', '9', '11', '13', '15', '17', '19', '21', '23', '25',
-                '27', '29', '31', '49')
+    # CLUSTERS = ('easy', 'moderate', 'hard', 'all', '5', '7', '9', '11', '13', '15', '17', '19', '21', '23', '25',
+    #             '27', '29', '31', '49')
+    CLUSTERS = ('easy', 'easy', 'all', 'all', '10', '30')
     ALP_THRESHOLDS = ('<0.5m', '<1m', '<2m')
     OUR_METHODS = ['geometric', 'monoloco', 'monoloco_pp', 'pose', 'reid', 'monstereo']
     METHODS_MONO = ['m3d', 'monopsr', 'smoke', 'monodis']
     METHODS_STEREO = ['3dop', 'psf', 'pseudo-lidar', 'e2e', 'oc-stereo']
-    BASELINES = ['task_error', 'pixel_error']
-    HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
+    # BASELINES = ['task_error', 'pixel_error']
+    BASELINES = []
+    HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'easy', 'orientation', 'all')
     CATEGORIES = ('pedestrian',)  # extendable with person_sitting and/or cyclists
     methods = OUR_METHODS + METHODS_MONO + METHODS_STEREO
 
     # Set directories
-    main_dir = os.path.join('data', 'kitti')
-    dir_gt = os.path.join(main_dir, 'gt')
+    # main_dir = os.path.join('data', 'kitti')
+    main_dir = os.path.join('data', 'wayve')
+    # dir_gt = os.path.join(main_dir, 'gt')
+    dir_gt = '/mnt/remote/pure_dataset/dev_datasets/cuboid/monoloco/eval/20210713/label'
     path_train = os.path.join('splits', 'kitti_train.txt')
     path_val = os.path.join('splits', 'kitti_val.txt')
     dir_logs = os.path.join('data', 'logs')
@@ -51,7 +57,7 @@ class EvalKitti:
     # Set thresholds to obtain comparable recalls
     thresh_iou_monoloco = 0.3
     thresh_iou_base = 0.3
-    thresh_conf_monoloco = 0.2
+    thresh_conf_monoloco = 0.01
     thresh_conf_base = 0.5
 
     def __init__(self, args):
@@ -82,15 +88,16 @@ class EvalKitti:
         self.dic_thresh_conf['monodis'] = -100
 
         # Extract validation images for evaluation
-        names_gt = tuple(os.listdir(self.dir_gt))
-        _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
-
+        # names_gt = tuple(os.listdir(self.dir_gt))
+        # _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
+        self.set_val = [os.path.basename(el) for el in glob.glob(os.path.join(self.dir_gt, '*.txt'))]
         # self.set_val = ('002282.txt', )
 
         # Define variables to save statistics
         self.dic_methods = self.errors = self.dic_stds = self.dic_stats = self.dic_cnt = self.cnt_gt = self.category \
             = None
         self.cnt = 0
+        self.json_list = []
 
         # Filter methods with empty or non existent directory
         self.methods = filter_directories(self.main_dir, self.methods)
@@ -107,7 +114,7 @@ class EvalKitti:
             self.cnt_gt = defaultdict(int)
 
             # Iterate over each ground truth file in the training set
-            # self.set_val = ('000063.txt',)
+            # self.set_val = ('6093eaa620332e0025bc0c3b.txt',)
             for name in self.set_val:
                 path_gt = os.path.join(self.dir_gt, name)
                 self.name = name
@@ -137,7 +144,6 @@ class EvalKitti:
             for key in self.errors:
                 add_true_negatives(self.errors[key], self.cnt_gt['all'])
                 for clst in self.CLUSTERS[:-1]:
-
                     try:
                         get_statistics(self.dic_stats['test'][key][clst],
                                        self.errors[key][clst],
@@ -149,6 +155,12 @@ class EvalKitti:
             # Show statistics
             print('\n' + self.category.upper() + ':')
             self.show_statistics()
+            ori_error = average(self.errors['monoloco_pp']['ori'])
+            print(f'orientation average error: {ori_error:.2f} degrees')
+            file_name = os.path.join(self.main_dir, 'errors.json')
+            with open(file_name, 'w') as f:
+                json.dump(self.json_list, f)
+            print(f"saved the file {file_name} with {len(self.json_list)} pedestrians")
 
     def printer(self):
         if self.save:
@@ -171,8 +183,8 @@ class EvalKitti:
         if method == 'psf':
             path = os.path.splitext(path)[0] + '.png.txt'
         if method in self.OUR_METHODS:
-            bis, epis = [], []
-            output = (boxes, dds, cat, bis, epis)
+            bis, oris, epis = [], [], []
+            output = (boxes, dds, oris, cat, bis, epis)
         else:
             output = (boxes, dds, cat)
         try:
@@ -200,6 +212,7 @@ class EvalKitti:
                             boxes.append(box)
                             dds.append(dd)
                             if method in self.OUR_METHODS:
+                                oris.append(float(line[14]))
                                 bis.append(float(line[16]))
                                 epis.append(float(line[17]))
                             self.dic_cnt[method] += 1
@@ -214,7 +227,7 @@ class EvalKitti:
         boxes_gt, ys, truncs_gt, occs_gt, _ = out_gt
 
         if method in self.OUR_METHODS:
-            boxes, dds, cat, bis, epis = out
+            boxes, dds, ori, cat, bis, epis = out
         else:
             boxes, dds, cat = out
 
@@ -227,6 +240,7 @@ class EvalKitti:
             # Update error if match is found
             dd_gt = ys[idx_gt][3]
             zz_gt = ys[idx_gt][2]
+            ori_gt = ys[idx_gt][9]
             mode = get_difficulty(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
 
             if cat[idx].lower() in (self.category, 'pedestrian'):
@@ -238,6 +252,7 @@ class EvalKitti:
                     self.update_errors(dd_pixel_error, dd_gt, mode, self.errors['pixel_error'])
                 if method in self.OUR_METHODS:
                     epi = max(epis[idx], bis[idx])
+                    self.update_orientation(ori[idx], ori_gt, dd_gt, self.errors[method])
                     self.update_uncertainty(bis[idx], epi, dds[idx], dd_gt, mode, self.dic_stds[method])
 
     def update_errors(self, dd, dd_gt, cat, errors):
@@ -263,6 +278,15 @@ class EvalKitti:
             errors['<2m'].append(1)
         else:
             errors['<2m'].append(0)
+
+    def update_orientation(self, ori, ori_gt, dd_gt, errors):
+        # TODO make it category dependant
+        ori = ori * 180 / math.pi
+        ori_gt = ori_gt * 180 / math.pi
+        angle = 180 - abs(abs(ori - ori_gt) - 180)
+        errors['ori'].append(angle)
+        if angle / (dd_gt / 10) > 40 and dd_gt < 20:
+            self.json_list.append(os.path.splitext(self.name)[0] + '.jpeg')
 
     def update_uncertainty(self, std_ale, std_epi, dd, dd_gt, mode, dic_stds):
 
@@ -331,7 +355,8 @@ class EvalKitti:
         for net in ('monoloco_pp', 'monstereo'):
             print(('-'*100))
             print(net.upper())
-            for clst in ('easy', 'moderate', 'hard', 'all'):
+            # for clst in ('easy', 'moderate', 'hard', 'all'):
+            for clst in ('all',):
                 print(" Annotations in clst {}: {:.0f}, Recall: {:.1f}. Precision: {:.2f}, Relative size is {:.1f} %"
                       .format(clst,
                               self.dic_stats['test'][net][clst]['cnt'],

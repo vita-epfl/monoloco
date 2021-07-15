@@ -139,7 +139,8 @@ def factory_basename(dir_ann, dir_gt):
     path_val = os.path.join('splits', 'kitti_val.txt')
     _, set_val_gt = split_training(names_gt, path_train, path_val)
     set_val_gt = {os.path.basename(x).split('.')[0] for x in set_val_gt}
-
+    dir_gt = '/mnt/remote/pure_dataset/dev_datasets/cuboid/monoloco/eval/20210713/label'
+    set_val_gt = tuple([os.path.splitext(el)[0] for el in os.listdir(dir_gt)])
     # Extract pifpaf files corresponding to validation images
     list_ann = glob.glob(os.path.join(dir_ann, '*.json'))
     set_basename = {os.path.basename(x).split('.')[0] for x in list_ann}

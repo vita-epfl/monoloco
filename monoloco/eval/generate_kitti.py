@@ -11,11 +11,11 @@ from collections import defaultdict
 
 import torch
 
-from ..network import Loco
+from ..network import Loco, load_calibration
 from ..network.process import preprocess_pifpaf
 from .geom_baseline import geometric_coordinates
 from ..utils import get_keypoints, pixel_to_camera, factory_basename, make_new_directory, get_category, \
-    xyz_from_distance, read_and_rewrite
+    xyz_from_distance, read_and_rewrite, open_annotations
 from .stereo_baselines import baselines_association
 from ..prep import factory_file
 from .reid_baseline import get_reid_features, ReID
@@ -90,30 +90,40 @@ class GenerateKitti:
         cnt_ann = cnt_file = cnt_no_file = 0
 
         # Prepare empty folder
-        di = os.path.join('data', 'kitti', self.net)
+        # di = os.path.join('data', 'kitti', self.net)
+        di = os.path.join('data', 'wayve', self.net)
         make_new_directory(di)
         dir_out = {self.net: di}
 
         for _, names in self.baselines.items():
             for name in names:
-                di = os.path.join('data', 'kitti', name)
+                # di = os.path.join('data', 'kitti', name)
+                di = os.path.join('data', 'wayve', name)
                 make_new_directory(di)
                 dir_out[name] = di
 
         # Run the model
         for basename in self.set_basename:
-            path_calib = os.path.join(self.dir_kk, basename + '.txt')
-            annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
-            boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1242, 374))
+            # path_calib = os.path.join(self.dir_kk, basename + '.txt')
+            # annotations, kk, tt = factory_file(path_calib, self.dir_ann, basename)
+
+            annotations = open_annotations(os.path.join(self.dir_ann, basename + '.jpeg.predictions.json'))
+            kk = load_calibration('wv')
+            tt = [0., 0., 0.]
+
+            # boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1242, 374))
+            boxes, keypoints = preprocess_pifpaf(annotations)
             cat = get_category(keypoints, os.path.join(self.dir_byc, basename + '.json'))
             if keypoints:
-                annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
-                _, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
+            #     annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
+            #     _, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
+            #
+            #     if self.net == 'monstereo':
+            #         dic_out = self.model.forward(keypoints, kk, keypoints_r=keypoints_r)
+            #     elif self.net == 'monoloco_pp':
+            #         dic_out = self.model.forward(keypoints, kk)
 
-                if self.net == 'monstereo':
-                    dic_out = self.model.forward(keypoints, kk, keypoints_r=keypoints_r)
-                elif self.net == 'monoloco_pp':
-                    dic_out = self.model.forward(keypoints, kk)
+                dic_out = self.model.forward(keypoints, kk)
 
                 all_outputs = {self.net: [dic_out['xyzd'], dic_out['bi'], dic_out['epi'],
                                           dic_out['yaw'], dic_out['h'], dic_out['w'], dic_out['l']]}
@@ -140,18 +150,18 @@ class GenerateKitti:
                         save_txts(path_txt[key], boxes, all_outputs[key], params, net=key, cat=cat)
 
                     # stereo baselines
-                    if self.baselines['stereo']:
-                        all_inputs = {}
-                        dic_xyz = self._run_stereo_baselines(basename, boxes, keypoints, zzs, path_calib)
-                        for key in dic_xyz:
-                            all_outputs[key] = all_outputs['monoloco'].copy()
-                            all_outputs[key][0] = dic_xyz[key]
-                            all_inputs[key] = boxes
-
-                            path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
-                            save_txts(path_txt[key], all_inputs[key], all_outputs[key], params,
-                                      net='baseline',
-                                      cat=cat)
+                    # if self.baselines['stereo']:
+                    #     all_inputs = {}
+                    #     dic_xyz = self._run_stereo_baselines(basename, boxes, keypoints, zzs, path_calib)
+                    #     for key in dic_xyz:
+                    #         all_outputs[key] = all_outputs['monoloco'].copy()
+                    #         all_outputs[key][0] = dic_xyz[key]
+                    #         all_inputs[key] = boxes
+                    #
+                    #         path_txt[key] = os.path.join(dir_out[key], basename + '.txt')
+                    #         save_txts(path_txt[key], all_inputs[key], all_outputs[key], params,
+                    #                   net='baseline',
+                    #                   cat=cat)
 
         print("\nSaved in {} txt {} annotations. Not found {} images".format(cnt_file, cnt_ann, cnt_no_file))
 
@@ -170,6 +180,7 @@ class GenerateKitti:
         annotations_r, _, _ = factory_file(path_calib, self.dir_ann, basename, ann_type='right')
         boxes_r, keypoints_r = preprocess_pifpaf(annotations_r, im_size=(1242, 374))
         _, kk, _ = factory_file(path_calib, self.dir_ann, basename)
+
 
         uv_centers = get_keypoints(keypoints, mode='bottom')  # Kitti uses the bottom center to calculate depth
         xy_centers = pixel_to_camera(uv_centers, kk, 1)

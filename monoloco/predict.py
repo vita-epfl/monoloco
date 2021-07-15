@@ -174,6 +174,10 @@ def predict(args):
     predictor = Predictor(checkpoint=args.checkpoint)
 
     # data
+    dir_data = '/mnt/remote/pure_dataset/dev_datasets/cuboid/monoloco/eval/20210713/image'
+    with open('data/wayve/errors.json', 'r') as f:
+        json_list = json.load(f)
+    args.images = [os.path.join(dir_data, el) for el in json_list]
     data = datasets.ImageList(args.images, preprocess=predictor.preprocess)
     if args.mode == 'stereo':
         assert len(data.image_paths) % 2 == 0, "Odd number of images in a stereo setting"
@@ -182,7 +186,9 @@ def predict(args):
     start = time.time()
     timing = []
     for idx, (pred, _, meta) in enumerate(predictor.images(args.images, batch_size=args.batch_size)):
-        len(pred)
+        dir_txt = '/mnt/remote/pure_dataset/dev_datasets/cuboid/monoloco/eval/20210713/label'
+        txt_name = os.path.splitext(os.path.basename(meta['file_name']))[0] + '.txt'
+        args.path_gt = os.path.join(dir_txt, txt_name)
         if idx % args.batch_size != 0 and args.mode == 'stereo':  # Only for MonStereo
             pifpaf_outs['right'] = [ann.json_data() for ann in pred]
         else:
@@ -225,6 +231,7 @@ def predict(args):
                 else:
                     dic_gt = None
                     kk = load_calibration(args.calibration, im_size, focal_length=args.focal_length)
+                # logger.info("Using {} calibration matrix".format(args.calibration))
                 # Preprocess pifpaf outputs and run monoloco
                 boxes, keypoints = preprocess_pifpaf(
                     pifpaf_outs['left'], im_size, enlarge_boxes=False)

@@ -6,6 +6,7 @@ import math
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
 from .pifpaf_show import KeypointPainter, get_pifpaf_outputs
 from .orientation import DrawOrientation
@@ -271,23 +272,23 @@ class Printer:
     def _draw_front(self, ax, idx, number):
 
         # Bbox
-        corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.whl[idx], self.kk)
-        for (i, j) in self.edges:
-            x = (corners[0, i], corners[0, j])
-            y = (corners[1, i], corners[1, j])
-            ax.plot(x, y, color='deepskyblue', linewidth=1.5)
+        # corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.whl[idx], self.kk)
+        # for (i, j) in self.edges:
+        #     x = (corners[0, i], corners[0, j])
+        #     y = (corners[1, i], corners[1, j])
+        #     ax.plot(x, y, color='deepskyblue', linewidth=1.5)
         w = min(self.width-2, self.boxes[idx][2] - self.boxes[idx][0])
         h = min(self.height-2, (self.boxes[idx][3] - self.boxes[idx][1]) * self.y_scale)
         x0 = self.boxes[idx][0]
         y0 = self.boxes[idx][1] * self.y_scale
         y1 = y0 + h
-        # rectangle = Rectangle((x0, y0),
-        #                       width=w,
-        #                       height=h,
-        #                       fill=False,
-        #                       color=self.attr[self.modes[idx]]['color'],
-        #                       linewidth=self.attr[self.modes[idx]]['linewidth'])
-        # ax.add_patch(rectangle)
+        rectangle = Rectangle((x0, y0),
+                              width=w,
+                              height=h,
+                              fill=False,
+                              color=self.attr[self.modes[idx]]['color'],
+                              linewidth=self.attr[self.modes[idx]]['linewidth'])
+        ax.add_patch(rectangle)
         d_str = str(self.dd_pred[idx]).split(sep='.')
         text = d_str[0] + '.' + d_str[1][0]
         bbox_config = {'facecolor': self.attr[self.modes[idx]]['color'], 'alpha': 0.4, 'linewidth': 0}
