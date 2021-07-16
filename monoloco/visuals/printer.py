@@ -102,9 +102,9 @@ class Printer:
                       for idx, xx in enumerate(dic_ann['xyz_gt'])]
         self.zz_pred = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
                         for idx, xx in enumerate(dic_ann['xyz_pred'])]
-
+        self.xx_pred = [xx[0] if abs(xx[0]) < self.z_max / 2 else -100  # TODO: To better adapt
+                        for idx, xx in enumerate(dic_ann['xyz_pred'])]
         self.uv_heads = dic_ann['uv_heads']
-
         # Scale the intrinsic matrix
         self.uv_shoulders = dic_ann['uv_shoulders']
         self.boxes = dic_ann['boxes']
@@ -206,8 +206,9 @@ class Printer:
             scores=scores, colors=self.colors['front'], activities=self.activities, dic_out=dic_out)
 
     def _front_loop(self, iterator, axes, number, annotations, dic_out):
+
         for idx in iterator:
-            if self.zz_pred[idx] > 0:
+            if self.zz_pred[idx] > 0 and self.xx_pred[idx] > -100:
                 if self.webcam:
                     self._webcam_front(axes[0], annotations, dic_out)
                 else:
@@ -217,10 +218,10 @@ class Printer:
 
     def _bird_loop(self, iterator, axes, number):
         for idx in iterator:
-            if self.zz_pred[idx] > 0:
+            if self.zz_pred[idx] > 0 and self.xx_pred[idx] > -100:
                 self.orientation_bird.draw(axes[1], idx, self.xz_centers[idx])
                 if self.gt[idx]:
-                    self.orientation_gt_bird.draw(axes[1], idx, self.xz_centers_gt[idx])
+                    self.orientation_gt_bird.draw(axes[1], idx, self.xz_centers[idx])
                 self._draw_uncertainty(axes, idx)
 
                 # Draw bird eye view text
@@ -235,7 +236,6 @@ class Printer:
             colors_front, colors_bird = self._colors(dic_out)
             if 'social_distance' not in self.activities:
                 self.mpl_im0.set_data(image)
-
             iterator = range(len(self.zz_pred)) if self.show_all else range(len(self.zz_gt))
             # Draw the front figure
             number = dict(flag=False, num=97)
@@ -272,23 +272,23 @@ class Printer:
     def _draw_front(self, ax, idx, number):
 
         # Bbox
-        # corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.whl[idx], self.kk)
-        # for (i, j) in self.edges:
-        #     x = (corners[0, i], corners[0, j])
-        #     y = (corners[1, i], corners[1, j])
-        #     ax.plot(x, y, color='deepskyblue', linewidth=1.5)
-        w = min(self.width-2, self.boxes[idx][2] - self.boxes[idx][0])
+        corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.whl[idx], self.kk)
+        for (i, j) in self.edges:
+            x = (corners[0, i], corners[0, j])
+            y = (corners[1, i], corners[1, j])
+            ax.plot(x, y, color='deepskyblue', linewidth=1.5)
+        # w = min(self.width-2, self.boxes[idx][2] - self.boxes[idx][0])
         h = min(self.height-2, (self.boxes[idx][3] - self.boxes[idx][1]) * self.y_scale)
         x0 = self.boxes[idx][0]
         y0 = self.boxes[idx][1] * self.y_scale
         y1 = y0 + h
-        rectangle = Rectangle((x0, y0),
-                              width=w,
-                              height=h,
-                              fill=False,
-                              color=self.attr[self.modes[idx]]['color'],
-                              linewidth=self.attr[self.modes[idx]]['linewidth'])
-        ax.add_patch(rectangle)
+        # rectangle = Rectangle((x0, y0),
+        #                       width=w,
+        #                       height=h,
+        #                       fill=False,
+        #                       color=self.attr[self.modes[idx]]['color'],
+        #                       linewidth=self.attr[self.modes[idx]]['linewidth'])
+        # ax.add_patch(rectangle)
         d_str = str(self.dd_pred[idx]).split(sep='.')
         text = d_str[0] + '.' + d_str[1][0]
         bbox_config = {'facecolor': self.attr[self.modes[idx]]['color'], 'alpha': 0.4, 'linewidth': 0}
@@ -470,3 +470,12 @@ def social_distance_colors(colors, dic_out):
     # Prepare color for social distancing
     colors = ['r' if flag else colors[idx] for idx, flag in enumerate(dic_out['social_distance'])]
     return colors
+
+
+def angle_difference(ori, ori_gt, dd_gt):
+    ori = ori * 180 / math.pi
+    ori_gt = ori_gt * 180 / math.pi
+    angle = 180 - abs(abs(ori - ori_gt) - 180)
+    if angle / (dd_gt / 10) > 40 and dd_gt < 20:
+        return True
+    return False

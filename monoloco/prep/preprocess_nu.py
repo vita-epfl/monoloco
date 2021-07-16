@@ -19,8 +19,7 @@ from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
 from pyquaternion import Quaternion
 
-from ..utils import get_iou_matches, append_cluster, select_categories, project_3d, correct_angle, normalize_hwl, \
-    to_spherical
+from ..utils import get_iou_matches, append_cluster, select_categories, project_3d, correct_angle, to_spherical
 from ..network.process import preprocess_pifpaf, preprocess_monoloco
 
 
@@ -120,7 +119,7 @@ class PreprocessNuscenes:
                             keypoint = keypoints[idx:idx + 1]
                             inp = preprocess_monoloco(keypoint, kk).view(-1).tolist()
                             lab = ys[idx_gt]
-                            lab = normalize_hwl(lab)
+                            # lab = normalize_hwl(lab)
                             self.dic_jo[phase]['kps'].append(keypoint)
                             self.dic_jo[phase]['X'].append(inp)
                             self.dic_jo[phase]['Y'].append(lab)

@@ -77,7 +77,7 @@ def download_checkpoints(args):
         assert 'social_distance' not in args.activities, "Social distance not supported in stereo modality"
         path = MONSTEREO_MODEL
         name = 'monstereo-201202-1212.pkl'
-    elif args.calibration == 'kitti' or args.path_gt is not None:
+    elif args.calibration == 'kitti':
         path = MONOLOCO_MODEL_KI
         name = 'monoloco_pp-201203-1424.pkl'
     else:
@@ -174,10 +174,12 @@ def predict(args):
     predictor = Predictor(checkpoint=args.checkpoint)
 
     # data
-    dir_data = '/mnt/remote/pure_dataset/dev_datasets/cuboid/monoloco/eval/20210713/image'
-    with open('data/wayve/errors.json', 'r') as f:
-        json_list = json.load(f)
-    args.images = [os.path.join(dir_data, el) for el in json_list]
+    # ------------------------------------------------------------------------------------------------
+    # dir_data = None
+    # with open('data/wayve/errors.json', 'r') as f:
+    #     json_list = json.load(f)
+    # args.images = [os.path.join(dir_data, el) for el in json_list]
+    # ------------------------------------------------------------------------------------------------
     data = datasets.ImageList(args.images, preprocess=predictor.preprocess)
     if args.mode == 'stereo':
         assert len(data.image_paths) % 2 == 0, "Odd number of images in a stereo setting"
@@ -186,9 +188,11 @@ def predict(args):
     start = time.time()
     timing = []
     for idx, (pred, _, meta) in enumerate(predictor.images(args.images, batch_size=args.batch_size)):
-        dir_txt = '/mnt/remote/pure_dataset/dev_datasets/cuboid/monoloco/eval/20210713/label'
-        txt_name = os.path.splitext(os.path.basename(meta['file_name']))[0] + '.txt'
-        args.path_gt = os.path.join(dir_txt, txt_name)
+        # ------------------------------------------------------------------------------------------------
+        # dir_txt = None
+        # txt_name = os.path.splitext(os.path.basename(meta['file_name']))[0] + '.txt'
+        # args.path_gt = os.path.join(dir_txt, txt_name)
+        # ------------------------------------------------------------------------------------------------
         if idx % args.batch_size != 0 and args.mode == 'stereo':  # Only for MonStereo
             pifpaf_outs['right'] = [ann.json_data() for ann in pred]
         else:
