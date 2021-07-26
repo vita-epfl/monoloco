@@ -294,7 +294,7 @@ def extract_labels(labels, tasks=None):
 
     dic_gt_out = {'x': labels[:, 0:1], 'y': labels[:, 1:2], 'z': labels[:, 2:3], 'd': labels[:, 3:4],
                   'h': labels[:, 4:5], 'w': labels[:, 5:6], 'l': labels[:, 6:7],
-                  'ori': labels[:, 7:9], 'aux': labels[:, 10:11]}
+                  'ori': labels[:, 7:9], 'aux': labels[:, 11:12]}
 
     if tasks is not None:
         assert isinstance(tasks, tuple), "tasks need to be a tuple"

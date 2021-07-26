@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 
 from ..network import extract_labels, extract_labels_aux, extract_outputs
 
-
 class AutoTuneMultiTaskLoss(torch.nn.Module):
     def __init__(self, losses_tr, losses_val, lambdas, tasks):
         super().__init__()

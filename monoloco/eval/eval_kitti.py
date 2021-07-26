@@ -242,7 +242,7 @@ class EvalKitti:
             # Update error if match is found
             dd_gt = ys[idx_gt][3]
             zz_gt = ys[idx_gt][2]
-            ori_gt = ys[idx_gt][8]
+            ori_gt = ys[idx_gt][10]  # yaw/r_y
             # mode = get_difficulty(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
             mode = get_distance_difficulty(dd_gt)
 

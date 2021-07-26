@@ -109,7 +109,7 @@ class Preprocess:
                 kk = dic_gt['K']
                 label = dic_gt['labels'][idx_gt][:-1]
                 self.stats['match'] += 1
-                assert len(label) == 10, 'dimensions of monocular label is wrong'
+                assert len(label) == 11, 'dimensions of monocular label is wrong'
                 self._process_annotation_mono(kp, kk, label)
 
         with open(self.path_joints, 'w') as file:
@@ -184,43 +184,3 @@ class Preprocess:
         else:
             flag = True
         return phase, flag
-
-
-def parse_ground_truth(path_gt, category, spherical=False, d_threshold=100):
-
-    """
-    Parse KITTI ground truth files
-    """
-
-    boxes_gt = []
-    labels = []
-    truncs_gt = []  # Float from 0 to 1
-    occs_gt = []  # Either 0,1,2,3 fully visible, partly occluded, largely occluded, unknown
-    lines = []
-
-    with open(path_gt, "r") as f_gt:
-        for line_gt in f_gt:
-            line = line_gt.split()
-            if not check_conditions(line, category, method='gt', d_threshold=d_threshold):
-                continue
-            truncs_gt.append(float(line[1]))
-            occs_gt.append(int(line[2]))
-            boxes_gt.append([float(x) for x in line[4:8]])
-            xyz = [float(x) for x in line[11:14]]
-            hwl = [float(x) for x in line[8:11]]
-            dd = float(math.sqrt(xyz[0] ** 2 + xyz[1] ** 2 + xyz[2] ** 2))
-            yaw = float(line[14])
-            assert - math.pi <= yaw <= math.pi
-            alpha = float(line[3])
-            sin, cos, yaw_corr = correct_angle(yaw, xyz)
-            assert min(abs(-yaw_corr - alpha), (abs(yaw_corr - alpha))) < 0.15, "more than 10 degrees of error"
-            if spherical:
-                rtp = to_spherical(xyz)
-                loc = rtp[1:3] + xyz[2:3] + rtp[0:1]  # [theta, psi, z, r]
-            else:
-                loc = xyz + [dd]
-            cat = line[0]  # 'Pedestrian', or 'Person_sitting' for people
-            output = loc + hwl + [[sin, cos], alpha, yaw, cat]
-            labels.append(output)
-            lines.append(line_gt)
-    return boxes_gt, labels, truncs_gt, occs_gt, lines

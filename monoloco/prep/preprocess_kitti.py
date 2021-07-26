@@ -120,7 +120,7 @@ class Preprocess:
                     kk = dic_gt['K']
                     label = dic_gt['labels'][ii][idx_gt][:-1]
                     self.stats['match'] += 1
-                    assert len(label) == 10, 'dimensions of monocular label is wrong'
+                    assert len(label) == 11, 'dimensions of monocular label is wrong'
 
                     if self.mode == 'mono':
                         self._process_annotation_mono(kp, kk, label)
@@ -366,7 +366,7 @@ def parse_ground_truth(path_gt, category, spherical=False, d_threshold=100):
             else:
                 loc = xyz + [dd]
             cat = line[0]  # 'Pedestrian', or 'Person_sitting' for people
-            output = loc + hwl + alpha, yaw, cat]
+            output = loc + hwl + [sin, cos, alpha, yaw, cat]
             labels.append(output)
             lines.append(line_gt)
     return boxes_gt, labels, truncs_gt, occs_gt, lines
