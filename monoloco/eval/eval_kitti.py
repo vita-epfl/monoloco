@@ -159,9 +159,10 @@ class EvalKitti:
             ori_error = average(self.errors['monoloco_pp']['ori'])
             print(f'orientation average error: {ori_error:.2f} degrees')
             file_name = os.path.join(self.main_dir, 'errors.json')
-            with open(file_name, 'w') as f:
-                json.dump(self.json_list, f)
-            print(f"saved the file {file_name} with {len(self.json_list)} pedestrians")
+            if self.category in self.CATEGORIES[-1]:
+                with open(file_name, 'w') as f:
+                    json.dump(self.json_list, f)
+                print(f"saved the file {file_name} with {len(self.json_list)} pedestrians")
 
     def printer(self):
         if self.save:
