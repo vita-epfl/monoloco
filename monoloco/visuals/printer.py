@@ -273,10 +273,14 @@ class Printer:
 
         # Bbox
         corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.whl[idx], self.kk)
+        max_x = self.kk[0][2] * 2
+        max_y = self.kk[1][2] * 2
+        delta = 60  # pixels
         for (i, j) in self.edges:
             x = (corners[0, i], corners[0, j])
             y = (corners[1, i], corners[1, j])
-            ax.plot(x, y, color='deepskyblue', linewidth=1.5)
+            if min(x) > delta and max(x) < max_x-delta and min(y) > delta and max(y) < max_y-delta:
+                ax.plot(x, y, color='deepskyblue', linewidth=1.5)
         # w = min(self.width-2, self.boxes[idx][2] - self.boxes[idx][0])
         h = min(self.height-2, (self.boxes[idx][3] - self.boxes[idx][1]) * self.y_scale)
         x0 = self.boxes[idx][0]
@@ -292,10 +296,9 @@ class Printer:
         d_str = str(self.dd_pred[idx]).split(sep='.')
         text = d_str[0] + '.' + d_str[1][0]
         bbox_config = {'facecolor': self.attr[self.modes[idx]]['color'], 'alpha': 0.4, 'linewidth': 0}
-
         x_t = x0 - 1.5
         y_t = y1 + self.attr['y_box_margin']
-        if y_t < (self.height-10):
+        if delta < y_t < (self.height-10) and x_t > delta and (x_t + delta) < max_x:  # pixels
             if not self.hide_distance:
                 ax.annotate(
                     text,

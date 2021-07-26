@@ -1,6 +1,7 @@
 
 import os
 import glob
+import math
 
 import numpy as np
 
@@ -71,20 +72,18 @@ def get_simplified_calibration(path_txt):
     raise ValueError('Matrix K_02 not found in the file')
 
 
-def check_conditions(line, category, method, thresh=0.3):
+def check_conditions(line, category, method, thresh=0.3, d_threshold=100):
     """Check conditions of our or m3d txt file"""
-
     check = False
-    assert category in ['pedestrian', 'cyclist', 'all']
+    assert category in ['pedestrian', 'cyclist', 'all', 'person_on_bike', 'person_on_motorcycle']
 
     if category == 'all':
-        categories = ['pedestrian', 'person_sitting', 'cyclist']
-    elif category == 'pedestrian':
-        categories = ['pedestrian', 'person']
+        categories = ['pedestrian', 'person_sitting', 'cyclist', 'person_on_bike', 'person_on_motorcycle']
     else:
         categories = [category]
     if method == 'gt':
-        if line.split()[0].lower() in categories:
+        dd = math.sqrt(float(line[11]) ** 2 + float(line[12]) ** 2 + float(line[13]) ** 2)
+        if line[0].lower() in categories and dd < d_threshold:
             check = True
     else:
         conf = float(line[15])

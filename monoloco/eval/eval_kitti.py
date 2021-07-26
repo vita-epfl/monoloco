@@ -14,6 +14,7 @@ import json
 from collections import defaultdict
 
 import numpy as np
+import matplotlib.pyplot as plt
 try:
     import tabulate
     TABULATE = copy.copy(tabulate.tabulate)
@@ -32,15 +33,15 @@ class EvalKitti:
     logger = logging.getLogger(__name__)
     # CLUSTERS = ('easy', 'moderate', 'hard', 'all', '5', '7', '9', '11', '13', '15', '17', '19', '21', '23', '25',
     #             '27', '29', '31', '49')
-    CLUSTERS = ('easy', 'easy', 'all', 'all', '10', '30')
+    CLUSTERS = ('easy', 'moderate', 'hard', 'all', '10', '30')
     ALP_THRESHOLDS = ('<0.5m', '<1m', '<2m')
     OUR_METHODS = ['geometric', 'monoloco', 'monoloco_pp', 'pose', 'reid', 'monstereo']
     METHODS_MONO = ['m3d', 'monopsr', 'smoke', 'monodis']
     METHODS_STEREO = ['3dop', 'psf', 'pseudo-lidar', 'e2e', 'oc-stereo']
     # BASELINES = ['task_error', 'pixel_error']
     BASELINES = []
-    HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'easy', 'orientation', 'all')
-    CATEGORIES = ('pedestrian',)  # extendable with person_sitting and/or cyclists
+    HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
+    CATEGORIES = ('pedestrian', 'person_on_bike', 'person_on_motorcycle')
     methods = OUR_METHODS + METHODS_MONO + METHODS_STEREO
 
     # Set directories
@@ -124,9 +125,9 @@ class EvalKitti:
                 methods_out = defaultdict(tuple)  # Save all methods for comparison
 
                 # Count ground_truth:
-                boxes_gt, _, truncs_gt, occs_gt, _ = out_gt  # pylint: disable=unbalanced-tuple-unpacking
-                for idx, box in enumerate(boxes_gt):
-                    mode = get_difficulty(box, truncs_gt[idx], occs_gt[idx])
+                _, ys, _, _, _ = out_gt  # pylint: disable=unbalanced-tuple-unpacking
+                for y in ys:
+                    mode = get_distance_difficulty(y[3])
                     self.cnt_gt[mode] += 1
                     self.cnt_gt['all'] += 1
 
@@ -241,9 +242,10 @@ class EvalKitti:
             dd_gt = ys[idx_gt][3]
             zz_gt = ys[idx_gt][2]
             ori_gt = ys[idx_gt][9]
-            mode = get_difficulty(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
+            # mode = get_difficulty(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
+            mode = get_distance_difficulty(dd_gt)
 
-            if cat[idx].lower() in (self.category, 'pedestrian'):
+            if cat[idx].lower() in (self.category, 'pedestrian'):  # ALl instances labeled as pedestrian from pifpaf
                 self.update_errors(dds[idx], dd_gt, mode, self.errors[method])
                 if method == 'monoloco':
                     dd_task_error = dd_gt + (get_task_error(zz_gt))**2
@@ -349,20 +351,21 @@ class EvalKitti:
 
         all_methods = self.methods + self.BASELINES
         print('-'*90)
+        # debug_errors(self.errors['monoloco_pp']['all'])
         self.summary_table(all_methods)
 
         # Uncertainty
-        for net in ('monoloco_pp', 'monstereo'):
-            print(('-'*100))
-            print(net.upper())
+        # for net in self.OUR_METHODS:
+        #     print(('-'*100))
+        #     print(net.upper())
             # for clst in ('easy', 'moderate', 'hard', 'all'):
-            for clst in ('all',):
-                print(" Annotations in clst {}: {:.0f}, Recall: {:.1f}. Precision: {:.2f}, Relative size is {:.1f} %"
-                      .format(clst,
-                              self.dic_stats['test'][net][clst]['cnt'],
-                              self.dic_stats['test'][net][clst]['interval']*100,
-                              self.dic_stats['test'][net][clst]['prec_1'],
-                              self.dic_stats['test'][net][clst]['epi_rel']*100))
+            # for clst in ('all',):
+            #     print(" Annotations in clst {}: {:.0f}, Recall: {:.1f}. Precision: {:.2f}, Relative size is {:.1f} %"
+            #           .format(clst,
+            #                   self.dic_stats['test'][net][clst]['cnt'],
+            #                   self.dic_stats['test'][net][clst]['interval']*100,
+            #                   self.dic_stats['test'][net][clst]['prec_1'],
+            #                   self.dic_stats['test'][net][clst]['epi_rel']*100))
 
         if self.verbose:
             for key in all_methods:
@@ -377,13 +380,14 @@ class EvalKitti:
                 for perc in self.ALP_THRESHOLDS:
                     print("{} Instances with error {}: {:.2f} %"
                           .format(key, perc, 100 * average(self.errors[key][perc])))
-
-                print("\nMatched annotations: {:.1f} %".format(self.errors[key]['matched']))
+                print("\nRecall: {:.1f} %".format(self.errors[key]['recall']))
+                precision = 100 * self.errors[key]['matched'] / self.dic_cnt[key]
+                print("Precision: {:.1f} %".format(precision))
                 print(" Detected annotations : {}/{} ".format(self.dic_cnt[key], self.cnt_gt['all']))
                 print("-" * 100)
 
-            print("precision 1: {:.2f}".format(self.dic_stats['test']['monoloco']['all']['prec_1']))
-            print("precision 2: {:.2f}".format(self.dic_stats['test']['monoloco']['all']['prec_2']))
+            # print("precision 1: {:.2f}".format(self.dic_stats['test']['monoloco']['all']['prec_1']))
+            # print("precision 2: {:.2f}".format(self.dic_stats['test']['monoloco']['all']['prec_2']))
 
     def summary_table(self, all_methods):
         """Tabulate table for ALP and ALE metrics"""
@@ -408,7 +412,7 @@ class EvalKitti:
             path_gt = os.path.join(self.dir_gt, name)
             self.name = name
             # Iterate over each line of the gt file and save box location and distances
-            out_gt = parse_ground_truth(path_gt, 'pedestrian')
+            out_gt = parse_ground_truth(path_gt, 'pedestrian', d_threshold=35)
             for label in out_gt[1]:
                 heights.append(label[4])
         tail1, tail2 = np.nanpercentile(np.array(heights), [5, 95])
@@ -448,7 +452,8 @@ def add_true_negatives(err, cnt_gt):
     err['<0.5m'].extend(zeros)
     err['<1m'].extend(zeros)
     err['<2m'].extend(zeros)
-    err['matched'] = 100 * matched / cnt_gt
+    err['matched'] = matched
+    err['recall'] = 100 * matched / cnt_gt
 
 
 def extract_indices(idx_to_check, *args):
@@ -484,3 +489,19 @@ def filter_directories(main_dir, methods):
         else:
             filtered_methods.append(method)
     return filtered_methods
+
+
+def get_distance_difficulty(dd):
+    if dd < 15:
+        return 'easy'
+    elif dd < 25:
+        return 'moderate'
+    else:
+        return 'hard'
+
+def debug_errors(errors):
+    plt.figure(1)
+    plt.xlim(-6, 6)
+    plt.hist(errors, bins='auto')
+    plt.show()
+    plt.close()

@@ -335,7 +335,7 @@ class PreprocessKitti:
         return phase, flag
 
 
-def parse_ground_truth(path_gt, category, spherical=False):
+def parse_ground_truth(path_gt, category, spherical=False, d_threshold=100):
     """Parse KITTI ground truth files"""
 
     boxes_gt = []
@@ -347,7 +347,7 @@ def parse_ground_truth(path_gt, category, spherical=False):
     with open(path_gt, "r") as f_gt:
         for line_gt in f_gt:
             line = line_gt.split()
-            if not check_conditions(line_gt, category, method='gt'):
+            if not check_conditions(line, category, method='gt', d_threshold=d_threshold):
                 continue
             truncs_gt.append(float(line[1]))
             occs_gt.append(int(line[2]))
