@@ -366,7 +366,7 @@ def parse_ground_truth(path_gt, category, spherical=False, d_threshold=100):
             else:
                 loc = xyz + [dd]
             cat = line[0]  # 'Pedestrian', or 'Person_sitting' for people
-            output = loc + hwl + [[sin, cos], alpha, yaw, cat]
+            output = loc + hwl + alpha, yaw, cat]
             labels.append(output)
             lines.append(line_gt)
     return boxes_gt, labels, truncs_gt, occs_gt, lines

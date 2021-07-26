@@ -19,6 +19,7 @@ from .. import __version__
 from ..utils import split_training, get_iou_matches, append_cluster, open_annotations, \
     check_conditions, to_spherical, correct_angle
 from ..network.process import preprocess_pifpaf, preprocess_monoloco, load_calibration
+from .preprocess_kitti import parse_ground_truth
 
 
 class Preprocess:

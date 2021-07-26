@@ -171,8 +171,8 @@ class Loco:
         if dic_gt:
             boxes_gt = dic_gt['boxes']
             dds_gt = [el[3] for el in dic_gt['ys']]
-            angles_gt = [el[8] for el in dic_gt['ys']]
-            angles_gt_ego = [el[9] for el in dic_gt['ys']]
+            angles_gt = [el[9] for el in dic_gt['ys']]
+            angles_gt_ego = [el[8] for el in dic_gt['ys']]
             matches = get_iou_matches(boxes, boxes_gt, iou_min=iou_min)
             dic_out['gt'] = [True]
             if verbose:

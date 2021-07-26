@@ -90,7 +90,7 @@ class EvalKitti:
 
         # Extract validation images for evaluation
         # names_gt = tuple(os.listdir(self.dir_gt))
-        _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
+        # _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
         self.set_val = [os.path.basename(el) for el in glob.glob(os.path.join(self.dir_gt, '*.txt'))]
         # self.set_val = ('002282.txt', )
 
@@ -242,7 +242,7 @@ class EvalKitti:
             # Update error if match is found
             dd_gt = ys[idx_gt][3]
             zz_gt = ys[idx_gt][2]
-            ori_gt = ys[idx_gt][9]
+            ori_gt = ys[idx_gt][8]
             # mode = get_difficulty(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
             mode = get_distance_difficulty(dd_gt)
 
