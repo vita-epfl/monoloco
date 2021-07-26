@@ -91,14 +91,14 @@ class GenerateKitti:
 
         # Prepare empty folder
         # di = os.path.join('data', 'kitti', self.net)
-        di = os.path.join('data', 'wayve', self.net)
+        di = os.path.join('data', 'wv', self.net)
         make_new_directory(di)
         dir_out = {self.net: di}
 
         for _, names in self.baselines.items():
             for name in names:
                 # di = os.path.join('data', 'kitti', name)
-                di = os.path.join('data', 'wayve', name)
+                di = os.path.join('data', 'wv', name)
                 make_new_directory(di)
                 dir_out[name] = di
 

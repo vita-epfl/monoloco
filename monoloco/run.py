@@ -82,6 +82,9 @@ def cli():
     prep_parser.add_argument('--dataset',
                              help='datasets to preprocess: nuscenes, nuscenes_teaser, nuscenes_mini, kitti',
                              default='kitti')
+    prep_parser.add_argument('--dir_gt', help='in case of custom dateset')
+    prep_parser.add_argument('--dir_images', help='in case of custom dateset')
+    prep_parser.add_argument('--calibration', help='in case of custom dateset')
     prep_parser.add_argument('--dir_nuscenes', help='directory of nuscenes devkit', default='data/nuscenes/')
     prep_parser.add_argument('--iou_min', help='minimum iou to match ground truth', type=float, default=0.3)
     prep_parser.add_argument('--variance', help='new', action='store_true')
@@ -151,13 +154,17 @@ def main():
             from .prep.preprocess_nu import PreprocessNuscenes
             prep = PreprocessNuscenes(args.dir_ann, args.dir_nuscenes, args.dataset, args.iou_min)
             prep.run()
-        else:
-            from .prep.preprocess_kitti import PreprocessKitti
-            prep = PreprocessKitti(args.dir_ann, mode=args.mode, iou_min=args.iou_min)
+        elif 'kitti' in args.dataset:
+            from .prep.preprocess_kitti import Preprocess
+            prep = Preprocess(args.dir_ann, mode=args.mode, iou_min=args.iou_min)
             if args.activity:
                 prep.process_activity()
             else:
                 prep.run()
+        else:
+            from .prep.preprocess_generic import Preprocess
+            prep = Preprocess(args)
+            prep.run()
 
     elif args.command == 'train':
         from .train import HypTuning

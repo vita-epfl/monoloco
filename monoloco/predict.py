@@ -176,7 +176,7 @@ def predict(args):
     # data
     # ------------------------------------------------------------------------------------------------
     # dir_data = None
-    # with open('data/wayve/errors.json', 'r') as f:
+    # with open('data/wv/errors.json', 'r') as f:
     #     json_list = json.load(f)
     # args.images = [os.path.join(dir_data, el) for el in json_list]
     # ------------------------------------------------------------------------------------------------

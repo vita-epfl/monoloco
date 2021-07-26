@@ -111,7 +111,6 @@ def split_training(names_gt, path_train, path_val):
     set_gt = set(names_gt)
     set_train = set()
     set_val = set()
-
     with open(path_train, "r") as f_train:
         for line in f_train:
             set_train.add(line[:-1] + '.txt')
@@ -120,9 +119,6 @@ def split_training(names_gt, path_train, path_val):
             set_val.add(line[:-1] + '.txt')
 
     set_train = set_gt.intersection(set_train)
-    set_train.remove('000518.txt')
-    set_train.remove('005692.txt')
-    set_train.remove('003009.txt')
     set_train = tuple(set_train)
     set_val = tuple(set_gt.intersection(set_val))
     assert set_train and set_val, "No validation or training annotations"
@@ -132,6 +128,7 @@ def split_training(names_gt, path_train, path_val):
 def factory_basename(dir_ann, dir_gt):
     """ Return all the basenames in the annotations folder corresponding to validation images"""
 
+    # TODO
     # Extract ground truth validation images
     names_gt = tuple(os.listdir(dir_gt))
     path_train = os.path.join('splits', 'kitti_train.txt')

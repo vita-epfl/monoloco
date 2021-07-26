@@ -167,6 +167,7 @@ def extract_ground_truth(boxes_obj, kk, spherical=True):
             hwl = [float(box_obj.wlh[i]) for i in (2, 0, 1)]
 
             # Spherical coordinates
+            print(spherical)
             xyz = list(box_obj.center)
             dd = np.linalg.norm(box_obj.center)
             if spherical:

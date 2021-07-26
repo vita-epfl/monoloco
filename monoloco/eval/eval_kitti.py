@@ -46,7 +46,7 @@ class EvalKitti:
 
     # Set directories
     # main_dir = os.path.join('data', 'kitti')
-    main_dir = os.path.join('data', 'wayve')
+    main_dir = os.path.join('data', 'wv')
     # dir_gt = os.path.join(main_dir, 'gt')
     dir_gt = '/mnt/remote/pure_dataset/dev_datasets/cuboid/monoloco/eval/20210713/label'
     path_train = os.path.join('splits', 'kitti_train.txt')
@@ -90,7 +90,7 @@ class EvalKitti:
 
         # Extract validation images for evaluation
         # names_gt = tuple(os.listdir(self.dir_gt))
-        # _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
+        _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
         self.set_val = [os.path.basename(el) for el in glob.glob(os.path.join(self.dir_gt, '*.txt'))]
         # self.set_val = ('002282.txt', )
 

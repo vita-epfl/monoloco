@@ -23,7 +23,7 @@ from ..network.process import preprocess_pifpaf, preprocess_monoloco
 from .transforms import flip_inputs, flip_labels, height_augmentation
 
 
-class PreprocessKitti:
+class Preprocess:
     """Prepare arrays with same format as nuScenes preprocessing but using ground truth txt files"""
 
     # KITTI Dataset files
