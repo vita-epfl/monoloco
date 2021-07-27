@@ -29,15 +29,19 @@ class Preprocess:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     ext = '.jpeg'
-    # TODO load existing
-    dic_jo = {
-        'train': dict(X=[], Y=[], names=[], kps=[], K=[], clst=defaultdict(lambda: defaultdict(list))),
-        'val': dict(X=[], Y=[], names=[], kps=[], K=[], clst=defaultdict(lambda: defaultdict(list))),
-        'test': dict(X=[], Y=[], names=[], kps=[], K=[], clst=defaultdict(lambda: defaultdict(list))),
-        'version': __version__,
-    }
-    dic_names = defaultdict(lambda: defaultdict(list))
-    dic_std = defaultdict(lambda: defaultdict(list))
+    load = True
+    joints_path = 'data/arrays/joints-nuscenes_teaser-210727-1137_copy.json'
+    if not load:
+        dic_jo = {
+            'train': dict(X=[], Y=[], names=[], kps=[], K=[], clst=defaultdict(lambda: defaultdict(list))),
+            'val': dict(X=[], Y=[], names=[], kps=[], K=[], clst=defaultdict(lambda: defaultdict(list))),
+            'test': dict(X=[], Y=[], names=[], kps=[], K=[], clst=defaultdict(lambda: defaultdict(list))),
+            'version': __version__,
+            }
+    else:
+        # dic_names = defaultdict(lambda: defaultdict(list))
+        with open(joints_path, 'r') as ff:
+            dic_jo = json.load(ff)
     categories_gt = dict(
         train=['pedestrian', 'person_on_bike', 'person_on_motorcycle'],
         val=['pedestrian', 'person_on_bike', 'person_on_motorcycle'])
@@ -89,14 +93,14 @@ class Preprocess:
             self.stats['gt_' + self.phase] += len(boxes_gt)
             self.stats['gt_files'] += 1
             self.stats['gt_files_ped'] += min(len(boxes_gt), 1)  # if no boxes 0 else 1
-            self.dic_names[basename + self.ext]['boxes'] = copy.deepcopy(boxes_gt)
-            self.dic_names[basename + self.ext]['ys'] = copy.deepcopy(labels)
+            # self.dic_names[basename + self.ext]['boxes'] = copy.deepcopy(boxes_gt)
+            # self.dic_names[basename + self.ext]['ys'] = copy.deepcopy(labels)
 
             # Extract annotations
             dic_boxes, dic_kps, dic_gt = self.parse_annotations(boxes_gt, labels, basename)
             if dic_boxes is None:  # No annotations
                 continue
-            self.dic_names[basename + self.ext]['K'] = copy.deepcopy(dic_gt['K'])
+            # self.dic_names[basename + self.ext]['K'] = copy.deepcopy(dic_gt['K'])
             self.dic_jo[self.phase]['K'].append(dic_gt['K'])
 
             # Match each set of keypoint with a ground truth
@@ -115,8 +119,8 @@ class Preprocess:
 
         with open(self.path_joints, 'w') as file:
             json.dump(self.dic_jo, file)
-        with open(os.path.join(self.path_names), 'w') as file:
-            json.dump(self.dic_names, file)
+        # with open(os.path.join(self.path_names), 'w') as file:
+        #     json.dump(self.dic_names, file)
         self._cout()
 
     def parse_annotations(self, boxes_gt, labels, basename):

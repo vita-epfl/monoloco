@@ -163,11 +163,10 @@ def extract_ground_truth(boxes_obj, kk, spherical=True):
             # Angle
             yaw = quaternion_yaw(box_obj.orientation)
             assert - math.pi <= yaw <= math.pi
-            sin, cos, _ = correct_angle(yaw, box_obj.center)
+            sin, cos, alpha = correct_angle(yaw, box_obj.center)
             hwl = [float(box_obj.wlh[i]) for i in (2, 0, 1)]
 
             # Spherical coordinates
-            print(spherical)
             xyz = list(box_obj.center)
             dd = np.linalg.norm(box_obj.center)
             if spherical:
@@ -176,7 +175,7 @@ def extract_ground_truth(boxes_obj, kk, spherical=True):
             else:
                 loc = xyz + [dd]
 
-            output = loc + hwl + [sin, cos, yaw]
+            output = loc + hwl + [sin, cos, alpha, yaw]
             ys.append(output)
 
     return boxes_gt, boxes_3d, ys
