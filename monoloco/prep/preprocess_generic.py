@@ -24,7 +24,8 @@ from .preprocess_kitti import parse_ground_truth
 
 class Preprocess:
     """Prepare arrays with same format as nuScenes preprocessing but using ground truth txt files"""
-
+    width = 1920
+    height = 1200
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     ext = '.jpeg'
@@ -48,7 +49,7 @@ class Preprocess:
         self.iou_min = args.iou_min
         assert args.dir_gt is not None
         self.dir_gt = args.dir_gt
-        assert args.dir_images is not None
+        assert args.dir_images is not None or self.width is not None
         self.dir_images = args.dir_images
         assert args.calibration is not None
         self.calibration = args.calibration
@@ -120,12 +121,16 @@ class Preprocess:
 
     def parse_annotations(self, boxes_gt, labels, basename):
 
-        path_im = os.path.join(self.dir_images, basename + self.ext)
         min_conf = 0 if self.phase == 'train' else 0.1
-
-        # Check image size
-        with Image.open(path_im) as im:
-            width, height = im.size
+        if self.dir_images is None:
+            width = self.width
+            height = self.height
+        else:
+            # Check image size
+            path_im = os.path.join(self.dir_images, basename + self.ext)
+            with Image.open(path_im) as im:
+                width, height = im.size
+                print(im.size)
 
         # Extractkeypoints
         path_ann = os.path.join(self.dir_ann, basename + self.ext + '.predictions.json')
