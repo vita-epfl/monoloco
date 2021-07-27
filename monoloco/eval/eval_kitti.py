@@ -21,8 +21,8 @@ try:
 except ImportError:
     TABULATE = None
 
-from ..utils import get_iou_matches, get_task_error, get_pixel_error, check_conditions, \
-    get_difficulty, split_training, get_iou_matches_matrix, average, find_cluster
+from ..utils import get_iou_matches, get_task_error, get_pixel_error, check_conditions,\
+    get_iou_matches_matrix, average, find_cluster, split_training
 from ..prep import parse_ground_truth
 from ..visuals import show_results, show_spread, show_task_error, show_box_plot
 
@@ -47,10 +47,9 @@ class EvalKitti:
     # Set directories
     # main_dir = os.path.join('data', 'kitti')
     main_dir = os.path.join('data', 'wv')
-    # dir_gt = os.path.join(main_dir, 'gt')
-    dir_gt = '/mnt/remote/pure_dataset/dev_datasets/cuboid/monoloco/eval/20210713/label'
-    path_train = os.path.join('splits', 'kitti_train.txt')
-    path_val = os.path.join('splits', 'kitti_val.txt')
+    dir_gt = os.path.join(main_dir, 'gt')
+    path_train = os.path.join('data', 'wv', 'train.txt')
+    path_val = os.path.join('data', 'wv', 'val.txt')
     dir_logs = os.path.join('data', 'logs')
     assert os.path.exists(dir_logs), "No directory to save final statistics"
     dir_fig = os.path.join('figures', 'results')
@@ -90,8 +89,8 @@ class EvalKitti:
 
         # Extract validation images for evaluation
         # names_gt = tuple(os.listdir(self.dir_gt))
-        # _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
-        self.set_val = [os.path.basename(el) for el in glob.glob(os.path.join(self.dir_gt, '*.txt'))]
+        _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
+        # self.set_val = [os.path.basename(el) for el in glob.glob(os.path.join(self.dir_gt, '*.txt'))]
         # self.set_val = ('002282.txt', )
 
         # Define variables to save statistics
