@@ -41,7 +41,7 @@ class EvalKitti:
     # BASELINES = ['task_error', 'pixel_error']
     BASELINES = []
     HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
-    CATEGORIES = ('pedestrian', 'person_on_bike', 'person_on_motorcycle')
+    CATEGORIES = ('pedestrian', 'person_on_bike', 'person_on_motorcycle', 'all')
     methods = OUR_METHODS + METHODS_MONO + METHODS_STEREO
 
     # Set directories
