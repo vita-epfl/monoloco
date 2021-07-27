@@ -88,7 +88,7 @@ class EvalKitti:
         self.dic_thresh_conf['monodis'] = -100
 
         # Extract validation images for evaluation
-        # names_gt = tuple(os.listdir(self.dir_gt))
+        names_gt = tuple(os.listdir(self.dir_gt))
         _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
         # self.set_val = [os.path.basename(el) for el in glob.glob(os.path.join(self.dir_gt, '*.txt'))]
         # self.set_val = ('002282.txt', )
