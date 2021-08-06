@@ -33,15 +33,18 @@ class EvalKitti:
     logger = logging.getLogger(__name__)
     # CLUSTERS = ('easy', 'moderate', 'hard', 'all', '5', '7', '9', '11', '13', '15', '17', '19', '21', '23', '25',
     #             '27', '29', '31', '49')
-    CLUSTERS = ('easy', 'moderate', 'hard', 'all', '10', '30')
-    ALP_THRESHOLDS = ('<0.5m', '<1m', '<2m')
+    CLUSTERS = ('easy', 'moderate', 'hard', 'all', '5', '7', '9', '11', '13', '15', '17', '19', '21', '23', '25',
+                '27', '29', '31', '49')
+    ALP_THRESHOLDS = ('<2m',)
     OUR_METHODS = ['geometric', 'monoloco', 'monoloco_pp', 'pose', 'reid', 'monstereo']
-    METHODS_MONO = ['m3d', 'monopsr', 'smoke', 'monodis']
+    METHODS_MONO = ['mmdet', 'mmdet_corr', 'monopsr', 'smoke', 'monodis']
     METHODS_STEREO = ['3dop', 'psf', 'pseudo-lidar', 'e2e', 'oc-stereo']
     # BASELINES = ['task_error', 'pixel_error']
     BASELINES = []
-    HEADERS = ('method', '<0.5', '<1m', '<2m', 'easy', 'moderate', 'hard', 'all')
-    CATEGORIES = ('pedestrian', 'person_on_bike', 'person_on_motorcycle', 'all')
+    HEADERS = ('method', 'further', 'closer', '<2m', 'easy', 'moderate', 'hard', 'all')
+    # CATEGORIES = ('pedestrian', 'person_on_bike', 'person_on_motorcycle', 'all')
+    CATEGORIES = ('pedestrian', )
+    # CATEGORIES = ('car',)
     methods = OUR_METHODS + METHODS_MONO + METHODS_STEREO
 
     # Set directories
@@ -58,7 +61,7 @@ class EvalKitti:
     thresh_iou_monoloco = 0.3
     thresh_iou_base = 0.3
     thresh_conf_monoloco = 0.01
-    thresh_conf_base = 0.5
+    thresh_conf_base = 0.25
 
     def __init__(self, args):
         self.mode = args.mode
@@ -91,7 +94,7 @@ class EvalKitti:
         names_gt = tuple(os.listdir(self.dir_gt))
         _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
         # self.set_val = [os.path.basename(el) for el in glob.glob(os.path.join(self.dir_gt, '*.txt'))]
-        # self.set_val = ('002282.txt', )
+        # self.set_val = ('6093f12f27de210011b949d7.txt', )
 
         # Define variables to save statistics
         self.dic_methods = self.errors = self.dic_stds = self.dic_stats = self.dic_cnt = self.cnt_gt = self.category \
@@ -135,7 +138,7 @@ class EvalKitti:
                         # Extract annotations
                         dir_method = os.path.join(self.main_dir, method)
                         path_method = os.path.join(dir_method, name)
-                        methods_out[method] = self._parse_txts(path_method, method=method)
+                        methods_out[method] = self._parse_txts(path_method, method=method, category=self.category)
 
                         # Compute the error with ground truth
                         self._estimate_error(out_gt, methods_out[method], method=method)
@@ -170,24 +173,23 @@ class EvalKitti:
             print('-' * 100)
             show_results(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)
             show_spread(self.dic_stats, self.CLUSTERS, self.net, self.dir_fig, show=self.show, save=self.save)
-            if self.net == 'monstereo':
+            if self.net == 'monoloco_pp':
                 show_box_plot(self.errors, self.CLUSTERS, self.dir_fig, show=self.show, save=self.save)
             else:
                 show_task_error(self.dir_fig, show=self.show, save=self.save)
 
-    def _parse_txts(self, path, method):
+    def _parse_txts(self, path, method, category='pedestrian'):
 
         boxes = []
-        dds = []
+        locs = []
         cat = []
-
         if method == 'psf':
             path = os.path.splitext(path)[0] + '.png.txt'
         if method in self.OUR_METHODS:
             bis, oris, epis = [], [], []
-            output = (boxes, dds, oris, cat, bis, epis)
+            output = (boxes, locs, oris, cat, bis, epis)
         else:
-            output = (boxes, dds, cat)
+            output = (boxes, locs, cat)
         try:
             with open(path, "r") as ff:
                 for line_str in ff:
@@ -195,23 +197,23 @@ class EvalKitti:
                         line = line_str.split(", ")
                         box = [float(x) for x in line[4:8]]
                         boxes.append(box)
-                        loc = ([float(x) for x in line[11:14]])
+                        loc = [float(x) for x in line[11:14]]
                         dd = math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2)
-                        dds.append(dd)
+                        locs.append(dd)
                         cat.append('Pedestrian')
                     else:
                         line = line_str.split()
                         if check_conditions(line,
-                                            category='pedestrian',
+                                            category=category,
                                             method=method,
                                             thresh=self.dic_thresh_conf[method]):
                             box = [float(x) for x in line[4:8]]
                             box.append(float(line[15]))  # Add confidence
-                            loc = ([float(x) for x in line[11:14]])
+                            loc = [float(x) for x in line[11:14]]
                             dd = math.sqrt(loc[0] ** 2 + loc[1] ** 2 + loc[2] ** 2)
                             cat.append(line[0])
                             boxes.append(box)
-                            dds.append(dd)
+                            locs.append(loc + [dd])
                             if method in self.OUR_METHODS:
                                 oris.append(float(line[14]))
                                 bis.append(float(line[16]))
@@ -228,9 +230,9 @@ class EvalKitti:
         boxes_gt, ys, truncs_gt, occs_gt, _ = out_gt
 
         if method in self.OUR_METHODS:
-            boxes, dds, ori, cat, bis, epis = out
+            boxes, locs, ori, cat, bis, epis = out
         else:
-            boxes, dds, cat = out
+            boxes, locs, cat = out
 
         if method == 'psf':
             matches = get_iou_matches_matrix(boxes, boxes_gt, self.dic_thresh_iou[method])
@@ -245,8 +247,12 @@ class EvalKitti:
             # mode = get_difficulty(boxes_gt[idx_gt], truncs_gt[idx_gt], occs_gt[idx_gt])
             mode = get_distance_difficulty(dd_gt)
 
+            if method == 'mmdet_corr':
+                loc = locs[idx]
+                locs[idx][3] = math.sqrt((loc[0] * 0.95) ** 2 + loc[1] ** 2 + (loc[2]*0.92) ** 2)
+
             if cat[idx].lower() in (self.category, 'pedestrian'):  # ALl instances labeled as pedestrian from pifpaf
-                self.update_errors(dds[idx], dd_gt, mode, self.errors[method])
+                self.update_errors(locs[idx][3], dd_gt, mode, self.errors[method])
                 if method == 'monoloco':
                     dd_task_error = dd_gt + (get_task_error(zz_gt))**2
                     dd_pixel_error = dd_gt + get_pixel_error(zz_gt)
@@ -255,26 +261,24 @@ class EvalKitti:
                 if method in self.OUR_METHODS:
                     epi = max(epis[idx], bis[idx])
                     self.update_orientation(ori[idx], ori_gt, dd_gt, self.errors[method])
-                    self.update_uncertainty(bis[idx], epi, dds[idx], dd_gt, mode, self.dic_stds[method])
+                    self.update_uncertainty(bis[idx], epi, locs[idx][3], dd_gt, mode, self.dic_stds[method])
 
     def update_errors(self, dd, dd_gt, cat, errors):
         """Compute and save errors between a single box and the gt box which match"""
-        diff = abs(dd - dd_gt)
+        error = dd - dd_gt
+        diff = abs(error)
         clst = find_cluster(dd_gt, self.CLUSTERS[4:])
         errors['all'].append(diff)
         errors[cat].append(diff)
         errors[clst].append(diff)
 
         # Check if the distance is less than one or 2 meters
-        if diff <= 0.5:
-            errors['<0.5m'].append(1)
+        if error > 0:
+            errors['further'].append(1)
+            errors['closer'].append(0)
         else:
-            errors['<0.5m'].append(0)
-
-        if diff <= 1:
-            errors['<1m'].append(1)
-        else:
-            errors['<1m'].append(0)
+            errors['further'].append(0)
+            errors['closer'].append(1)
 
         if diff <= 2:
             errors['<2m'].append(1)
@@ -393,7 +397,7 @@ class EvalKitti:
         """Tabulate table for ALP and ALE metrics"""
 
         alp = [[str(100 * average(self.errors[key][perc]))[:5]
-                for perc in ['<0.5m', '<1m', '<2m']]
+                for perc in ['further', 'closer', '<2m']]
                for key in all_methods]
 
         ale = [[str(round(self.dic_stats['test'][key][clst]['mean'], 2))[:4] + ' [' +
@@ -449,8 +453,8 @@ def add_true_negatives(err, cnt_gt):
     matched = len(err['all'])
     missed = cnt_gt - matched
     zeros = [0] * missed
-    err['<0.5m'].extend(zeros)
-    err['<1m'].extend(zeros)
+    # err['<0.5m'].extend(zeros)
+    # err['<1m'].extend(zeros)
     err['<2m'].extend(zeros)
     err['matched'] = matched
     err['recall'] = 100 * matched / cnt_gt
@@ -498,6 +502,7 @@ def get_distance_difficulty(dd):
         return 'moderate'
     else:
         return 'hard'
+
 
 def debug_errors(errors):
     plt.figure(1)

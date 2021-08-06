@@ -45,7 +45,7 @@ def show_results(dic_stats, clusters, net, dir_fig, show=False, save=False):
         plt.ylim(y_min, y_max)
         plt.xlabel("Ground-truth distance [m]", fontsize=FONTSIZE)
         plt.ylabel("Average localization error (ALE) [m]", fontsize=FONTSIZE)
-        for idx, method in enumerate(styles['methods']):
+        for idx, method in enumerate(dic_stats[phase]):
             errs = [dic_stats[phase][method][clst]['mean'] for clst in clusters[:-1]]  # last cluster only a bound
             cnts = [dic_stats[phase][method][clst]['cnt'] for clst in clusters[:-1]]  # last cluster only a bound
             assert errs, "method %s empty" % method
@@ -54,7 +54,7 @@ def show_results(dic_stats, clusters, net, dir_fig, show=False, save=False):
             plt.plot(xxs, errs, marker=styles['mks'][idx], markersize=styles['mksizes'][idx],
                      linewidth=styles['lws'][idx],
                      label=styles['labels'][idx], linestyle=styles['lstyles'][idx], color=styles['colors'][idx])
-            if method in ('monstereo', 'monoloco_pp', 'pseudo-lidar'):
+            if method in ('monstereo', 'monoloco_pp', 'mmdet'):
                 for i, x in enumerate(xxs):
                     plt.text(x, errs[i] - 0.1, str(cnts[i]), fontsize=FONTSIZE)
     if net == 'monoloco_pp':
@@ -191,7 +191,7 @@ def show_method(save, dir_out='data/figures'):
 def show_box_plot(dic_errors, clusters, dir_fig, show=False, save=False):
     excl_clusters = ['all', 'easy', 'moderate', 'hard']
     clusters = [int(clst) for clst in clusters if clst not in excl_clusters]
-    methods = ('monstereo', 'pseudo-lidar', '3dop', 'monoloco')
+    methods = ('monoloco_pp', 'mmdet_corr')
     y_min = 0
     y_max = 16  # 18 for the other
     xxs = get_distances(clusters)
@@ -315,12 +315,12 @@ def printing_styles(net):
                  "colors": ['gold', 'skyblue', 'darkgreen', 'pink', 'darkorange', 'b'],
                  "lstyles": ['solid', 'solid', 'dashed', 'dashed', 'solid', 'solid']}
     else:
-        style = {"labels": ['Geometric Baseline', 'MonoPSR', 'MonoDIS', '3DOP (stereo)',
-                            'MonoLoco', 'Monoloco++'],
-                 "methods": ['geometric', 'monopsr', 'monodis', '3dop', 'monoloco', 'monoloco_pp'],
+        style = {"labels": ['Monoloco++', 'MMdetection3D', 'MMdetCorrected', 'MonoPSR', 'MonoDIS',
+                            'MonoLoco', ],
+                 "methods": ['monoloco_pp', 'mmdet', 'mmdet_corr', 'monopsr', 'monodis',  'monoloco'],
                  "mks": ['*', '^', 'p', '.', 's', 'o', 'o'],
                  "mksizes": [6, 6, 6, 6, 6, 6], "lws": [1.5, 1.5, 1.5, 1.5, 1.5, 2.2],
-                 "colors": ['purple', 'olive', 'r', 'darkorange', 'b', 'darkblue'],
+                 "colors": ['darkblue', 'darkorange', 'olive', 'purple', 'r',  'b'],
                  "lstyles": ['solid', 'solid', 'solid', 'dashdot', 'solid', 'solid', ]}
 
     return style

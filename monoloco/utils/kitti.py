@@ -75,7 +75,7 @@ def get_simplified_calibration(path_txt):
 def check_conditions(line, category, method, thresh=0.3, d_threshold=100):
     """Check conditions of our or m3d txt file"""
     check = False
-    assert category in ['pedestrian', 'cyclist', 'all', 'person_on_bike', 'person_on_motorcycle']
+    assert category in ['pedestrian', 'cyclist', 'all', 'person_on_bike', 'person_on_motorcycle', 'car']
 
     if category == 'all':
         categories = ['pedestrian', 'person_sitting', 'cyclist', 'person_on_bike', 'person_on_motorcycle']
