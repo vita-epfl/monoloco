@@ -158,8 +158,6 @@ class EvalKitti:
             # Show statistics
             print('\n' + self.category.upper() + ':')
             self.show_statistics()
-            ori_error = average(self.errors['monoloco_pp']['ori'])
-            print(f'orientation average error: {ori_error:.2f} degrees')
             file_name = os.path.join(self.main_dir, 'errors.json')
             if self.category in self.CATEGORIES[-1]:
                 with open(file_name, 'w') as f:
@@ -180,16 +178,14 @@ class EvalKitti:
 
     def _parse_txts(self, path, method, category='pedestrian'):
 
-        boxes = []
-        locs = []
-        cat = []
+        boxes, locs, yaws, cat = [], [], [], []
         if method == 'psf':
             path = os.path.splitext(path)[0] + '.png.txt'
         if method in self.OUR_METHODS:
-            bis, oris, epis = [], [], []
-            output = (boxes, locs, oris, cat, bis, epis)
+            bis, epis = [], []
+            output = (boxes, locs, yaws, cat, bis, epis)
         else:
-            output = (boxes, locs, cat)
+            output = (boxes, locs, yaws, cat)
         try:
             with open(path, "r") as ff:
                 for line_str in ff:
@@ -214,8 +210,8 @@ class EvalKitti:
                             cat.append(line[0])
                             boxes.append(box)
                             locs.append(loc + [dd])
+                            yaws.append(float(line[14]))
                             if method in self.OUR_METHODS:
-                                oris.append(float(line[14]))
                                 bis.append(float(line[16]))
                                 epis.append(float(line[17]))
                             self.dic_cnt[method] += 1
@@ -232,7 +228,7 @@ class EvalKitti:
         if method in self.OUR_METHODS:
             boxes, locs, ori, cat, bis, epis = out
         else:
-            boxes, locs, cat = out
+            boxes, locs, ori, cat = out
 
         if method == 'psf':
             matches = get_iou_matches_matrix(boxes, boxes_gt, self.dic_thresh_iou[method])
@@ -253,6 +249,7 @@ class EvalKitti:
 
             if cat[idx].lower() in (self.category, 'pedestrian'):  # ALl instances labeled as pedestrian from pifpaf
                 self.update_errors(locs[idx][3], dd_gt, mode, self.errors[method])
+                self.update_orientation(ori[idx], ori_gt, dd_gt, self.errors[method])
                 if method == 'monoloco':
                     dd_task_error = dd_gt + (get_task_error(zz_gt))**2
                     dd_pixel_error = dd_gt + get_pixel_error(zz_gt)
@@ -260,7 +257,6 @@ class EvalKitti:
                     self.update_errors(dd_pixel_error, dd_gt, mode, self.errors['pixel_error'])
                 if method in self.OUR_METHODS:
                     epi = max(epis[idx], bis[idx])
-                    self.update_orientation(ori[idx], ori_gt, dd_gt, self.errors[method])
                     self.update_uncertainty(bis[idx], epi, locs[idx][3], dd_gt, mode, self.dic_stds[method])
 
     def update_errors(self, dd, dd_gt, cat, errors):
@@ -286,10 +282,12 @@ class EvalKitti:
             errors['<2m'].append(0)
 
     def update_orientation(self, ori, ori_gt, dd_gt, errors):
-        # TODO make it category dependant
+        ori = normalize_angle(ori)
+        # assert -np.pi <= ori_gt <= np.pi
         ori = ori * 180 / math.pi
         ori_gt = ori_gt * 180 / math.pi
         angle = 180 - abs(abs(ori - ori_gt) - 180)
+        assert angle > 0
         errors['ori'].append(angle)
         if angle / (dd_gt / 10) > 40 and dd_gt < 20:
             self.json_list.append(os.path.splitext(self.name)[0] + '.jpeg')
@@ -357,6 +355,12 @@ class EvalKitti:
         print('-'*90)
         # debug_errors(self.errors['monoloco_pp']['all'])
         self.summary_table(all_methods)
+        for method in all_methods:
+            debug_errors(self.errors[method]['ori'])
+            ori_error = average(self.errors[method]['ori'])
+            cnt_ori = len(self.errors[method]['ori'])
+            print(f'Orientation: average error of {method}: {ori_error:.2f} degrees for {cnt_ori} instances')
+            max_error = max(self.errors[method]['ori'])
 
         # Uncertainty
         # for net in self.OUR_METHODS:
@@ -506,7 +510,16 @@ def get_distance_difficulty(dd):
 
 def debug_errors(errors):
     plt.figure(1)
-    plt.xlim(-6, 6)
+    # plt.xlim(-6, 6)
     plt.hist(errors, bins='auto')
     plt.show()
     plt.close()
+
+
+def normalize_angle(ori):
+    while ori > np.pi:
+        ori -= 2 * np.pi
+    while ori < -np.pi:
+        ori += 2 * np.pi
+    assert -np.pi <= ori <= np.pi
+    return ori

@@ -37,6 +37,7 @@ setup(
         'openpifpaf>=v0.12.10',
         'matplotlib',
         'pyyaml',
+        'scipy',
     ],
     extras_require={
         'test': [
