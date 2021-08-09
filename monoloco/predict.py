@@ -261,7 +261,7 @@ def predict(args):
                     timing.append(fwd_time)
                     dic_out = net.post_process(
                         dic_out, boxes, keypoints, kk, dic_gt)
-
+                    dic_out['intrinsics'] = kk
             # Output
             factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=kk)
             print(f'Image {cnt}\n' + '-' * 120)

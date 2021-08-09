@@ -94,7 +94,7 @@ class EvalKitti:
         names_gt = tuple(os.listdir(self.dir_gt))
         _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
         # self.set_val = [os.path.basename(el) for el in glob.glob(os.path.join(self.dir_gt, '*.txt'))]
-        # self.set_val = ('6093f12f27de210011b949d7.txt', )
+        self.set_val = ('6093f12f27de210011b949d7.txt', )
 
         # Define variables to save statistics
         self.dic_methods = self.errors = self.dic_stds = self.dic_stats = self.dic_cnt = self.cnt_gt = self.category \

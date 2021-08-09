@@ -172,10 +172,10 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
     assert 'front' in args.output_types or 'bird' in args.output_types, "outputs allowed: front and/or bird"
 
     colors_front, colors_bird = get_colors(dic_out, args.activities)
-    angles = dic_out['angles']
-    angles_ego = dic_out['angles_ego']
+    angles = dic_out['alpha']
+    angles_ego = dic_out['yaw']
     stds = dic_out['stds_ale']
-    xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
+    xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz']]
 
     # Draw keypoints and orientation
     if 'front' in args.output_types:

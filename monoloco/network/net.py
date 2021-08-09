@@ -171,8 +171,8 @@ class Loco:
         if dic_gt:
             boxes_gt = dic_gt['boxes']
             dds_gt = [el[3] for el in dic_gt['ys']]
-            angles_gt = [el[9] for el in dic_gt['ys']]
-            angles_gt_ego = [el[10] for el in dic_gt['ys']]
+            alphas_gt = [el[9] for el in dic_gt['ys']]
+            yaws_gt = [el[10] for el in dic_gt['ys']]
             matches = get_iou_matches(boxes, boxes_gt, iou_min=iou_min)
             dic_out['gt'] = [True]
             if verbose:
@@ -206,7 +206,7 @@ class Loco:
             dd_pred = float(dic_in['d'][idx])
             bi = float(dic_in['bi'][idx])
             var_y = float(dic_in['epi'][idx])
-            whl = [float(dic_in['w'][idx]), float(dic_in['h'][idx]), float(dic_in['l'][idx])]
+            hwl = [float(dic_in['h'][idx]), float(dic_in['w'][idx]), float(dic_in['l'][idx])]
 
             uu_s, vv_s = uv_shoulders.tolist()[idx][0:2]
             uu_c, vv_c = uv_centers.tolist()[idx][0:2]
@@ -214,17 +214,17 @@ class Loco:
             uv_shoulder = [round(uu_s), round(vv_s)]
             uv_center = [round(uu_c), round(vv_c)]
             uv_head = [round(uu_h), round(vv_h)]
-            xyz_pred = xyz_from_distance(dd_pred, xy_centers[idx])[0]
-            distance = math.sqrt(float(xyz_pred[0])**2 + float(xyz_pred[1])**2 + float(xyz_pred[2])**2)
+            xyz = xyz_from_distance(dd_pred, xy_centers[idx])[0]
+            distance = math.sqrt(float(xyz[0])**2 + float(xyz[1])**2 + float(xyz[2])**2)
             conf = 0.035 * (box[-1]) / (bi / distance)
 
-            dic_out['boxes'].append(box)
-            dic_out['confs'].append(conf)
-            dic_out['dds_pred'].append(dd_pred)
+            dic_out['boxes'].append(box[:-1])
+            dic_out['confidence'].append(conf)
+            dic_out['distance'].append(dd_pred)
             dic_out['stds_ale'].append(bi)
             dic_out['stds_epi'].append(var_y)
 
-            dic_out['xyz_pred'].append(xyz_pred.squeeze().tolist())
+            dic_out['xyz'].append(xyz.squeeze().tolist())
 
             dic_out['uv_kps'].append(kps)
             dic_out['uv_centers'].append(uv_center)
@@ -233,9 +233,9 @@ class Loco:
 
             # For MonStereo / MonoLoco++
             try:
-                dic_out['angles'].append(float(dic_in['yaw'][0][idx]))  # Predicted angle
-                dic_out['angles_ego'].append(float(dic_in['yaw'][1][idx]))  # Egocentric angle
-                dic_out['whl'].append(whl)
+                dic_out['alpha'].append(float(dic_in['yaw'][0][idx]))  # Predicted angle
+                dic_out['yaw'].append(float(dic_in['yaw'][1][idx]))  # Egocentric angle
+                dic_out['hwl'].append(hwl)
             except KeyError:
                 continue
 
@@ -247,23 +247,23 @@ class Loco:
 
         for idx, idx_gt in matches:
             dd_gt = dds_gt[idx_gt]
-            angle = angles_gt[idx_gt]
-            angle_ego = angles_gt_ego[idx_gt]
+            alpha_gt = alphas_gt[idx_gt]
+            yaw_gt = yaws_gt[idx_gt]
             xyz_real = xyz_from_distance(dd_gt, xy_centers[idx])
-            dic_out['dds_gt'].append(dd_gt)
+            dic_out['distance_gt'].append(dd_gt)
             dic_out['boxes_gt'].append(boxes_gt[idx_gt])
             dic_out['xyz_gt'].append(xyz_real.squeeze().tolist())
-            dic_out['angles_gt'].append(angle)
-            dic_out['angles_gt_ego'].append(angle_ego)
+            dic_out['alpha_gt'].append(alpha_gt)
+            dic_out['yaw_gt'].append(yaw_gt)
         return dic_out
 
     @staticmethod
     def social_distance(dic_out, args):
 
-        dds = dic_out['dds_pred']
+        dds = dic_out['distance']
         stds = dic_out['stds_ale']
-        angles = dic_out['angles']
-        xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
+        angles = dic_out['alpha']
+        xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz']]
 
         # Prepare color for social distancing
         dic_out['social_distance'] = [bool(social_interactions(idx, xz_centers, angles, dds,
@@ -271,7 +271,7 @@ class Loco:
                                                                threshold_prob=args.threshold_prob,
                                                                threshold_dist=args.threshold_dist,
                                                                radii=args.radii))
-                                      for idx, _ in enumerate(dic_out['xyz_pred'])]
+                                      for idx, _ in enumerate(dic_out['xyz'])]
         return dic_out
 
 

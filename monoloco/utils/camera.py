@@ -252,14 +252,14 @@ def to_cartesian(rtp, mode=None):
     return[x, y, z]
 
 
-def project_3d_corners(xyz, yaw, whl, kk):
+def project_3d_corners(xyz, yaw, hwl, kk):
     """
     return the projection of the 8 box corners
     """
     corners_init = list(itertools.product([-.5, .5], repeat=3))
     corners_init = np.array(corners_init).reshape((8, 3)).T
     t_matrix = np.array(xyz).reshape(3, 1)
-
+    whl = [hwl[1], hwl[0], hwl[2]]
     scaling_matrix = np.diag(whl)
     r = R.from_rotvec([0, yaw, 0])
     r_matrix = r.as_matrix()

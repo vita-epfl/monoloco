@@ -142,10 +142,10 @@ class ActivityEvaluator:
     def estimate_activity(self, dic_out, matches, ys_gt, categories):
 
         # Calculate social interaction
-        angles = dic_out['angles']
-        dds = dic_out['dds_pred']
+        angles = dic_out['alpha']
+        dds = dic_out['distance']
         stds = dic_out['stds_ale']
-        xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
+        xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz']]
 
         # Count gt statistics. (One element each gt)
         for key in categories:

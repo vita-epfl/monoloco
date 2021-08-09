@@ -6,7 +6,6 @@ import math
 from collections import OrderedDict
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
 
 from .pifpaf_show import KeypointPainter, get_pifpaf_outputs
 from .orientation import DrawOrientation
@@ -79,21 +78,20 @@ class Printer:
         self.stds_epi = dic_ann['stds_epi']
         self.gt = dic_ann['gt']  # regulate ground-truth matching
         self.xx_gt = [xx[0] for xx in dic_ann['xyz_gt']]
-        self.xx_pred = [xx[0] for xx in dic_ann['xyz_pred']]
-        self.xz_centers = [[xx[0], xx[2]] for xx in dic_ann['xyz_pred']]
+        self.xx_pred = [xx[0] for xx in dic_ann['xyz']]
+        self.xz_centers = [[xx[0], xx[2]] for xx in dic_ann['xyz']]
         self.xz_centers_gt = [[xx[0], xx[2]] for xx in dic_ann['xyz_gt']]
 
         # 3D Cuboids
-        self.xyz_centers = dic_ann['xyz_pred']
-        self.whl = dic_ann['whl']
-        self.angles = dic_ann['angles']
-        self.angles_ego = dic_ann['angles_ego']
-        self.angles_gt_ego = dic_ann['angles_gt_ego']
-        self.yaw = dic_ann['angles']
+        self.xyz_centers = dic_ann['xyz']
+        self.hwl = dic_ann['hwl']
+        self.alphas = dic_ann['alpha']
+        self.yaws_gt = dic_ann['yaw_gt']
+        self.yaws = dic_ann['yaw']
 
         # Set maximum distance
-        self.dd_pred = dic_ann['dds_pred']
-        self.dd_gt = dic_ann['dds_gt']
+        self.dd_pred = dic_ann['distance']
+        self.dd_gt = dic_ann['distance_gt']
         if self.z_max > 99:  # Dynamic
             self.z_max = int(min(self.z_max, 4 + max(max(self.dd_pred), max(self.dd_gt, default=0))))
 
@@ -101,9 +99,9 @@ class Printer:
         self.zz_gt = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
                       for idx, xx in enumerate(dic_ann['xyz_gt'])]
         self.zz_pred = [xx[2] if xx[2] < self.z_max - self.stds_epi[idx] else 0
-                        for idx, xx in enumerate(dic_ann['xyz_pred'])]
+                        for idx, xx in enumerate(dic_ann['xyz'])]
         self.xx_pred = [xx[0] if abs(xx[0]) < self.z_max / 2 else -100  # TODO: To better adapt
-                        for idx, xx in enumerate(dic_ann['xyz_pred'])]
+                        for idx, xx in enumerate(dic_ann['xyz'])]
         self.uv_heads = dic_ann['uv_heads']
         # Scale the intrinsic matrix
         self.uv_shoulders = dic_ann['uv_shoulders']
@@ -241,7 +239,7 @@ class Printer:
             number = dict(flag=False, num=97)
             if any(xx in self.output_types for xx in ['front', 'multi']):
                 self.orientation_front = DrawOrientation(
-                    self.angles, colors_front, mode='front', shoulders=self.uv_shoulders, y_scale=self.y_scale)
+                    self.alphas, colors_front, mode='front', shoulders=self.uv_shoulders, y_scale=self.y_scale)
                 number['flag'] = True  # add numbers
                 self._front_loop(iterator, axes, number, annotations, dic_out)
 
@@ -249,11 +247,11 @@ class Printer:
             number['num'] = 97
             if any(xx in self.output_types for xx in ['bird', 'multi']):
                 self.orientation_bird = DrawOrientation(
-                    self.angles_ego, colors_bird, mode='bird', y_scale=self.y_scale)
+                    self.yaws, colors_bird, mode='bird', y_scale=self.y_scale)
                 if any(self.gt):
-                    colors_gt = ['k'] * len(self.angles_gt_ego)
+                    colors_gt = ['k'] * len(self.yaws_gt)
                     self.orientation_gt_bird = DrawOrientation(
-                        self.angles_gt_ego, colors_gt, mode='bird', y_scale=self.y_scale
+                        self.yaws_gt, colors_gt, mode='bird', y_scale=self.y_scale
                     )
                 self._bird_loop(iterator, axes, number)
                 self._draw_legend(axes)
@@ -272,7 +270,7 @@ class Printer:
     def _draw_front(self, ax, idx, number):
 
         # Bbox
-        corners = project_3d_corners(self.xyz_centers[idx], self.yaw[idx], self.whl[idx], self.kk)
+        corners = project_3d_corners(self.xyz_centers[idx], self.yaws[idx], self.hwl[idx], self.kk)
         max_x = self.kk[0][2] * 2
         max_y = self.kk[1][2] * 2
         delta = 60  # pixels

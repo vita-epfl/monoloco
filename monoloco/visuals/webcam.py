@@ -182,7 +182,7 @@ class Visualizer:
                 axes[1].lines = [axes[1].lines[0], axes[1].lines[1]]
                 axes[1].texts = []
 
-            if dic_out and dic_out['dds_pred']:
+            if dic_out and dic_out['distance']:
                 printer._process_results(dic_out)
                 printer.draw(figures, axes, image, dic_out, pifpaf_outs['left'])
                 mypause(0.01)
