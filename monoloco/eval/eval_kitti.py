@@ -36,15 +36,14 @@ class EvalKitti:
     CLUSTERS = ('easy', 'moderate', 'hard', 'all', '5', '7', '9', '11', '13', '15', '17', '19', '21', '23', '25',
                 '27', '29', '31', '49')
     ALP_THRESHOLDS = ('<2m',)
-    OUR_METHODS = ['geometric', 'monoloco', 'monoloco_pp', 'pose', 'reid', 'monstereo']
+    OUR_METHODS = ['geometric', 'monoloco', 'pose', 'reid', 'monstereo']
     METHODS_MONO = ['mmdet', 'mmdet_corr', 'monopsr', 'smoke', 'monodis']
     METHODS_STEREO = ['3dop', 'psf', 'pseudo-lidar', 'e2e', 'oc-stereo']
     # BASELINES = ['task_error', 'pixel_error']
     BASELINES = []
     HEADERS = ('method', 'further', 'closer', '<2m', 'easy', 'moderate', 'hard', 'all')
     # CATEGORIES = ('pedestrian', 'person_on_bike', 'person_on_motorcycle', 'all')
-    CATEGORIES = ('pedestrian', )
-    # CATEGORIES = ('car',)
+    CATEGORIES = ('car', )
     methods = OUR_METHODS + METHODS_MONO + METHODS_STEREO
 
     # Set directories
@@ -94,7 +93,7 @@ class EvalKitti:
         names_gt = tuple(os.listdir(self.dir_gt))
         _, self.set_val = split_training(names_gt, self.path_train, self.path_val)
         # self.set_val = [os.path.basename(el) for el in glob.glob(os.path.join(self.dir_gt, '*.txt'))]
-        self.set_val = ('6093f12f27de210011b949d7.txt', )
+        # self.set_val = ('6093f12f27de210011b949d7.txt', )
 
         # Define variables to save statistics
         self.dic_methods = self.errors = self.dic_stds = self.dic_stats = self.dic_cnt = self.cnt_gt = self.category \
@@ -245,7 +244,7 @@ class EvalKitti:
 
             if method == 'mmdet_corr':
                 loc = locs[idx]
-                locs[idx][3] = math.sqrt((loc[0] * 0.95) ** 2 + loc[1] ** 2 + (loc[2]*0.92) ** 2)
+                locs[idx][3] = math.sqrt((loc[0] * 0.9) ** 2 + loc[1] ** 2 + (loc[2]*0.9) ** 2)
 
             if cat[idx].lower() in (self.category, 'pedestrian'):  # ALl instances labeled as pedestrian from pifpaf
                 self.update_errors(locs[idx][3], dd_gt, mode, self.errors[method])
@@ -353,10 +352,9 @@ class EvalKitti:
 
         all_methods = self.methods + self.BASELINES
         print('-'*90)
-        # debug_errors(self.errors['monoloco_pp']['all'])
         self.summary_table(all_methods)
         for method in all_methods:
-            debug_errors(self.errors[method]['ori'])
+            # debug_errors(self.errors[method]['ori'])
             ori_error = average(self.errors[method]['ori'])
             cnt_ori = len(self.errors[method]['ori'])
             print(f'Orientation: average error of {method}: {ori_error:.2f} degrees for {cnt_ori} instances')

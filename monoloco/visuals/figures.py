@@ -7,11 +7,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
-try:
-    import pandas as pd
-    DATAFRAME = pd.DataFrame
-except ImportError:
-    DATAFRAME = None
+import pandas as pd
+DATAFRAME = pd.DataFrame
 
 from ..utils import get_task_error, get_pixel_error
 
@@ -54,7 +51,7 @@ def show_results(dic_stats, clusters, net, dir_fig, show=False, save=False):
             plt.plot(xxs, errs, marker=styles['mks'][idx], markersize=styles['mksizes'][idx],
                      linewidth=styles['lws'][idx],
                      label=styles['labels'][idx], linestyle=styles['lstyles'][idx], color=styles['colors'][idx])
-            if method in ('monstereo', 'monoloco_pp', 'mmdet'):
+            if method in ('monstereo', 'monoloco_pp', 'mmdet', 'mmdet_corr'):
                 for i, x in enumerate(xxs):
                     plt.text(x, errs[i] - 0.1, str(cnts[i]), fontsize=FONTSIZE)
     if net == 'monoloco_pp':
