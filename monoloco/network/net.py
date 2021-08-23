@@ -260,7 +260,10 @@ class Loco:
     @staticmethod
     def label(dic_in, boxes, kk):
         """Save an essential version of json similar to nuScenes cuboid structure"""
-        dic_out = {'cuboids': []}
+        dic_out = {
+            'cuboids': [],
+            'intrinsics': kk}
+
         if dic_in is None:
             return dic_out
 
@@ -274,7 +277,7 @@ class Loco:
             conf = 0.035 * (box[-1]) / (bi / distance)
 
             cuboid = {}
-            cuboid['box'] = box
+            cuboid['box'] = box[:-1]
             cuboid['confidence'] = conf
             cuboid['distance'] = distance
             cuboid['aleatoric'] = bi
@@ -284,9 +287,8 @@ class Loco:
             cuboid['alpha'] = float(dic_in['yaw'][0][idx])  # Predicted angle
             cuboid['yaw'] = float(dic_in['yaw'][1][idx])  # Egocentric angle
             dic_out['cuboids'].append(cuboid)
-
-        dic_out['intrinsics'] = kk
         return dic_out
+
     @staticmethod
     def social_distance(dic_out, args):
 
