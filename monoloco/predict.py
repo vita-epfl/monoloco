@@ -210,11 +210,11 @@ def predict(args):
             # Set output image name
             if args.output_directory is None:
                 splits = os.path.split(meta['file_name'])
-                output_path = os.path.join(splits[0], 'out_' + splits[1])
+                output_path = os.path.join(splits[0], splits[1])
             else:
                 file_name = os.path.basename(meta['file_name'])
                 output_path = os.path.join(
-                    args.output_directory, 'out_' + file_name)
+                    args.output_directory, file_name)
 
             im_name = os.path.basename(meta['file_name'])
             print(f'{idx} image {im_name} saved as {output_path}')
@@ -246,12 +246,15 @@ def predict(args):
                     fwd_time = (time.time()-start)*1000
                     timing.append(fwd_time)  # Skip Reordering and saving images
                     print(f"Forward time: {fwd_time:.0f} ms")
-                    dic_out = net.post_process(
-                        dic_out, boxes, keypoints, kk, dic_gt)
-                    if 'social_distance' in args.activities:
-                        dic_out = net.social_distance(dic_out, args)
-                    if 'raise_hand' in args.activities:
-                        dic_out = net.raising_hand(dic_out, keypoints)
+                    if args.label:
+                        dic_out = net.label(dic_out, boxes, kk)
+                    else:
+                        dic_out = net.post_process(
+                            dic_out, boxes, keypoints, kk, dic_gt)
+                        if 'social_distance' in args.activities:
+                            dic_out = net.social_distance(dic_out, args)
+                        if 'raise_hand' in args.activities:
+                            dic_out = net.raising_hand(dic_out, keypoints)
 
                 else:
                     LOG.info("Prediction with MonStereo")

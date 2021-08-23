@@ -70,6 +70,7 @@ def cli():
     predict_parser.add_argument('--focal_length',
                                 help='foe a custom camera: focal length in mm for a sensor of 7.2x5.4 mm. (nuScenes)',
                                 type=float, default=5.7)
+    predict_parser.add_argument('--label', help='save only an essential json file', action='store_true')
 
     # Social distancing and social interactions
     predict_parser.add_argument('--threshold_prob', type=float, help='concordance for samples', default=0.25)
