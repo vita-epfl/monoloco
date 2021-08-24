@@ -217,7 +217,7 @@ def predict(args):
                     args.output_directory, file_name)
 
             im_name = os.path.basename(meta['file_name'])
-            print(f'{idx} image {im_name} saved as {output_path}')
+            print(f'{idx} file from {im_name} saved in {output_path}')
 
         if (args.mode == 'mono') or (args.mode == 'stereo' and idx % args.batch_size != 0):
             # 3D Predictions
