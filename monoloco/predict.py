@@ -248,6 +248,8 @@ def predict(args):
                     print(f"Forward time: {fwd_time:.0f} ms")
                     if args.label:
                         dic_out = net.label(dic_out, boxes, kk)
+                        dic_out['image_size'] = pifpaf_outs['width_height']
+                        dic_out['image_name'] = im_name
                     else:
                         dic_out = net.post_process(
                             dic_out, boxes, keypoints, kk, dic_gt)
