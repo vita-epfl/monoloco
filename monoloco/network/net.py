@@ -274,10 +274,10 @@ class Loco:
             var_y = float(dic_in['epi'][idx])
             hwl = [float(dic_in['h'][idx]), float(dic_in['w'][idx]), float(dic_in['l'][idx])]
             xyz = [float(dic_in['xyzd'][idx][0]), float(dic_in['xyzd'][idx][1]), float(dic_in['xyzd'][idx][2])]
-            conf = 0.035 * (box[-1]) / (bi / distance)
+            conf = 0.035 * (float(box[-1])) / (bi / distance)
 
             cuboid = {}
-            cuboid['box'] = box[:-1]
+            cuboid['box'] = [float(el) for el in box[:-1]]
             cuboid['confidence'] = conf
             cuboid['distance'] = distance
             cuboid['aleatoric'] = bi
