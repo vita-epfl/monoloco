@@ -239,7 +239,6 @@ def predict(args):
                 # Preprocess pifpaf outputs and run monoloco
                 boxes, keypoints = preprocess_pifpaf(
                     pifpaf_outs['left'], im_size, enlarge_boxes=False)
-
                 if args.mode == 'mono':
                     LOG.info("Prediction with MonoLoco++")
                     dic_out = net.forward(keypoints, kk)
@@ -283,6 +282,8 @@ def factory_outputs(args, pifpaf_outs, dic_out, output_path, kk=None):
     """
     Output json files or images according to the choice
     """
+    if args.label:
+        assert len(args.output_types) == 1 and 'json' in args.output_types
     if 'json' in args.output_types:
         with open(os.path.join(output_path + '.monoloco.json'), 'w') as ff:
             json.dump(dic_out, ff)
