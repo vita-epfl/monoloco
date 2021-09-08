@@ -37,7 +37,7 @@ class EvalKitti:
                 '27', '29', '31', '49')
     ALP_THRESHOLDS = ('<2m',)
     OUR_METHODS = ['geometric', 'monoloco', 'pose', 'reid', 'monstereo']
-    METHODS_MONO = ['mmdet', 'mmdet_corr', 'monopsr', 'smoke', 'monodis']
+    METHODS_MONO = ['mmdet', 'mmdet_corr', 'mmdet-autocorr', 'monopsr', 'smoke', 'monodis']
     METHODS_STEREO = ['3dop', 'psf', 'pseudo-lidar', 'e2e', 'oc-stereo']
     # BASELINES = ['task_error', 'pixel_error']
     BASELINES = []
@@ -244,7 +244,7 @@ class EvalKitti:
 
             if method == 'mmdet_corr':
                 loc = locs[idx]
-                locs[idx][3] = math.sqrt((loc[0] * 0.9) ** 2 + loc[1] ** 2 + (loc[2]*0.9) ** 2)
+                locs[idx][3] = math.sqrt((loc[0] * 0.9) ** 2 + (loc[1] * 0.9) ** 2 + (loc[2]*0.9) ** 2)
 
             if cat[idx].lower() in (self.category, 'pedestrian'):  # ALl instances labeled as pedestrian from pifpaf
                 self.update_errors(locs[idx][3], dd_gt, mode, self.errors[method])
