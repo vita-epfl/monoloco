@@ -204,10 +204,9 @@ def correct_angle(yaw, xyz):
 def back_correct_angles(yaws, xyz):
     corrections = torch.atan2(xyz[:, 0], xyz[:, 2])
     yaws = yaws + corrections.view(-1, 1)
-    mask_up = yaws > math.pi
-    yaws[mask_up] -= 2 * math.pi
-    mask_down = yaws < -math.pi
-    yaws[mask_down] += 2 * math.pi
+    yaws[yaws > math.pi] -= 2. * math.pi
+    yaws[yaws < -math.pi] += 2. * math.pi
+    # assert torch.all(yaws < math.pi) & torch.all(yaws > - math.pi)
     return yaws
 
 

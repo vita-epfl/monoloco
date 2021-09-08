@@ -43,7 +43,7 @@ class EvalKitti:
     BASELINES = []
     HEADERS = ('method', 'further', 'closer', '<2m', 'easy', 'moderate', 'hard', 'all')
     # CATEGORIES = ('pedestrian', 'person_on_bike', 'person_on_motorcycle', 'all')
-    CATEGORIES = ('car', )
+    CATEGORIES = ('car', 'pedestrian')
     methods = OUR_METHODS + METHODS_MONO + METHODS_STEREO
 
     # Set directories
