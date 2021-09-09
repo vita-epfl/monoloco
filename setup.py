@@ -34,7 +34,7 @@ setup(
 
     install_requires=[
         'pillow<8.3',  # upper limit for torchvision 0.10.0 compatibility
-        'openpifpaf>=v0.12.10',
+        'openpifpaf>=v0.12.10,<=v0.12.12',
         'matplotlib',
         'pyyaml',
     ],
