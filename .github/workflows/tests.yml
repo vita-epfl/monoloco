@@ -85,11 +85,11 @@ jobs:
         python -c "import monoloco; print(monoloco.__version__)"
     - name: Lint monoloco
       run: |
-        pylint monoloco --disable=fixme
+        pylint monoloco --disable=fixme,W1514
     - name: Lint tests
       if: matrix.os != 'windows-latest'  # because of path separator
       run: |
-        pylint tests/*.py --disable=fixme
+        pylint tests/*.py --disable=fixme,W1514
 
     - name: Test
       run: |
