@@ -1,10 +1,12 @@
 
 import math
+import itertools
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from PIL import Image
+from scipy.spatial.transform import Rotation as R
 
 
 def pixel_to_camera(uv_tensor, kk, z_met):
@@ -195,7 +197,7 @@ def correct_angle(yaw, xyz):
         yaw -= 2 * np.pi
     elif yaw < -np.pi:
         yaw += 2 * np.pi
-    assert -2 * np.pi <= yaw <= 2 * np.pi
+    assert -np.pi <= yaw <= np.pi
     return math.sin(yaw), math.cos(yaw), yaw
 
 
@@ -246,3 +248,39 @@ def to_cartesian(rtp, mode=None):
     y = rtp[0] * math.cos(rtp[2])
     z = rtp[0] * math.sin(rtp[2]) * math.sin(rtp[1])
     return[x, y, z]
+
+
+def project_3d_corners(xyz, yaw, whl, kk):
+    """
+    return the projection of the 8 box corners
+    """
+    corners_init = list(itertools.product([-.5, .5], repeat=3))
+    corners_init = np.array(corners_init).reshape((8, 3)).T
+    t_matrix = np.array(xyz).reshape(3, 1)
+
+    scaling_matrix = np.diag(whl)
+    r = R.from_rotvec([0, yaw, 0])
+    r_matrix = r.as_matrix()
+    cuboid_pose = np.bmat([[r_matrix, t_matrix], [np.zeros((1, 3)), np.ones((1, 1))]])
+    scaled_corners = scaling_matrix @ corners_init
+    scaled_corners = np.append(scaled_corners, np.ones((1, 8)), axis=0)
+    corners_in_camera_frame = cuboid_pose @ scaled_corners
+    projected_corners = kk @ corners_in_camera_frame[:3, :]
+    projected_corners = projected_corners / projected_corners[2]
+    projected_corners = np.around(projected_corners[:2, :])
+    projected_corners = projected_corners.astype(int)
+    return projected_corners
+
+
+def cuboid_edges():
+    """
+    find the indices of the edges of the cuboids
+    """
+    edges = []
+    corners = list(itertools.product([-1, 1], repeat=3))
+    for i, corner in enumerate(corners):
+        for j in range(i+1, len(corners)):
+            if sum([corner[k] == corners[j][k] for k in range(3)]) == 2:
+                edges.append((i, j))
+    assert len(edges) == 12
+    return edges

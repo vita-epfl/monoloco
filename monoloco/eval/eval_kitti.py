@@ -28,7 +28,7 @@ class EvalKitti:
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-    CLUSTERS = ('easy', 'moderate', 'hard', 'all', '3', '5', '7', '9', '11', '13', '15', '17', '19', '21', '23', '25',
+    CLUSTERS = ('easy', 'moderate', 'hard', 'all', '5', '7', '9', '11', '13', '15', '17', '19', '21', '23', '25',
                 '27', '29', '31', '49')
     ALP_THRESHOLDS = ('<0.5m', '<1m', '<2m')
     OUR_METHODS = ['geometric', 'monoloco', 'monoloco_pp', 'pose', 'reid', 'monstereo']
@@ -93,7 +93,7 @@ class EvalKitti:
         self.cnt = 0
 
         # Filter methods with empty or non existent directory
-        filter_directories(self.main_dir, self.methods)
+        self.methods = filter_directories(self.main_dir, self.methods)
 
     def run(self):
         """Evaluate Monoloco performances on ALP and ALE metrics"""
@@ -373,6 +373,7 @@ class EvalKitti:
                for key in all_methods]
 
         results = [[key] + alp[idx] + ale[idx] for idx, key in enumerate(all_methods)]
+        assert TABULATE is not None, "please pip install tabulate for evaluation"
         print(TABULATE(results, headers=self.HEADERS))
         print('-' * 90 + '\n')
 
@@ -448,11 +449,13 @@ def extract_indices(idx_to_check, *args):
 
 
 def filter_directories(main_dir, methods):
+    filtered_methods = []
     for method in methods:
         dir_method = os.path.join(main_dir, method)
         if not os.path.exists(dir_method):
-            methods.remove(method)
-            print(f"\nMethod {method}. No directory found. Skipping it..")
+            print(f"Method {method}. No directory found. Skipping it..")
         elif not os.listdir(dir_method):
-            methods.remove(method)
-            print(f"\nMethod {method}. Directory is empty. Skipping it..")
+            print(f"Method {method}. Directory is empty. Skipping it..")
+        else:
+            filtered_methods.append(method)
+    return filtered_methods

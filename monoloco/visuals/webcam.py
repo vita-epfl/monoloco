@@ -27,6 +27,7 @@ from ..predict import download_checkpoints
 
 LOG = logging.getLogger(__name__)
 
+
 def factory_from_args(args):
 
     # Model
@@ -34,8 +35,6 @@ def factory_from_args(args):
     args.checkpoint = dic_models['keypoints']
 
     logger.configure(args, LOG)  # logger first
-
-    assert len(args.output_types) == 1 and 'json' not in args.output_types
 
     # Devices
     args.device = torch.device('cpu')
@@ -48,6 +47,8 @@ def factory_from_args(args):
     # Add visualization defaults
     if not args.output_types:
         args.output_types = ['multi']
+
+    assert len(args.output_types) == 1 and 'json' not in args.output_types, "Multiple / json output types not expected"
 
     args.figure_width = 10
     args.dpi_factor = 1.0

@@ -205,6 +205,7 @@ class Trainer:
         # Average distance on training and test set after unnormalizing
         self.model.eval()
         dic_err = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0)))  # initialized to zero
+        avg_value = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: 0)))  # initialized to zero
         dic_err['val']['sigmas'] = [0.] * len(self.tasks)
         dataset = KeypointsDataset(self.joints, phase='val')
         size_eval = len(dataset)
@@ -224,9 +225,9 @@ class Trainer:
 
                 # Forward pass
                 outputs = self.model(inputs)
-                self.compute_stats(outputs, labels, dic_err['val'], size_eval, clst='all')
+                self.compute_stats(outputs, labels, dic_err['val'], avg_value['val'], size_eval, clst='all')
 
-            self.cout_stats(dic_err['val'], size_eval, clst='all')
+            self.cout_stats(dic_err['val'], avg_value['val'], size_eval, clst='all')
             # Evaluate performances on different clusters and save statistics
             for clst in self.clusters:
                 inputs, labels, size_eval = dataset.get_cluster_annotations(clst)
@@ -234,8 +235,8 @@ class Trainer:
 
                 # Forward pass on each cluster
                 outputs = self.model(inputs)
-                self.compute_stats(outputs, labels, dic_err['val'], size_eval, clst=clst)
-                self.cout_stats(dic_err['val'], size_eval, clst=clst)
+                self.compute_stats(outputs, labels, dic_err['val'], avg_value['val'], size_eval, clst=clst)
+                self.cout_stats(dic_err['val'], avg_value['val'], size_eval, clst=clst)
 
         # Save the model and the results
         if not (self.no_save or load):
@@ -247,7 +248,7 @@ class Trainer:
 
         return dic_err, self.model
 
-    def compute_stats(self, outputs, labels, dic_err, size_eval, clst):
+    def compute_stats(self, outputs, labels, dic_err, avg_value, size_eval, clst):
         """Compute mean, bi and max of torch tensors"""
 
         _, loss_values = self.mt_loss(outputs, labels, phase='val')
@@ -269,7 +270,9 @@ class Trainer:
         dic_err[clst]['bi'] += bi * rel_frac
         dic_err[clst]['bi%'] += bi_perc * rel_frac
         dic_err[clst]['std'] = errs.std()
-
+        avg_value[clst]['h'] = extract_outputs(outputs)['h'].mean()
+        avg_value[clst]['w'] = extract_outputs(outputs)['w'].mean()
+        avg_value[clst]['l'] = extract_outputs(outputs)['l'].mean()
         # (Don't) Save auxiliary task results
         if self.mode == 'mono':
             dic_err[clst]['aux'] = 0
@@ -283,7 +286,7 @@ class Trainer:
             for i, _ in enumerate(self.tasks):
                 dic_err['sigmas'][i] += float(loss_values[len(tasks) + i + 1].item()) * rel_frac
 
-    def cout_stats(self, dic_err, size_eval, clst):
+    def cout_stats(self, dic_err, avg_value, size_eval, clst):
         if clst == 'all':
             print('-' * 120)
             self.logger.info("Evaluation, val set: \nAv. dist D: {:.2f} m with bi {:.2f} ({:.1f}%), \n"
@@ -294,6 +297,8 @@ class Trainer:
                                      dic_err[clst]['x'] * 100, dic_err[clst]['y'] * 100,
                                      dic_err[clst]['ori'], dic_err[clst]['h'] * 100, dic_err[clst]['w'] * 100,
                                      dic_err[clst]['l'] * 100, dic_err[clst]['aux'] * 100))
+            print(f"Average values for "
+                  f"H:{avg_value[clst]['h']:.2f}, W:{avg_value[clst]['w']:.2f}, L:{avg_value[clst]['l']:.2f}")
             if self.auto_tune_mtl:
                 self.logger.info("Sigmas: Z: {:.2f}, X: {:.2f}, Y:{:.2f}, H: {:.2f}, W: {:.2f}, L: {:.2f}, ORI: {:.2f}"
                                  " AUX:{:.2f}\n"

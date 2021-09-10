@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 
 from .network.process import laplace_sampling
 from .visuals.pifpaf_show import KeypointPainter, image_canvas, get_pifpaf_outputs
-from .visuals.printer import draw_orientation, social_distance_colors
+from .visuals.printer import social_distance_colors
+from .visuals.orientation import DrawOrientation
 
 
 def social_interactions(idx, centers, angles, dds, stds=None, social_distance=False,
@@ -170,20 +171,17 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
 
     assert 'front' in args.output_types or 'bird' in args.output_types, "outputs allowed: front and/or bird"
 
-    colors = ['deepskyblue' for _ in dic_out['uv_heads']]
-    if 'social_distance' in args.activities:
-        colors = social_distance_colors(colors, dic_out)
-
+    colors_front, colors_bird = get_colors(dic_out, args.activities)
     angles = dic_out['angles']
+    angles_ego = dic_out['angles_ego']
     stds = dic_out['stds_ale']
     xz_centers = [[xx[0], xx[2]] for xx in dic_out['xyz_pred']]
 
     # Draw keypoints and orientation
     if 'front' in args.output_types:
+        orientation_front = DrawOrientation(angles, colors_front, mode='front', shoulders=dic_out['uv_shoulders'])
         keypoint_sets, _ = get_pifpaf_outputs(annotations)
-        uv_centers = dic_out['uv_heads']
-        sizes = [abs(dic_out['uv_heads'][idx][1] - uv_s[1]) / 1.5 for idx, uv_s in
-                 enumerate(dic_out['uv_shoulders'])]
+
         keypoint_painter = KeypointPainter(show_box=False)
 
         with image_canvas(image_t,
@@ -193,14 +191,16 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
                           dpi_factor=1.0) as ax:
             keypoint_painter.keypoints(
                 ax, keypoint_sets, activities=args.activities, dic_out=dic_out,
-                size=image_t.size, colors=colors)
-            draw_orientation(ax, uv_centers, sizes,
-                             angles, colors, mode='front')
+                size=image_t.size, colors=colors_front)
+            for idx, head in enumerate(dic_out['uv_heads']):
+                orientation_front.draw(ax, idx, head)
 
     if 'bird' in args.output_types:
+        orientation_bird = DrawOrientation(angles_ego, colors_bird, mode='bird')
         z_max = min(args.z_max, 4 + max([el[1] for el in xz_centers]))
         with bird_canvas(output_path, z_max) as ax1:
-            draw_orientation(ax1, xz_centers, [], angles, colors, mode='bird')
+            for idx, center in enumerate(xz_centers):
+                orientation_bird.draw(ax1, idx, center)
             draw_uncertainty(ax1, xz_centers, stds)
 
 
@@ -228,3 +228,10 @@ def draw_uncertainty(ax, centers, stds):
         x = (centers[idx][0] - delta_x, centers[idx][0] + delta_x)
         z = (centers[idx][1] - delta_z, centers[idx][1] + delta_z)
         ax.plot(x, z, color='g', linewidth=2.5)
+
+
+def get_colors(dic_out, activities):
+    colors = ['deepskyblue' for _ in dic_out['uv_heads']]
+    if 'social_distance' in activities:
+        colors = social_distance_colors(colors, dic_out)
+    return colors, colors
