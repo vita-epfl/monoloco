@@ -148,7 +148,7 @@ def main():
 
     elif args.command == 'prep':
         if 'nuscenes' in args.dataset:
-            from .prep.preprocess_nu import PreprocessNuscenes
+            from .prep.preprocess_nu_stereo import PreprocessNuscenes
             prep = PreprocessNuscenes(args.dir_ann, args.dir_nuscenes, args.dataset, args.iou_min)
             prep.run()
         else:
