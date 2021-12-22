@@ -60,7 +60,7 @@ class KeypointsDataset(Dataset):
         self.outputs_all = torch.tensor(dic_jo[phase]['Y'])
         self.names_all = dic_jo[phase]['names']
         self.kps_all = torch.tensor(dic_jo[phase]['kps'])
-        self.version = dic_jo['version']
+        # self.version = dic_jo['version']
 
         # Extract annotations divided in clusters
         self.dic_clst = dic_jo[phase]['clst']

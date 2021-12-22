@@ -25,7 +25,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler
 
-from .. import __version__
+# from .. import __version__
 from .datasets import KeypointsDataset
 from .losses import CompositeLoss, MultiTaskLoss, AutoTuneMultiTaskLoss
 from ..network import extract_outputs, extract_labels
@@ -104,7 +104,7 @@ class Trainer:
 
         self.dataset_sizes = {phase: len(KeypointsDataset(self.joints, phase=phase))
                               for phase in ['train', 'val']}
-        self.dataset_version = KeypointsDataset(self.joints, phase='train').get_version()
+        # self.dataset_version = KeypointsDataset(self.joints, phase='train').get_version()
 
         self._set_logger(args)
 
@@ -354,10 +354,10 @@ class Trainer:
             print(self.path_model)
             self.logger = set_logger(os.path.splitext(self.path_out)[0])  # remove .pkl
             self.logger.info(  # pylint: disable=logging-fstring-interpolation
-                f'\nVERSION: {__version__}\n'
+                # f'\nVERSION: {__version__}\n'
                 f'\nINPUT_FILE: {args.joints}'
-                f'\nInput file version: {self.dataset_version}'
-                f'\nTorch version: {torch.__version__}\n'
+                # f'\nInput file version: {self.dataset_version}'
+                # f'\nTorch version: {torch.__version__}\n'
                 f'\nTraining arguments:'
                 f'\nmode: {self.mode} \nlearning rate: {args.lr} \nbatch_size: {args.bs}'
                 f'\nepochs: {args.epochs} \ndropout: {args.dropout} '

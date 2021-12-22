@@ -32,7 +32,9 @@ class PreprocessNuscenes:
     WLH_STD = 0.1
     social = False
 
-    CAMERAS = ('CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT')
+    # CAMERAS = ('CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT')
+    CAMERAS = ('CAM_FRONT', )
+    print("!Only frontal camera!")
     dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
                             clst=defaultdict(lambda: defaultdict(list))),
               'val': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
@@ -114,8 +116,12 @@ class PreprocessNuscenes:
                             boxes, keypoints = preprocess_pifpaf(annotations, im_size=(1600, 900))
                     else:
                         continue
+                    # if name == 'n008-2018-08-30-15-16-55-0400__CAM_FRONT__1535657125612404.jpg':
+                    #     aa = 5
                     if keypoints:
                         matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
+                        # if len(matches) == 3:
+                        #     aa = 5
                         for (idx, idx_gt) in matches:
                             keypoint = keypoints[idx:idx + 1]
                             inp = preprocess_monoloco(keypoint, kk).view(-1).tolist()

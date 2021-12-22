@@ -17,7 +17,7 @@ from ..utils import get_iou_matches, reorder_matches, get_keypoints, pixel_to_ca
 from .process import preprocess_monstereo, preprocess_monoloco, extract_outputs, extract_outputs_mono,\
     filter_outputs, cluster_outputs, unnormalize_bi, laplace_sampling
 from ..activity import social_interactions, is_raising_hand
-from .architectures import MonolocoModel, LocoModel
+from .architectures import MonolocoModel, LocoModel, StereoModel
 
 
 class Loco:
@@ -70,8 +70,12 @@ class Loco:
             if net in ('monoloco', 'monoloco_p'):
                 self.model = MonolocoModel(p_dropout=p_dropout, input_size=input_size, linear_size=linear_size,
                                            output_size=output_size)
-            else:
+            elif net in ('monoloco_pp', ):
                 self.model = LocoModel(p_dropout=p_dropout, input_size=input_size, output_size=output_size,
+                                            linear_size=linear_size, device=self.device)
+
+            else:
+                self.model = StereoModel(p_dropout=p_dropout, input_size=input_size, output_size=output_size,
                                             linear_size=linear_size, device=self.device)
 
             self.model.load_state_dict(torch.load(model_path, map_location=lambda storage, loc: storage))

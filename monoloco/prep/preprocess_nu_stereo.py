@@ -39,6 +39,7 @@ class PreprocessNuscenes:
 
     # CAMERAS = ('CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT')
     CAMERAS = ('CAM_FRONT', )
+    print("!Only frontal camera!")
     dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], K=[],
                             clst=defaultdict(lambda: defaultdict(list))),
               'val': dict(X=[], Y=[], names=[], kps=[], K=[],
@@ -170,14 +171,15 @@ class PreprocessNuscenes:
 
     def match_annotations(self, sd_token):
 
-        kps, inputs, ys, i_tokens = [], [], [], []
+        kps, inputs, labels, i_tokens = [], [], [], []
         # Extract all the annotations of the person
         path_im, boxes_obj, kk = self.nusc.get_sample_data(sd_token, box_vis_level=1)  # At least one corner
         boxes_gt, boxes_3d, ys, tokens = self.extract_ground_truth(boxes_obj, kk)
         kk = kk.tolist()
         name = os.path.basename(path_im)
         basename, _ = os.path.splitext(name)
-
+        # if name == 'n015-2018-07-24-11-22-45+0800__CAM_FRONT__1532402935662460.jpg':
+        #     aa = 5
         # Run IoU with pifpaf detections and save
         path_pif = os.path.join(self.dir_ann, name + '.predictions.json')
         exists = os.path.isfile(path_pif)
@@ -196,10 +198,10 @@ class PreprocessNuscenes:
                 label = normalize_hwl(label)
                 instance_token = tokens[idx_gt]
                 kps.append(torch.tensor(keypoint))
-                ys.append(label)
+                labels.append(label)
                 i_tokens.append(instance_token)
 
-            annotations = Annotation(kps, ys, kk, i_tokens, name)
+            annotations = Annotation(kps, labels, kk, i_tokens, name)
             return annotations
         else:
             return empty_annotations
