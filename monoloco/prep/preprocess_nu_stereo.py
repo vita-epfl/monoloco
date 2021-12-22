@@ -25,7 +25,7 @@ from ..utils import get_iou_matches, append_cluster, select_categories, project_
 from ..network.process import preprocess_pifpaf, preprocess_monoloco
 from .. import __version__
 
-Annotation = namedtuple('Annotation', 'kps ys kk i_tokens name')
+Annotation = namedtuple('Annotation', 'kps labels kk i_tokens name')
 empty_annotations = Annotation([], [], [], [], '')
 
 
@@ -56,7 +56,7 @@ class PreprocessNuscenes:
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
-        self.mode = 'mono'
+        self.mode = 'stereo'
         self.iou_min = iou_min
         self.dir_ann = dir_ann
         dir_out = os.path.join('data', 'arrays')
@@ -105,7 +105,6 @@ class PreprocessNuscenes:
                 sample_dic = self.nusc.get('sample', current_token)  # metadata of the sample
                 sample_dic_p = self.nusc.get('sample', previous_token)
                 speed = [speeds[i_s-1], speeds[i_s]]
-
                 for cam in self.CAMERAS:
                     sd_token = sample_dic['data'][cam]
                     annotations = self.match_annotations(sd_token)
@@ -117,8 +116,9 @@ class PreprocessNuscenes:
                     kk = annotations.kk
                     name = annotations.name
                     for idx, i_token in enumerate(annotations.i_tokens):
+                        # if max(speed) < 0.1:
                         kp = annotations.kps[idx]
-                        label = annotations.ys[idx]
+                        label = annotations.labels[idx]
                         self.stats['ann'] += 1
                         if self.mode == 'mono':
                             inp = preprocess_monoloco(kp, kk).view(-1).tolist()
@@ -215,7 +215,7 @@ class PreprocessNuscenes:
                 general_name = box_obj.name.split('.')[0] + '.' + box_obj.name.split('.')[1]
             else:
                 general_name = 'animal'
-            if general_name in select_categories('all'):
+            if general_name in select_categories('all') and np.isnan(box_obj.velocity).all():
 
                 # Obtain 2D & 3D box
                 boxes_gt.append(project_3d(box_obj, kk))
@@ -243,14 +243,14 @@ class PreprocessNuscenes:
         return boxes_gt, boxes_3d, ys, i_tokens
 
     def get_vehicle_speed(self, scene):
-        flag = False
         try:
             veh_speed = self.nusc_can.get_messages(scene['name'], 'vehicle_monitor')
         except Exception:
             print('no CAN bus data for the scene. Skipping it')
-            flag = True
-            return None, flag
+            return None, True
         veh_speed = np.array([(m['utime'], m['vehicle_speed']) for m in veh_speed])
+        if len(veh_speed.shape) < 2:
+            return None, True
         veh_speed[:, 1] *= 1 / 3.6
         veh_speed[:, 0] = (veh_speed[:, 0] - veh_speed[0, 0]) / 1e6
         times, speeds = veh_speed[:, 0].tolist(), veh_speed[:, 1].tolist()
@@ -268,7 +268,8 @@ class PreprocessNuscenes:
                     speed_p = speeds[idx-1]
 
                     if time-time_p > 1.2:
-                        assert time-time_p < 1.6, "case not included"
+                        if time-time_p > 1.6:
+                            return None, True  # case not supported
                         delta_t = (time-time_p) / 3
                         delta_s = (speed - speed_p) / 3
                         time_1 = time_p + delta_t
@@ -289,9 +290,8 @@ class PreprocessNuscenes:
                         speeds.insert(idx, speed_new)
                         break
         if len(speeds) != 40:
-            aa = 5
-        assert len(speeds) == 40
-        return speeds, flag
+            return None, True
+        return speeds, False
 
 
 def token_matching(token, tokens_r):

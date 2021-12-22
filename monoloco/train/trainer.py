@@ -29,7 +29,7 @@ from torch.optim import lr_scheduler
 from .datasets import KeypointsDataset
 from .losses import CompositeLoss, MultiTaskLoss, AutoTuneMultiTaskLoss
 from ..network import extract_outputs, extract_labels
-from ..network.architectures import LocoModel
+from ..network.architectures import LocoModel, StereoModel
 from ..utils import set_logger
 
 
@@ -111,15 +111,26 @@ class Trainer:
         # Define the model
         self.logger.info('Sizes of the dataset: {}'.format(self.dataset_sizes))
         print(">>> creating model")
+        if self.mode == 'mono':
+            self.model = LocoModel(
+                input_size=self.input_size[self.mode],
+                output_size=self.output_size[self.mode],
+                linear_size=args.hidden_size,
+                p_dropout=args.dropout,
+                num_stage=self.n_stage,
+                device=self.device,
+            )
+        else:
+            self.model = StereoModel(
+                input_size=self.input_size[self.mode],
+                output_size=self.output_size[self.mode],
+                linear_size=args.hidden_size,
+                p_dropout=args.dropout,
+                num_stage=self.n_stage,
+                device=self.device,
+            )
 
-        self.model = LocoModel(
-            input_size=self.input_size[self.mode],
-            output_size=self.output_size[self.mode],
-            linear_size=args.hidden_size,
-            p_dropout=args.dropout,
-            num_stage=self.n_stage,
-            device=self.device,
-        )
+
         self.model.to(self.device)
         print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model.parameters()) / 1000000.0))
         print(">>> loss params: {}".format(sum(p.numel() for p in self.mt_loss.parameters())))

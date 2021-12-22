@@ -17,13 +17,15 @@ class StereoModel(nn.Module):
         self.num_stage = num_stage
         self.linear_stages = []
         self.device = device
-        self.l_size_speed = 64
+        self.l_size_speed = 128
 
         # Initialize weights
 
         # Preprocessing
-        self.w1 = nn.Linear(self.stereo_size, self.linear_size-self.l_size_speed)
-        self.batch_norm1 = nn.BatchNorm1d(self.linear_size-self.l_size_speed)
+        self.w1a = nn.Linear(self.stereo_size, self.linear_size-self.l_size_speed)
+        self.batch_norm1a = nn.BatchNorm1d(self.linear_size-self.l_size_speed)
+        self.w1b = nn.Linear(self.linear_size, self.linear_size)
+        self.batch_norm1b = nn.BatchNorm1d(self.linear_size)
 
         # Speed preprocessing
         self.w_s1 = nn.Linear(2, round(self.l_size_speed/2))
@@ -56,10 +58,10 @@ class StereoModel(nn.Module):
         x = x[:, :-2]
         x_s = x[:, -2:]
 
-        y = self.w1(x)
-        y = self.batch_norm1(y)
+        y = self.w1a(x)
+        y = self.batch_norm1a(y)
         y = self.relu(y)
-        y = self.dropout(y)
+        # y = self.dropout(y)
 
         # Speed
         y_s = self.w_s1(x_s)
@@ -69,9 +71,14 @@ class StereoModel(nn.Module):
         y_s = self.w_s2(y_s)
         y_s = self.batch_norm_s2(y_s)
         y_s = self.relu(y_s)
-        y_s = self.dropout(y_s)
+        # y_s = self.dropout(y_s)
 
         y = torch.cat((y, y_s), dim=1)
+
+        y = self.w1b(x)
+        y = self.batch_norm1b(y)
+        y = self.relu(y)
+        y = self.dropout(y)
 
         for i in range(self.num_stage):
             y = self.linear_stages[i](y)
