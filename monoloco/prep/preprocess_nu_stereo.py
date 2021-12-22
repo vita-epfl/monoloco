@@ -17,6 +17,7 @@ import datetime
 import numpy as np
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
+from nuscenes.can_bus.can_bus_api import NuScenesCanBus
 from pyquaternion import Quaternion
 import torch
 
@@ -38,11 +39,11 @@ class PreprocessNuscenes:
     social = False
 
     CAMERAS = ('CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT')
-    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
+    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], speed=[], K=[],
                             clst=defaultdict(lambda: defaultdict(list))),
-              'val': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
+              'val': dict(X=[], Y=[], names=[], kps=[], speed=[], K=[],
                           clst=defaultdict(lambda: defaultdict(list))),
-              'test': dict(X=[], Y=[], names=[], kps=[], boxes_3d=[], K=[],
+              'test': dict(X=[], Y=[], names=[], kps=[], speed=[], K=[],
                            clst=defaultdict(lambda: defaultdict(list)))
               }
     dic_names = defaultdict(lambda: defaultdict(list))
@@ -67,6 +68,7 @@ class PreprocessNuscenes:
         self.path_names = os.path.join(dir_out, 'names-' + dataset + '-' + now_time + '.json')
 
         self.nusc, self.scenes, self.split_train, self.split_val = factory(dataset, dir_nuscenes)
+        self.nusc_can = NuScenesCanBus(dataroot='../../datasets/nuscenes_new/')
 
     def run(self):
         """
@@ -77,7 +79,8 @@ class PreprocessNuscenes:
             end_scene = time.time()
             previous_token = scene['first_sample_token']
             sample_dic = self.nusc.get('sample', previous_token)
-            current_token = sample_dic['next']  # Start with the second
+            current_token = sample_dic['next']
+            i_s = 1  # speed counter
             annotations_p = None
             self.stats['scenes'] += 1
             time_left = str((end_scene - start_scene) / 60 * (len(self.scenes) - ii))[:4] if ii != 0 else "NaN"
@@ -92,10 +95,12 @@ class PreprocessNuscenes:
             else:
                 print("phase name not in training or validation split")
                 continue
+            veh_speed = self.get_vehicle_speed(scene)
 
             while not current_token == "":
                 sample_dic = self.nusc.get('sample', current_token)  # metadata of the sample
                 sample_dic_p = self.nusc.get('sample', previous_token)
+                speed = veh_speed[i_s-1:i_s, :].squeeze().tolist()
 
                 for cam in self.CAMERAS:
                     sd_token = sample_dic['data'][cam]
@@ -121,8 +126,10 @@ class PreprocessNuscenes:
                             inp = torch.cat((input_l, input_l - input_r)).tolist()
                             self.dic_jo[self.phase]['kps'].append(keypoint)
                             self.dic_jo[self.phase]['X'].append(inp)
+                            self.dic_jo[self.phase]['speed'].append(speed)
                             self.dic_jo[self.phase]['Y'].append(label_s)
                             self.dic_jo[self.phase]['names'].append(name)  # One image name for each annotation
+                            append_cluster(self.dic_jo, self.phase, inp, label_s, keypoint)
 
                             self.stats['true_pair'] += 1 if s_match > 0.9 else 0
                             self.stats['pair'] += 1
@@ -131,14 +138,15 @@ class PreprocessNuscenes:
                 previous_token = current_token
                 current_token = sample_dic['next']
                 annotations_p = annotations
+                i_s += 1
         print(f"Initial annotations: {self.stats['ann']}")
         print(f"Stereo pairs: {self.stats['true_pair']}")
         print(f"All pairs: {self.stats['pair']}")
 
-        # with open(os.path.join(self.path_joints), 'w') as f:
-        #     json.dump(self.dic_jo, f)
-        # with open(os.path.join(self.path_names), 'w') as f:
-        #     json.dump(self.dic_names, f)
+        with open(os.path.join(self.path_joints), 'w') as f:
+            json.dump(self.dic_jo, f)
+        with open(os.path.join(self.path_names), 'w') as f:
+            json.dump(self.dic_names, f)
         end = time.time()
 
         # extract_box_average(self.dic_jo['train']['boxes_3d'])
@@ -218,6 +226,12 @@ class PreprocessNuscenes:
                 i_tokens.append(ann_metadata['instance_token'])
         return boxes_gt, boxes_3d, ys, i_tokens
 
+    def get_vehicle_speed(self, scene):
+        veh_speed = self.nusc_can.get_messages(scene['name'], 'vehicle_monitor')
+        veh_speed = np.array([(m['utime'], m['vehicle_speed']) for m in veh_speed])
+        veh_speed[:, 1] *= 1 / 3.6
+        veh_speed[:, 0] = (veh_speed[:, 0] - veh_speed[0, 0]) / 1e6
+        return veh_speed
 
 def token_matching(token, tokens_r):
     """match annotations based on their tokens"""
