@@ -75,7 +75,7 @@ class StereoModel(nn.Module):
 
         y = torch.cat((y, y_s), dim=1)
 
-        y = self.w1b(x)
+        y = self.w1b(y)
         y = self.batch_norm1b(y)
         y = self.relu(y)
         y = self.dropout(y)

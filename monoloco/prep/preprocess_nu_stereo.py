@@ -90,7 +90,7 @@ class PreprocessNuscenes:
             sys.stdout.write('\r' + 'Elaborating scene {}, remaining time {} minutes'
                              .format(self.stats['scenes'], time_left) + '\t\n')
             start_scene = time.time()
-            if scene['name'] in self.split_train:
+            if scene['name'] in self.split_train or self.stats['ann'] > 1500:
                 self.phase = 'train'
             elif scene['name'] in self.split_val:
                 self.phase = 'val'
@@ -130,7 +130,7 @@ class PreprocessNuscenes:
                             assert len(inp) == 34
                             self.stats['pair'] += 1
                         else:
-                            s_matches = token_matching(i_token, annotations_p.i_tokens)
+                            s_matches = token_matching(i_token, annotations_p.i_tokens, self.phase)
                             for (idx_r, s_match) in s_matches:
                                 kp_r = annotations_p.kps[idx_r]
                                 label_s = label + [s_match]  # add flag to distinguish "true pairs and false pairs"
@@ -294,14 +294,17 @@ class PreprocessNuscenes:
         return speeds, False
 
 
-def token_matching(token, tokens_r):
+def token_matching(token, tokens_r, phase):
     """match annotations based on their tokens"""
     s_matches = []
     for idx_r, token_r in enumerate(tokens_r):
         if token == token_r:
             s_matches.append((idx_r, 1))
-        elif len(s_matches) < 2:
+        elif len(s_matches) < 2 and phase == 'train':
             s_matches.append((idx_r, 0))
+
+    if not s_matches and tokens_r:
+        s_matches.append((0, 0))
     return s_matches
 
 
