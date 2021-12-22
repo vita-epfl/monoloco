@@ -72,7 +72,6 @@ class PreprocessNuscenes:
         """
         Prepare arrays for training
         """
-        cnt_scenes = cnt_samples = cnt_sd = cnt_ann = 0
         start = time.time()
         for ii, scene in enumerate(self.scenes):
             end_scene = time.time()
@@ -80,11 +79,11 @@ class PreprocessNuscenes:
             sample_dic = self.nusc.get('sample', previous_token)
             current_token = sample_dic['next']  # Start with the second
             annotations_p = None
-            cnt_scenes += 1
+            self.stats['scenes'] += 1
             time_left = str((end_scene - start_scene) / 60 * (len(self.scenes) - ii))[:4] if ii != 0 else "NaN"
 
             sys.stdout.write('\r' + 'Elaborating scene {}, remaining time {} minutes'
-                             .format(cnt_scenes, time_left) + '\t\n')
+                             .format(self.stats['scenes'], time_left) + '\t\n')
             start_scene = time.time()
             if scene['name'] in self.split_train:
                 self.phase = 'train'
@@ -127,7 +126,7 @@ class PreprocessNuscenes:
 
                             self.stats['true_pair'] += 1 if s_match > 0.9 else 0
                             self.stats['pair'] += 1
-                            sys.stdout.write('\r' + 'Saved annotations {}'.format(cnt_ann) + '\t')
+                            sys.stdout.write('\r' + 'Saved annotations {}'.format(self.stats['ann']) + '\t')
 
                 previous_token = current_token
                 current_token = sample_dic['next']
@@ -143,8 +142,8 @@ class PreprocessNuscenes:
         end = time.time()
 
         # extract_box_average(self.dic_jo['train']['boxes_3d'])
-        print("\nSaved {} annotations for {} samples in {} scenes. Total time: {:.1f} minutes"
-              .format(cnt_ann, cnt_samples, cnt_scenes, (end-start)/60))
+        print("\nSaved {} pairs for {} annotations in {} scenes. Total time: {:.1f} minutes"
+              .format(self.stats['pairs'], self.stats['ann'], self.stats['scenes'], (end-start)/60))
         print("\nOutput files:\n{}\n{}\n".format(self.path_names, self.path_joints))
 
     def match_annotations(self, sd_token):
@@ -168,13 +167,13 @@ class PreprocessNuscenes:
             return empty_annotations
         if keypoints:
             matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
+            kk = torch.tensor(kk)
             for (idx, idx_gt) in matches:
                 keypoint = keypoints[idx:idx + 1]
                 label = ys[idx_gt]
                 label = normalize_hwl(label)
                 instance_token = tokens[idx_gt]
                 kps.append(torch.tensor(keypoint))
-                kk = torch.tensor(kk)
                 ys.append(label)
                 i_tokens.append(instance_token)
 
