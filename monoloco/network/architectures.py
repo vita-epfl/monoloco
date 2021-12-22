@@ -17,12 +17,19 @@ class LocoModel(nn.Module):
         self.num_stage = num_stage
         self.linear_stages = []
         self.device = device
+        self.l_size_speed = 64
 
         # Initialize weights
 
         # Preprocessing
-        self.w1 = nn.Linear(self.stereo_size, self.linear_size)
-        self.batch_norm1 = nn.BatchNorm1d(self.linear_size)
+        self.w1 = nn.Linear(self.stereo_size, self.linear_size-self.l_size_speed)
+        self.batch_norm1 = nn.BatchNorm1d(self.linear_size-self.l_size_speed)
+
+        # Speed preprocessing
+        self.w_s1 = nn.Linear(2, round(self.l_size_speed/2))
+        self.batch_norm_s1 = nn.BatchNorm1d(round(self.l_size_speed/2))
+        self.w_s2 = nn.Linear(round(self.l_size_speed/2), self.l_size_speed)
+        self.batch_norm_s2 = nn.BatchNorm1d(self.l_size_speed)
 
         # Internal loop
         for _ in range(num_stage):
@@ -46,11 +53,25 @@ class LocoModel(nn.Module):
         self.dropout = nn.Dropout(self.p_dropout)
 
     def forward(self, x):
+        x = x[:, :-2]
+        x_s = x[:, :-3:]
 
         y = self.w1(x)
         y = self.batch_norm1(y)
         y = self.relu(y)
         y = self.dropout(y)
+
+        # Speed
+        y_s = self.w_s1(x_s)
+        y_s = self.batch_norm_s1(y_s)
+        y_s = self.relu(y_s)
+        y_s = self.dropout(y_s)
+        y_s = self.w_s2(y_s)
+        y_s = self.batch_norm_s2(y_s)
+        y_s = self.relu(y_s)
+        y_s = self.dropout(y_s)
+
+        y = torch.cat((y, y_s), dim=1)
 
         for i in range(self.num_stage):
             y = self.linear_stages[i](y)

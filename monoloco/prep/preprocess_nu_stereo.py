@@ -8,7 +8,6 @@ import os
 import sys
 import time
 import math
-import copy
 import json
 import logging
 from collections import defaultdict, namedtuple
@@ -22,7 +21,7 @@ from pyquaternion import Quaternion
 import torch
 
 from ..utils import get_iou_matches, append_cluster, select_categories, project_3d, correct_angle, normalize_hwl, \
-    to_spherical
+    to_spherical, average
 from ..network.process import preprocess_pifpaf, preprocess_monoloco
 from .. import __version__
 
@@ -38,12 +37,13 @@ class PreprocessNuscenes:
     WLH_STD = 0.1
     social = False
 
-    CAMERAS = ('CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT')
-    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], speed=[], K=[],
+    # CAMERAS = ('CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT')
+    CAMERAS = ('CAM_FRONT', )
+    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], K=[],
                             clst=defaultdict(lambda: defaultdict(list))),
-              'val': dict(X=[], Y=[], names=[], kps=[], speed=[], K=[],
+              'val': dict(X=[], Y=[], names=[], kps=[], K=[],
                           clst=defaultdict(lambda: defaultdict(list))),
-              'test': dict(X=[], Y=[], names=[], kps=[], speed=[], K=[],
+              'test': dict(X=[], Y=[], names=[], kps=[], K=[],
                            clst=defaultdict(lambda: defaultdict(list))),
               'version': __version__,
               }
@@ -69,7 +69,7 @@ class PreprocessNuscenes:
         self.path_names = os.path.join(dir_out, 'names-' + dataset + '-' + now_time + '.json')
 
         self.nusc, self.scenes, self.split_train, self.split_val = factory(dataset, dir_nuscenes)
-        self.nusc_can = NuScenesCanBus(dataroot='../../datasets/nuscenes_new/')
+        self.nusc_can = NuScenesCanBus(dataroot=dir_nuscenes)
 
     def run(self):
         """
@@ -96,13 +96,15 @@ class PreprocessNuscenes:
             else:
                 print("phase name not in training or validation split")
                 continue
-            veh_speed = self.get_vehicle_speed(scene)
+            speeds, flag = self.get_vehicle_speed(scene)
+            if flag:  # Skip scene for lack of CAN data
+                continue
 
             while not current_token == "":
                 sample_dic = self.nusc.get('sample', current_token)  # metadata of the sample
                 sample_dic_p = self.nusc.get('sample', previous_token)
-                speed = veh_speed[i_s-1:i_s, :].squeeze().tolist()
-
+                speed = speeds[i_s-1:i_s+1]
+                assert len(speed) == 2
                 for cam in self.CAMERAS:
                     sd_token = sample_dic['data'][cam]
                     annotations = self.match_annotations(sd_token)
@@ -115,8 +117,6 @@ class PreprocessNuscenes:
                     name = annotations.name
                     for idx, i_token in enumerate(annotations.i_tokens):
                         self.stats['ann'] += 1
-                        if self.stats['ann'] > 300:
-                            self.phase = 'val'
                         s_matches = token_matching(i_token, annotations_p.i_tokens)
                         kp = annotations.kps[idx]
                         label = annotations.ys[idx]
@@ -127,9 +127,12 @@ class PreprocessNuscenes:
                             input_r = preprocess_monoloco(kp_r, kk).view(-1)
                             keypoint = torch.cat((kp, kp_r), dim=2).tolist()
                             inp = torch.cat((input_l, input_l - input_r)).tolist()
+                            inp.extend(speed)
+                            assert len(inp) == 70
+                            # if self.stats['ann'] > 300 and s_match >0.9:
+                            #     aa = 5
                             self.dic_jo[self.phase]['kps'].append(keypoint)
                             self.dic_jo[self.phase]['X'].append(inp)
-                            self.dic_jo[self.phase]['speed'].append(speed)
                             self.dic_jo[self.phase]['Y'].append(label_s)
                             self.dic_jo[self.phase]['names'].append(name)  # One image name for each annotation
                             append_cluster(self.dic_jo, self.phase, inp, label_s, keypoint)
@@ -154,7 +157,7 @@ class PreprocessNuscenes:
 
         # extract_box_average(self.dic_jo['train']['boxes_3d'])
         print("\nSaved {} pairs for {} annotations in {} scenes. Total time: {:.1f} minutes"
-              .format(self.stats['pairs'], self.stats['ann'], self.stats['scenes'], (end-start)/60))
+              .format(self.stats['pair'], self.stats['ann'], self.stats['scenes'], (end-start)/60))
         print("\nOutput files:\n{}\n{}\n".format(self.path_names, self.path_joints))
 
     def match_annotations(self, sd_token):
@@ -230,11 +233,30 @@ class PreprocessNuscenes:
         return boxes_gt, boxes_3d, ys, i_tokens
 
     def get_vehicle_speed(self, scene):
-        veh_speed = self.nusc_can.get_messages(scene['name'], 'vehicle_monitor')
+        flag = False
+        try:
+            veh_speed = self.nusc_can.get_messages(scene['name'], 'vehicle_monitor')
+        except Exception:
+            print('no CAN bus data for the scene. Skipping it')
+            flag = True
+            return None, flag
         veh_speed = np.array([(m['utime'], m['vehicle_speed']) for m in veh_speed])
         veh_speed[:, 1] *= 1 / 3.6
         veh_speed[:, 0] = (veh_speed[:, 0] - veh_speed[0, 0]) / 1e6
-        return veh_speed
+        times, speeds = veh_speed[:, 0].tolist(), veh_speed[:, 1].tolist()
+        if len(times) == 40:
+            return speeds, flag
+        else:  # Interpolate missing values
+            for idx, time in enumerate(times[1:], 1):
+                idx_p = idx-1
+                time_p = times[idx_p]
+                if time-time_p > 0.6:
+                    time_new = average(times[idx_p:idx+1])
+                    speed_new = average(speeds[idx_p:idx + 1])
+                    times.insert(idx, time_new)
+                    speeds.insert(idx, speed_new)
+        return speeds, flag
+
 
 def token_matching(token, tokens_r):
     """match annotations based on their tokens"""
