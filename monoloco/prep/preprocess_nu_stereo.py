@@ -24,7 +24,7 @@ import torch
 from ..utils import get_iou_matches, append_cluster, select_categories, project_3d, correct_angle, normalize_hwl, \
     to_spherical
 from ..network.process import preprocess_pifpaf, preprocess_monoloco
-
+from .. import __version__
 
 Annotation = namedtuple('Annotation', 'kps ys kk i_tokens name')
 empty_annotations = Annotation([], [], [], [], '')
@@ -44,7 +44,8 @@ class PreprocessNuscenes:
               'val': dict(X=[], Y=[], names=[], kps=[], speed=[], K=[],
                           clst=defaultdict(lambda: defaultdict(list))),
               'test': dict(X=[], Y=[], names=[], kps=[], speed=[], K=[],
-                           clst=defaultdict(lambda: defaultdict(list)))
+                           clst=defaultdict(lambda: defaultdict(list))),
+              'version': __version__,
               }
     dic_names = defaultdict(lambda: defaultdict(list))
     stats = defaultdict(int)
@@ -114,6 +115,8 @@ class PreprocessNuscenes:
                     name = annotations.name
                     for idx, i_token in enumerate(annotations.i_tokens):
                         self.stats['ann'] += 1
+                        if self.stats['ann'] > 300:
+                            self.phase = 'val'
                         s_matches = token_matching(i_token, annotations_p.i_tokens)
                         kp = annotations.kps[idx]
                         label = annotations.ys[idx]
@@ -239,7 +242,7 @@ def token_matching(token, tokens_r):
     for idx_r, token_r in enumerate(tokens_r):
         if token == token_r:
             s_matches.append((idx_r, 1))
-        elif len(s_matches) < 3:
+        elif len(s_matches) < 2:
             s_matches.append((idx_r, 0))
     return s_matches
 
