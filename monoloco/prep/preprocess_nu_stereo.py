@@ -127,7 +127,7 @@ class PreprocessNuscenes:
                             self.dic_jo[self.phase]['names'].append(name)  # One image name for each annotation
                             append_cluster(self.dic_jo, self.phase, inp, label, kp.tolist())
                             assert len(inp) == 34
-                            s_match = 0
+                            self.stats['pair'] += 1
                         else:
                             s_matches = token_matching(i_token, annotations_p.i_tokens)
                             for (idx_r, s_match) in s_matches:
@@ -145,9 +145,9 @@ class PreprocessNuscenes:
                                 self.dic_jo[self.phase]['names'].append(name)  # One image name for each annotation
                                 append_cluster(self.dic_jo, self.phase, inp, label_s, keypoint)
 
-                            self.stats['true_pair'] += 1 if s_match > 0.9 else 0
-                            self.stats['pair'] += 1
-                            sys.stdout.write('\r' + 'Saved annotations {}'.format(self.stats['ann']) + '\t')
+                                self.stats['true_pair'] += 1 if s_match > 0.9 else 0
+                                self.stats['pair'] += 1
+                        sys.stdout.write('\r' + 'Saved annotations {}'.format(self.stats['ann']) + '\t')
 
                 previous_token = current_token
                 current_token = sample_dic['next']
