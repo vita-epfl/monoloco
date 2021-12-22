@@ -152,7 +152,7 @@ class PreprocessNuscenes:
         kps, inputs, ys, i_tokens = [], [], [], []
         # Extract all the annotations of the person
         path_im, boxes_obj, kk = self.nusc.get_sample_data(sd_token, box_vis_level=1)  # At least one corner
-        boxes_gt, boxes_3d, ys, tokens = extract_ground_truth(boxes_obj, kk)
+        boxes_gt, boxes_3d, ys, tokens = self.extract_ground_truth(boxes_obj, kk)
         kk = kk.tolist()
         name = os.path.basename(path_im)
         basename, _ = os.path.splitext(name)
@@ -183,6 +183,42 @@ class PreprocessNuscenes:
         else:
             return empty_annotations
 
+    def extract_ground_truth(self, boxes_obj, kk, spherical=True):
+        boxes_gt, boxes_3d, ys, i_tokens = [], [], [], []
+
+        for box_obj in boxes_obj:
+            # Select category
+            if box_obj.name[:6] != 'animal':
+                general_name = box_obj.name.split('.')[0] + '.' + box_obj.name.split('.')[1]
+            else:
+                general_name = 'animal'
+            if general_name in select_categories('all'):
+
+                # Obtain 2D & 3D box
+                boxes_gt.append(project_3d(box_obj, kk))
+                boxes_3d.append(box_obj.center.tolist() + box_obj.wlh.tolist())
+
+                # Angle
+                yaw = quaternion_yaw(box_obj.orientation)
+                assert - math.pi <= yaw <= math.pi
+                sin, cos, _ = correct_angle(yaw, box_obj.center)
+                hwl = [float(box_obj.wlh[i]) for i in (2, 0, 1)]
+
+                # Spherical coordinates
+                xyz = list(box_obj.center)
+                dd = np.linalg.norm(box_obj.center)
+                if spherical:
+                    rtp = to_spherical(xyz)
+                    loc = rtp[1:3] + xyz[2:3] + rtp[0:1]  # [theta, psi, z, r]
+                else:
+                    loc = xyz + [dd]
+
+                output = loc + hwl + [sin, cos, yaw]
+                ys.append(output)
+                ann_metadata = self.nusc.get('sample_annotation', box_obj.token)
+                i_tokens.append(ann_metadata['instance_token'])
+        return boxes_gt, boxes_3d, ys, i_tokens
+
 
 def token_matching(token, tokens_r):
     """match annotations based on their tokens"""
@@ -193,45 +229,6 @@ def token_matching(token, tokens_r):
         elif len(s_matches) < 3:
             s_matches.append((idx_r, 0))
     return s_matches
-
-
-def extract_ground_truth(boxes_obj, kk, spherical=True):
-
-    boxes_gt, boxes_3d, ys, i_tokens = [], [], [], []
-
-    for box_obj in boxes_obj:
-        # Select category
-        if box_obj.name[:6] != 'animal':
-            general_name = box_obj.name.split('.')[0] + '.' + box_obj.name.split('.')[1]
-        else:
-            general_name = 'animal'
-        if general_name in select_categories('all'):
-
-            # Obtain 2D & 3D box
-            boxes_gt.append(project_3d(box_obj, kk))
-            boxes_3d.append(box_obj.center.tolist() + box_obj.wlh.tolist())
-
-            # Angle
-            yaw = quaternion_yaw(box_obj.orientation)
-            assert - math.pi <= yaw <= math.pi
-            sin, cos, _ = correct_angle(yaw, box_obj.center)
-            hwl = [float(box_obj.wlh[i]) for i in (2, 0, 1)]
-
-            # Spherical coordinates
-            xyz = list(box_obj.center)
-            dd = np.linalg.norm(box_obj.center)
-            if spherical:
-                rtp = to_spherical(xyz)
-                loc = rtp[1:3] + xyz[2:3] + rtp[0:1]  # [theta, psi, z, r]
-            else:
-                loc = xyz + [dd]
-
-            output = loc + hwl + [sin, cos, yaw]
-            ys.append(output)
-
-            
-            i_tokens.append(box_obj.token)
-    return boxes_gt, boxes_3d, ys, i_tokens
 
 
 def factory(dataset, dir_nuscenes):
