@@ -54,7 +54,7 @@ class LocoModel(nn.Module):
 
     def forward(self, x):
         x = x[:, :-2]
-        x_s = x[:, :-3:]
+        x_s = x[:, -2:]
 
         y = self.w1(x)
         y = self.batch_norm1(y)

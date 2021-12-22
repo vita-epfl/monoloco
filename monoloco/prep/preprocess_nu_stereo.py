@@ -55,7 +55,7 @@ class PreprocessNuscenes:
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
-
+        self.mode = 'mono'
         self.iou_min = iou_min
         self.dir_ann = dir_ann
         dir_out = os.path.join('data', 'arrays')
@@ -65,7 +65,7 @@ class PreprocessNuscenes:
 
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
-        self.path_joints = os.path.join(dir_out, 'joints-' + dataset + '-' + now_time + '.json')
+        self.path_joints = os.path.join(dir_out, 'joints-' + dataset + '-' + self.mode + '-' + now_time + '.json')
         self.path_names = os.path.join(dir_out, 'names-' + dataset + '-' + now_time + '.json')
 
         self.nusc, self.scenes, self.split_train, self.split_val = factory(dataset, dir_nuscenes)
@@ -100,11 +100,11 @@ class PreprocessNuscenes:
             if flag:  # Skip scene for lack of CAN data
                 continue
 
-            while not current_token == "":
+            while not current_token == "" and i_s < 40:
                 sample_dic = self.nusc.get('sample', current_token)  # metadata of the sample
                 sample_dic_p = self.nusc.get('sample', previous_token)
-                speed = speeds[i_s-1:i_s+1]
-                assert len(speed) == 2
+                speed = [speeds[i_s-1], speeds[i_s]]
+
                 for cam in self.CAMERAS:
                     sd_token = sample_dic['data'][cam]
                     annotations = self.match_annotations(sd_token)
@@ -116,26 +116,34 @@ class PreprocessNuscenes:
                     kk = annotations.kk
                     name = annotations.name
                     for idx, i_token in enumerate(annotations.i_tokens):
-                        self.stats['ann'] += 1
-                        s_matches = token_matching(i_token, annotations_p.i_tokens)
                         kp = annotations.kps[idx]
                         label = annotations.ys[idx]
-                        for (idx_r, s_match) in s_matches:
-                            kp_r = annotations_p.kps[idx_r]
-                            label_s = label + [s_match]  # add flag to distinguish "true pairs and false pairs"
-                            input_l = preprocess_monoloco(kp, kk).view(-1)
-                            input_r = preprocess_monoloco(kp_r, kk).view(-1)
-                            keypoint = torch.cat((kp, kp_r), dim=2).tolist()
-                            inp = torch.cat((input_l, input_l - input_r)).tolist()
-                            inp.extend(speed)
-                            assert len(inp) == 70
-                            # if self.stats['ann'] > 300 and s_match >0.9:
-                            #     aa = 5
-                            self.dic_jo[self.phase]['kps'].append(keypoint)
+                        self.stats['ann'] += 1
+                        if self.mode == 'mono':
+                            inp = preprocess_monoloco(kp, kk).view(-1).tolist()
+                            self.dic_jo[self.phase]['kps'].append(kp.tolist())
                             self.dic_jo[self.phase]['X'].append(inp)
-                            self.dic_jo[self.phase]['Y'].append(label_s)
+                            self.dic_jo[self.phase]['Y'].append(label)
                             self.dic_jo[self.phase]['names'].append(name)  # One image name for each annotation
-                            append_cluster(self.dic_jo, self.phase, inp, label_s, keypoint)
+                            append_cluster(self.dic_jo, self.phase, inp, label, kp.tolist())
+                            assert len(inp) == 34
+                            s_match = 0
+                        else:
+                            s_matches = token_matching(i_token, annotations_p.i_tokens)
+                            for (idx_r, s_match) in s_matches:
+                                kp_r = annotations_p.kps[idx_r]
+                                label_s = label + [s_match]  # add flag to distinguish "true pairs and false pairs"
+                                input_l = preprocess_monoloco(kp, kk).view(-1)
+                                input_r = preprocess_monoloco(kp_r, kk).view(-1)
+                                keypoint = torch.cat((kp, kp_r), dim=2).tolist()
+                                inp = torch.cat((input_l, input_l - input_r)).tolist()
+                                inp.extend(speed)
+                                assert len(inp) == 70
+                                self.dic_jo[self.phase]['kps'].append(keypoint)
+                                self.dic_jo[self.phase]['X'].append(inp)
+                                self.dic_jo[self.phase]['Y'].append(label_s)
+                                self.dic_jo[self.phase]['names'].append(name)  # One image name for each annotation
+                                append_cluster(self.dic_jo, self.phase, inp, label_s, keypoint)
 
                             self.stats['true_pair'] += 1 if s_match > 0.9 else 0
                             self.stats['pair'] += 1
@@ -244,17 +252,43 @@ class PreprocessNuscenes:
         veh_speed[:, 1] *= 1 / 3.6
         veh_speed[:, 0] = (veh_speed[:, 0] - veh_speed[0, 0]) / 1e6
         times, speeds = veh_speed[:, 0].tolist(), veh_speed[:, 1].tolist()
-        if len(times) == 40:
-            return speeds, flag
-        else:  # Interpolate missing values
-            for idx, time in enumerate(times[1:], 1):
-                idx_p = idx-1
-                time_p = times[idx_p]
-                if time-time_p > 0.6:
-                    time_new = average(times[idx_p:idx+1])
-                    speed_new = average(speeds[idx_p:idx + 1])
-                    times.insert(idx, time_new)
-                    speeds.insert(idx, speed_new)
+        while len(speeds) > 40:
+            speeds.pop(-1)
+            times.pop(-1)
+        while len(times) < 40:
+            if times[-1] < 19.3:
+                times.append(19.5)
+                speeds.append(speeds[-1])
+            else:  # Interpolate missing values
+                for idx, time in enumerate(times[1:], 1):
+                    time_p = times[idx-1]
+                    speed = speeds[idx]
+                    speed_p = speeds[idx-1]
+
+                    if time-time_p > 1.2:
+                        assert time-time_p < 1.6, "case not included"
+                        delta_t = (time-time_p) / 3
+                        delta_s = (speed - speed_p) / 3
+                        time_1 = time_p + delta_t
+                        time_2 = time_p + 2*delta_t
+                        speed_1 = speed_p + delta_s
+                        speed_2 = speed_p + 2*delta_s
+                        times.insert(idx, time_2)
+                        speeds.insert(idx, speed_2)
+                        times.insert(idx, time_1)
+                        speeds.insert(idx, speed_1)
+                        print(f"Check scene {scene['name']}")
+                        break
+
+                    elif time-time_p > 0.6:
+                        time_new = average([time_p, time])
+                        speed_new = average([speed_p, speed])
+                        times.insert(idx, time_new)
+                        speeds.insert(idx, speed_new)
+                        break
+        if len(speeds) != 40:
+            aa = 5
+        assert len(speeds) == 40
         return speeds, flag
 
 
