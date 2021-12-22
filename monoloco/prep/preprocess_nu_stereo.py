@@ -18,14 +18,15 @@ import numpy as np
 from nuscenes.nuscenes import NuScenes
 from nuscenes.utils import splits
 from pyquaternion import Quaternion
+import torch
 
 from ..utils import get_iou_matches, append_cluster, select_categories, project_3d, correct_angle, normalize_hwl, \
     to_spherical
 from ..network.process import preprocess_pifpaf, preprocess_monoloco
 
 
-Annotation = namedtuple('Annotation', 'kps inputs ys kk i_tokens name')
-empty_annotations = Annotation([], [], [], [], [], '')
+Annotation = namedtuple('Annotation', 'kps ys kk i_tokens name')
+empty_annotations = Annotation([], [], [], [], '')
 
 
 class PreprocessNuscenes:
@@ -45,6 +46,8 @@ class PreprocessNuscenes:
                            clst=defaultdict(lambda: defaultdict(list)))
               }
     dic_names = defaultdict(lambda: defaultdict(list))
+    stats = defaultdict(int)
+    stats = defaultdict(int)
 
     def __init__(self, dir_ann, dir_nuscenes, dataset, iou_min):
 
@@ -84,9 +87,9 @@ class PreprocessNuscenes:
                              .format(cnt_scenes, time_left) + '\t\n')
             start_scene = time.time()
             if scene['name'] in self.split_train:
-                phase = 'train'
+                self.phase = 'train'
             elif scene['name'] in self.split_val:
-                phase = 'val'
+                self.phase = 'val'
             else:
                 print("phase name not in training or validation split")
                 continue
@@ -98,36 +101,45 @@ class PreprocessNuscenes:
                 for cam in self.CAMERAS:
                     sd_token = sample_dic['data'][cam]
                     annotations = self.match_annotations(sd_token)
+                    sd_token_p = sample_dic_p['data'][cam]
                     if not annotations.kps:
                         continue
-                    sd_token_p = sample_dic['data'][cam]
-
                     if annotations_p is None:  # at the beginning
                         annotations_p = self.match_annotations(sd_token_p)
-                    s_matches = self.stereo_matching(annotations, annotations_p)
+                    kk = annotations.kk
+                    name = annotations.name
+                    for idx, i_token in enumerate(annotations.i_tokens):
+                        self.stats['ann'] += 1
+                        s_matches = token_matching(i_token, annotations_p.i_tokens)
+                        kp = annotations.kps[idx]
+                        label = annotations.ys[idx]
+                        for (idx_r, s_match) in s_matches:
+                            kp_r = annotations_p.kps[idx_r]
+                            label_s = label + [s_match]  # add flag to distinguish "true pairs and false pairs"
+                            input_l = preprocess_monoloco(kp, kk).view(-1)
+                            input_r = preprocess_monoloco(kp_r, kk).view(-1)
+                            keypoint = torch.cat((kp, kp_r), dim=2).tolist()
+                            inp = torch.cat((input_l, input_l - input_r)).tolist()
+                            self.dic_jo[self.phase]['kps'].append(keypoint)
+                            self.dic_jo[self.phase]['X'].append(inp)
+                            self.dic_jo[self.phase]['Y'].append(label_s)
+                            self.dic_jo[self.phase]['names'].append(name)  # One image name for each annotation
 
-                    # for (idx, idx_gt) in matches:
-                    #     keypoint = keypoints[idx:idx + 1]
-                    #     inp = preprocess_monoloco(keypoint, kk).view(-1).tolist()
-                    #     lab = ys[idx_gt]
-                    #     lab = normalize_hwl(lab)
-                    #     self.dic_jo[phase]['kps'].append(keypoint)
-                    #     self.dic_jo[phase]['X'].append(inp)
-                    #     self.dic_jo[phase]['Y'].append(lab)
-                    #     self.dic_jo[phase]['names'].append(name)  # One image name for each annotation
-                    #     self.dic_jo[phase]['boxes_3d'].append(boxes_3d[idx_gt])
-                    #     # append_cluster(self.dic_jo, phase, inp, lab, keypoint)
-                    #     # cnt_ann += 1
-                    #     # sys.stdout.write('\r' + 'Saved annotations {}'.format(cnt_ann) + '\t')
+                            self.stats['true_pair'] += 1 if s_match > 0.9 else 0
+                            self.stats['pair'] += 1
+                            sys.stdout.write('\r' + 'Saved annotations {}'.format(cnt_ann) + '\t')
 
-            previous_token = current_token
-            current_token = sample_dic['next']
-            annotations_p = annotations
+                previous_token = current_token
+                current_token = sample_dic['next']
+                annotations_p = annotations
+        print(f"Initial annotations: {self.stats['ann']}")
+        print(f"Stereo pairs: {self.stats['true_pair']}")
+        print(f"All pairs: {self.stats['pair']}")
 
-        with open(os.path.join(self.path_joints), 'w') as f:
-            json.dump(self.dic_jo, f)
-        with open(os.path.join(self.path_names), 'w') as f:
-            json.dump(self.dic_names, f)
+        # with open(os.path.join(self.path_joints), 'w') as f:
+        #     json.dump(self.dic_jo, f)
+        # with open(os.path.join(self.path_names), 'w') as f:
+        #     json.dump(self.dic_names, f)
         end = time.time()
 
         # extract_box_average(self.dic_jo['train']['boxes_3d'])
@@ -158,27 +170,34 @@ class PreprocessNuscenes:
             matches = get_iou_matches(boxes, boxes_gt, self.iou_min)
             for (idx, idx_gt) in matches:
                 keypoint = keypoints[idx:idx + 1]
-                inp = preprocess_monoloco(keypoint, kk).view(-1).tolist()
                 label = ys[idx_gt]
                 label = normalize_hwl(label)
                 instance_token = tokens[idx_gt]
-                kps.append(keypoint)
-                inputs.append(inp)
+                kps.append(torch.tensor(keypoint))
+                kk = torch.tensor(kk)
                 ys.append(label)
                 i_tokens.append(instance_token)
 
-            annotations = Annotation(kps, inputs, ys, kk, i_tokens, name)
+            annotations = Annotation(kps, ys, kk, i_tokens, name)
             return annotations
         else:
             return empty_annotations
 
 
-    def stereo_matching(self, annotations, annotations_p):
+def token_matching(token, tokens_r):
+    """match annotations based on their tokens"""
+    s_matches = []
+    for idx_r, token_r in enumerate(tokens_r):
+        if token == token_r:
+            s_matches.append((idx_r, 1))
+        elif len(s_matches) < 3:
+            s_matches.append((idx_r, 0))
+    return s_matches
 
 
 def extract_ground_truth(boxes_obj, kk, spherical=True):
 
-    boxes_gt, boxes_3d, ys, tokens = [], [], [], []
+    boxes_gt, boxes_3d, ys, i_tokens = [], [], [], []
 
     for box_obj in boxes_obj:
         # Select category
@@ -209,8 +228,10 @@ def extract_ground_truth(boxes_obj, kk, spherical=True):
 
             output = loc + hwl + [sin, cos, yaw]
             ys.append(output)
-            tokens.append(box_obj.token)
-    return boxes_gt, boxes_3d, ys, tokens
+
+            
+            i_tokens.append(box_obj.token)
+    return boxes_gt, boxes_3d, ys, i_tokens
 
 
 def factory(dataset, dir_nuscenes):
