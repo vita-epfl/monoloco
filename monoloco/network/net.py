@@ -70,7 +70,7 @@ class Loco:
             if net in ('monoloco', 'monoloco_p'):
                 self.model = MonolocoModel(p_dropout=p_dropout, input_size=input_size, linear_size=linear_size,
                                            output_size=output_size)
-            elif net in ('monoloco_pp', ):
+            elif net in ('monoloco_pp',):
                 self.model = LocoModel(p_dropout=p_dropout, input_size=input_size, output_size=output_size,
                                             linear_size=linear_size, device=self.device)
 

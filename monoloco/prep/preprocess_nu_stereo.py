@@ -38,9 +38,18 @@ class PreprocessNuscenes:
     social = False
 
     # CAMERAS = ('CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT')
-    CAMERAS = ('CAM_FRONT', )
-    print("!Only frontal camera!")
-    dic_jo = {'train': dict(X=[], Y=[], names=[], kps=[], K=[],
+    CAMERAS = ('CAM_FRONT_LEFT', )
+    print("!Only one camera!")
+    dic_jo_s = {'train': dict(X=[], Y=[], names=[], kps=[], K=[],
+                            clst=defaultdict(lambda: defaultdict(list))),
+              'val': dict(X=[], Y=[], names=[], kps=[], K=[],
+                          clst=defaultdict(lambda: defaultdict(list))),
+              'test': dict(X=[], Y=[], names=[], kps=[], K=[],
+                           clst=defaultdict(lambda: defaultdict(list))),
+              'version': __version__,
+              }
+
+    dic_jo_m = {'train': dict(X=[], Y=[], names=[], kps=[], K=[],
                             clst=defaultdict(lambda: defaultdict(list))),
               'val': dict(X=[], Y=[], names=[], kps=[], K=[],
                           clst=defaultdict(lambda: defaultdict(list))),
@@ -50,13 +59,11 @@ class PreprocessNuscenes:
               }
     dic_names = defaultdict(lambda: defaultdict(list))
     stats = defaultdict(int)
-    stats = defaultdict(int)
 
     def __init__(self, dir_ann, dir_nuscenes, dataset, iou_min):
 
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
-        self.mode = 'stereo'
         self.iou_min = iou_min
         self.dir_ann = dir_ann
         dir_out = os.path.join('data', 'arrays')
@@ -66,8 +73,9 @@ class PreprocessNuscenes:
 
         now = datetime.datetime.now()
         now_time = now.strftime("%Y%m%d-%H%M")[2:]
-        self.path_joints = os.path.join(dir_out, 'joints-' + dataset + '-' + self.mode + '-' + now_time + '.json')
-        self.path_names = os.path.join(dir_out, 'names-' + dataset + '-' + now_time + '.json')
+        self.path_joints_s = os.path.join(dir_out, 'joints-' + dataset + '-stereo-' + now_time + '.json')
+        self.path_joints_m = os.path.join(dir_out, 'joints-' + dataset + '-mono-' + now_time + '.json')
+        # self.path_names = os.path.join(dir_out, 'names-' + dataset + '-' + now_time + '.json')
 
         self.nusc, self.scenes, self.split_train, self.split_val = factory(dataset, dir_nuscenes)
         self.nusc_can = NuScenesCanBus(dataroot=dir_nuscenes)
@@ -90,14 +98,15 @@ class PreprocessNuscenes:
             sys.stdout.write('\r' + 'Elaborating scene {}, remaining time {} minutes'
                              .format(self.stats['scenes'], time_left) + '\t\n')
             start_scene = time.time()
-            if scene['name'] in self.split_train or self.stats['ann'] > 1500:
+            # if scene['name'] in self.split_train or self.stats['ann'] > 1500:
+            if scene['name'] in self.split_train or self.stats['val'] > 1500:
                 self.phase = 'train'
             elif scene['name'] in self.split_val:
                 self.phase = 'val'
             else:
                 print("phase name not in training or validation split")
                 continue
-            speeds, flag = self.get_vehicle_speed(scene)
+            speeds, steers, flag = self.get_vehicle_info(scene)
             if flag:  # Skip scene for lack of CAN data
                 continue
 
@@ -105,6 +114,7 @@ class PreprocessNuscenes:
                 sample_dic = self.nusc.get('sample', current_token)  # metadata of the sample
                 sample_dic_p = self.nusc.get('sample', previous_token)
                 speed = [speeds[i_s-1], speeds[i_s]]
+                steer = [steers[i_s-1], steers[i_s]]
                 for cam in self.CAMERAS:
                     sd_token = sample_dic['data'][cam]
                     annotations = self.match_annotations(sd_token)
@@ -116,20 +126,22 @@ class PreprocessNuscenes:
                     kk = annotations.kk
                     name = annotations.name
                     for idx, i_token in enumerate(annotations.i_tokens):
-                        # if max(speed) < 0.1:
-                        kp = annotations.kps[idx]
-                        label = annotations.labels[idx]
-                        self.stats['ann'] += 1
-                        if self.mode == 'mono':
+                        if limit_bc(speed, steer):
+                            kp = annotations.kps[idx]
+                            label = annotations.labels[idx]
+                            self.stats['ann'] += 1
+
+                            # MONO
                             inp = preprocess_monoloco(kp, kk).view(-1).tolist()
-                            self.dic_jo[self.phase]['kps'].append(kp.tolist())
-                            self.dic_jo[self.phase]['X'].append(inp)
-                            self.dic_jo[self.phase]['Y'].append(label)
-                            self.dic_jo[self.phase]['names'].append(name)  # One image name for each annotation
-                            append_cluster(self.dic_jo, self.phase, inp, label, kp.tolist())
+                            self.dic_jo_m[self.phase]['kps'].append(kp.tolist())
+                            self.dic_jo_m[self.phase]['X'].append(inp)
+                            self.dic_jo_m[self.phase]['Y'].append(label)
+                            self.dic_jo_m[self.phase]['names'].append(name)  # One image name for each annotation
+                            append_cluster(self.dic_jo_m, self.phase, inp, label, kp.tolist())
                             assert len(inp) == 34
                             self.stats['pair'] += 1
-                        else:
+
+                            # STEREO
                             s_matches = token_matching(i_token, annotations_p.i_tokens, self.phase)
                             for (idx_r, s_match) in s_matches:
                                 kp_r = annotations_p.kps[idx_r]
@@ -138,36 +150,49 @@ class PreprocessNuscenes:
                                 input_r = preprocess_monoloco(kp_r, kk).view(-1)
                                 keypoint = torch.cat((kp, kp_r), dim=2).tolist()
                                 inp = torch.cat((input_l, input_l - input_r)).tolist()
+                                speed = [el/10 for el in speed]  # normalize
+                                steer = [el/70 for el in steer]
                                 inp.extend(speed)
-                                assert len(inp) == 70
-                                self.dic_jo[self.phase]['kps'].append(keypoint)
-                                self.dic_jo[self.phase]['X'].append(inp)
-                                self.dic_jo[self.phase]['Y'].append(label_s)
-                                self.dic_jo[self.phase]['names'].append(name)  # One image name for each annotation
-                                append_cluster(self.dic_jo, self.phase, inp, label_s, keypoint)
+                                inp.extend(steer)
+                                assert len(inp) == 72
+                                self.dic_jo_s[self.phase]['kps'].append(keypoint)
+                                self.dic_jo_s[self.phase]['X'].append(inp)
+                                self.dic_jo_s[self.phase]['Y'].append(label_s)
+                                self.dic_jo_s[self.phase]['names'].append(name)  # One image name for each annotation
+                                append_cluster(self.dic_jo_s, self.phase, inp, label_s, keypoint)
 
                                 self.stats['true_pair'] += 1 if s_match > 0.9 else 0
                                 self.stats['pair'] += 1
-                        sys.stdout.write('\r' + 'Saved annotations {}'.format(self.stats['ann']) + '\t')
+                                if self.phase == 'val':
+                                    self.stats['val_stereo'] += 1 if s_match > 0.9 else 0
+                                    self.stats['val_total'] += 1
+                                else:
+                                    self.stats['train_stereo'] += 1 if s_match > 0.9 else 0
+                                    self.stats['train_total'] += 1
 
+                            sys.stdout.write('\r' + 'Saved annotations {}'.format(self.stats['ann']) + '\t')
+                    annotations_p = annotations
                 previous_token = current_token
                 current_token = sample_dic['next']
-                annotations_p = annotations
                 i_s += 1
         print(f"Initial annotations: {self.stats['ann']}")
         print(f"Stereo pairs: {self.stats['true_pair']}")
         print(f"All pairs: {self.stats['pair']}")
-
-        with open(os.path.join(self.path_joints), 'w') as f:
-            json.dump(self.dic_jo, f)
-        with open(os.path.join(self.path_names), 'w') as f:
-            json.dump(self.dic_names, f)
+        print(f"Training stereo pairs: {self.stats['train_stereo']}, Total pairs: {self.stats['train_total']} ")
+        print(f"Validation stereo pairs: {self.stats['val_stereo']}, Total pairs: {self.stats['val_total']} ")
+        print(f"{self.stats['other']}")
+        with open(os.path.join(self.path_joints_s), 'w') as f:
+            json.dump(self.dic_jo_s, f)
+        with open(os.path.join(self.path_joints_m), 'w') as f:
+            json.dump(self.dic_jo_m, f)
+        # with open(os.path.join(self.path_names), 'w') as f:
+        #     json.dump(self.dic_names, f)
         end = time.time()
 
         # extract_box_average(self.dic_jo['train']['boxes_3d'])
         print("\nSaved {} pairs for {} annotations in {} scenes. Total time: {:.1f} minutes"
               .format(self.stats['pair'], self.stats['ann'], self.stats['scenes'], (end-start)/60))
-        print("\nOutput files:\n{}\n{}\n".format(self.path_names, self.path_joints))
+        print("\nOutput files:\n{}\n{}\n".format(self.path_joints_s, self.path_joints_m))
 
     def match_annotations(self, sd_token):
 
@@ -181,7 +206,7 @@ class PreprocessNuscenes:
         # if name == 'n015-2018-07-24-11-22-45+0800__CAM_FRONT__1532402935662460.jpg':
         #     aa = 5
         # Run IoU with pifpaf detections and save
-        path_pif = os.path.join(self.dir_ann, name + '.predictions.json')
+        path_pif = os.path.join(self.dir_ann, name + '.pifpaf.json')
         exists = os.path.isfile(path_pif)
         if exists:
             with open(path_pif, 'r') as file:
@@ -195,7 +220,7 @@ class PreprocessNuscenes:
             for (idx, idx_gt) in matches:
                 keypoint = keypoints[idx:idx + 1]
                 label = ys[idx_gt]
-                label = normalize_hwl(label)
+                # label = normalize_hwl(label)
                 instance_token = tokens[idx_gt]
                 kps.append(torch.tensor(keypoint))
                 labels.append(label)
@@ -242,64 +267,92 @@ class PreprocessNuscenes:
                 i_tokens.append(ann_metadata['instance_token'])
         return boxes_gt, boxes_3d, ys, i_tokens
 
-    def get_vehicle_speed(self, scene):
+    def get_vehicle_info(self, scene):
         try:
-            veh_speed = self.nusc_can.get_messages(scene['name'], 'vehicle_monitor')
+            veh_info = self.nusc_can.get_messages(scene['name'], 'vehicle_monitor')
         except Exception:
             print('no CAN bus data for the scene. Skipping it')
-            return None, True
-        veh_speed = np.array([(m['utime'], m['vehicle_speed']) for m in veh_speed])
+            return None, None, True
+        veh_speed = np.array([(m['utime'], m['vehicle_speed']) for m in veh_info])
+        veh_steering = np.array([(m['steering']) for m in veh_info])  # in degrees
+        # veh_steering = self.nusc_can.get_messages(scene['name'], 'steeranglefeedback')
+        # steering = np.array([(m['value']) for m in veh_steering[::50]])
         if len(veh_speed.shape) < 2:
-            return None, True
+            return None, None, True
         veh_speed[:, 1] *= 1 / 3.6
         veh_speed[:, 0] = (veh_speed[:, 0] - veh_speed[0, 0]) / 1e6
-        times, speeds = veh_speed[:, 0].tolist(), veh_speed[:, 1].tolist()
+        times, speeds, steers = veh_speed[:, 0].tolist(), veh_speed[:, 1].tolist(), veh_steering[:].tolist()
+        assert len(speeds) == len(steers)
         while len(speeds) > 40:
             speeds.pop(-1)
             times.pop(-1)
+            steers.pop(-1)
         while len(times) < 40:
             if times[-1] < 19.3:
                 times.append(19.5)
                 speeds.append(speeds[-1])
+                steers.append(steers[-1])
             else:  # Interpolate missing values
                 for idx, time in enumerate(times[1:], 1):
                     time_p = times[idx-1]
                     speed = speeds[idx]
                     speed_p = speeds[idx-1]
+                    steer = steers[idx]
+                    steer_p = steers[idx-1]
 
                     if time-time_p > 1.2:
                         if time-time_p > 1.6:
-                            return None, True  # case not supported
+                            return None, None, True  # case not supported
                         delta_t = (time-time_p) / 3
                         delta_s = (speed - speed_p) / 3
+                        delta_st = (steer - steer_p) / 3
                         time_1 = time_p + delta_t
                         time_2 = time_p + 2*delta_t
                         speed_1 = speed_p + delta_s
                         speed_2 = speed_p + 2*delta_s
+                        steer_1 = steer_p + delta_st
+                        steer_2 = steer_p + 2*delta_st
                         times.insert(idx, time_2)
                         speeds.insert(idx, speed_2)
+                        steers.insert(idx, steer_2)
                         times.insert(idx, time_1)
                         speeds.insert(idx, speed_1)
-                        print(f"Check scene {scene['name']}")
+                        steers.insert(idx, steer_1)
+                        # print(f"Check scene {scene['name']}")
                         break
 
                     elif time-time_p > 0.6:
                         time_new = average([time_p, time])
                         speed_new = average([speed_p, speed])
+                        steer_new = average([steer_p, steer])
                         times.insert(idx, time_new)
                         speeds.insert(idx, speed_new)
+                        steers.insert(idx, steer_new)
                         break
         if len(speeds) != 40:
-            return None, True
-        return speeds, False
+            return None, None, True
+        return speeds, steers, False
+
+
+def limit_bc(speed, steer):
+    if abs(speed[0]-speed[1]) > 0.2:
+        return False
+    elif abs((steer[0]-steer[1])) > 10:
+        return False
+    elif speed[0] < 3:
+        return False
+    return True
 
 
 def token_matching(token, tokens_r, phase):
     """match annotations based on their tokens"""
     s_matches = []
+    from numpy import random
     for idx_r, token_r in enumerate(tokens_r):
+        # ran = random.randint(100)
         if token == token_r:
             s_matches.append((idx_r, 1))
+        # elif len(s_matches) < 2 and phase == 'train' and ran % 2 == 0:
         elif len(s_matches) < 2 and phase == 'train':
             s_matches.append((idx_r, 0))
 

@@ -37,9 +37,11 @@ class Trainer:
     # Constants
     VAL_BS = 10000
 
-    tasks = ('d', 'x', 'y', 'h', 'w', 'l', 'ori', 'aux')
+    # tasks = ('d', 'x', 'y', 'h', 'w', 'l', 'ori', 'aux')
+    tasks = ('d', 'x', 'y', 'aux')
     val_task = 'd'
-    lambdas = (1, 1, 1, 1, 1, 1, 1, 1)
+    # lambdas = (1, 1, 1, 1, 1, 1, 1, 1)
+    lambdas = (1, 1, 1, 1)
     clusters = ['10', '20', '30', '40']
     input_size = dict(mono=34, stereo=68)
     output_size = dict(mono=9, stereo=10)
@@ -129,7 +131,6 @@ class Trainer:
                 num_stage=self.n_stage,
                 device=self.device,
             )
-
 
         self.model.to(self.device)
         print(">>> model params: {:.3f}M".format(sum(p.numel() for p in self.model.parameters()) / 1000000.0))
