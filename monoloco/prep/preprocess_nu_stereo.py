@@ -57,6 +57,7 @@ class PreprocessNuscenes:
                            clst=defaultdict(lambda: defaultdict(list))),
               'version': __version__,
               }
+    
     dic_names = defaultdict(lambda: defaultdict(list))
     stats = defaultdict(int)
 
@@ -99,7 +100,7 @@ class PreprocessNuscenes:
                              .format(self.stats['scenes'], time_left) + '\t\n')
             start_scene = time.time()
             # if scene['name'] in self.split_train or self.stats['ann'] > 1500:
-            if scene['name'] in self.split_train or self.stats['val'] > 1500:
+            if scene['name'] in self.split_train or self.stats['val'] > 2000:
                 self.phase = 'train'
             elif scene['name'] in self.split_val:
                 self.phase = 'val'
@@ -139,7 +140,7 @@ class PreprocessNuscenes:
                             self.dic_jo_m[self.phase]['names'].append(name)  # One image name for each annotation
                             append_cluster(self.dic_jo_m, self.phase, inp, label, kp.tolist())
                             assert len(inp) == 34
-                            self.stats['pair'] += 1
+                            self.stats['mono_pair'] += 1
 
                             # STEREO
                             s_matches = token_matching(i_token, annotations_p.i_tokens, self.phase)
@@ -177,6 +178,7 @@ class PreprocessNuscenes:
                 i_s += 1
         print(f"Initial annotations: {self.stats['ann']}")
         print(f"Stereo pairs: {self.stats['true_pair']}")
+        print(f"Mono pairs: {self.stats['pair']}")
         print(f"All pairs: {self.stats['pair']}")
         print(f"Training stereo pairs: {self.stats['train_stereo']}, Total pairs: {self.stats['train_total']} ")
         print(f"Validation stereo pairs: {self.stats['val_stereo']}, Total pairs: {self.stats['val_total']} ")
@@ -339,7 +341,7 @@ def limit_bc(speed, steer):
         return False
     elif abs((steer[0]-steer[1])) > 10:
         return False
-    elif speed[0] < 3:
+    elif speed[1] < 3:
         return False
     return True
 
