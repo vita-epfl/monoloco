@@ -277,8 +277,8 @@ class Printer:
         for (i, j) in self.edges:
             x = (corners[0, i], corners[0, j])
             y = (corners[1, i], corners[1, j])
-            if min(x) > delta and max(x) < max_x-delta and min(y) > delta and max(y) < max_y-delta:
-                ax.plot(x, y, color='deepskyblue', linewidth=1.5)
+            # if min(x) > delta and max(x) < max_x-delta and min(y) > delta and max(y) < max_y-delta:
+            #     ax.plot(x, y, color='deepskyblue', linewidth=1.5)
         # w = min(self.width-2, self.boxes[idx][2] - self.boxes[idx][0])
         h = min(self.height-2, (self.boxes[idx][3] - self.boxes[idx][1]) * self.y_scale)
         x0 = self.boxes[idx][0]

@@ -44,6 +44,8 @@ def cli():
                                 help='use more exact image rescaling (requires scipy)')
     predict_parser.add_argument('--decoder-workers', default=None, type=int,
                                 help='number of workers for pose decoding, 0 for windows')
+    predict_parser.add_argument('--loader-workers', default=0, type=int,
+                                help='number of workers for pose decoding, 0 for windows')
     predict_parser.add_argument('--batch-size', default=1, type=int, help='processing batch size')
     decoder.cli(parser)
     logger.cli(parser)

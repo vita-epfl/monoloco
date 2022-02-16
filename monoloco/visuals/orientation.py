@@ -8,12 +8,12 @@ class DrawOrientation:
 
     att = dict(
         front={
-            'length': 5,
+            'length':7,
             'fill': False,
             'alpha': 0.6,
             'zorder_circle': 0.5,
             'zorder_arrow': 5,
-            'linewidth': 1.5,
+            'linewidth': 2,
             'edgecolor': 'k',
         },
         bird={
