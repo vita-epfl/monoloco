@@ -70,7 +70,7 @@ class DrawOrientation:
             self.length += 0.007 * center[1]  # increase arrow length
             edgecolor = color
 
-        circle = Circle(center, radius=radius, color=color, fill=self.fill, alpha=self.alpha, zorder=self.zorder_circle)
+        circle = Circle(center, radius=radius, color=color, fill=self.fill, alpha=self.alpha, linewidth=3, zorder=self.zorder_circle)
         arrow = FancyArrow(x_arr, z_arr, delta_x, delta_z, head_width=head_width, edgecolor=edgecolor,
                            facecolor=color, linewidth=self.linewidth, zorder=self.zorder_arrow, label='Orientation')
         ax.add_patch(circle)

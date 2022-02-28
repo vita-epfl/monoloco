@@ -149,7 +149,7 @@ def main():
             from .visuals.webcam import webcam
             webcam(args)
         else:
-            from .predict import predict
+            from .predict_jrdb import predict
             predict(args)
 
     elif args.command == 'prep':
