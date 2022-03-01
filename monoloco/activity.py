@@ -103,8 +103,10 @@ def is_raising_hand(kp):
     l_too_close = kp[x][l_hand] <= kp[x][l_shoulder] and kp[y][l_hand]>=head_top
     r_too_close = kp[x][r_hand] >= kp[x][r_shoulder] and kp[y][r_hand]>=head_top
 
-    is_left_risen = is_l_up and l_angle >= 30 and not l_too_close
-    is_right_risen = is_r_up and r_angle >= 30 and not r_too_close
+    # is_left_risen = is_l_up and l_angle >= 30 and not l_too_close
+    # is_right_risen = is_r_up and r_angle >= 30 and not r_too_close
+    is_left_risen = is_l_up
+    is_right_risen = is_r_up
 
     if is_left_risen and is_right_risen:
         return 'both'
@@ -172,6 +174,7 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
     assert 'front' in args.output_types or 'bird' in args.output_types, "outputs allowed: front and/or bird"
 
     colors_front, colors_bird = get_colors(dic_out, args.activities)
+    colors_ori = ['yellow'] * len(colors_front)
     angles = dic_out['alpha']
     angles_ego = dic_out['yaw']
     stds = dic_out['stds_ale']
@@ -179,7 +182,7 @@ def show_activities(args, image_t, output_path, annotations, dic_out):
 
     # Draw keypoints and orientation
     if 'front' in args.output_types:
-        orientation_front = DrawOrientation(angles, colors_front, mode='front', shoulders=dic_out['uv_shoulders'])
+        orientation_front = DrawOrientation(angles, colors_ori, mode='front', shoulders=dic_out['uv_shoulders'])
         keypoint_sets, _ = get_pifpaf_outputs(annotations)
 
         keypoint_painter = KeypointPainter(show_box=False)

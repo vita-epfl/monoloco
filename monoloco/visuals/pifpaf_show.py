@@ -57,7 +57,7 @@ def image_canvas(image, fig_file=None, show=True, dpi_factor=1.0, fig_width=10.0
     ax.set_ylim(image.size[1], 0)
     fig.add_axes(ax)
     image_2 = ndimage.gaussian_filter(image, sigma=2.5)
-    ax.imshow(image_2, alpha=0.4)
+    ax.imshow(image_2, alpha=0.8)
     yield ax
 
     if fig_file:
@@ -117,7 +117,7 @@ class KeypointPainter:
         self.markersize = markersize
         self.color_connections = color_connections
         self.solid_threshold = solid_threshold
-        self.dashed_threshold = 0.1  # Patch to still allow force complete pose (set to zero to resume original)
+        self.dashed_threshold = 0.01  # Patch to still allow force complete pose (set to zero to resume original)
 
 
     def _draw_skeleton(self, ax, x, y, v, *, i=0, size=None, color=None, activities=None, dic_out=None):
